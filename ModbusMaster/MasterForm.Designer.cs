@@ -50,10 +50,6 @@
             this.groupBoxFunctions.SuspendLayout();
             this.SuspendLayout();
             // 
-            // groupBox4
-            // 
-            this.groupBox4.Location = new System.Drawing.Point(7, 718);
-            // 
             // groupBox3
             // 
             this.groupBox3.Size = new System.Drawing.Size(189, 110);
@@ -214,7 +210,7 @@
             // MasterForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.ClientSize = new System.Drawing.Size(869, 917);
+            this.ClientSize = new System.Drawing.Size(869, 893);
             this.Controls.Add(this.buttonDisconnect);
             this.Controls.Add(this.btnConnect);
             this.Controls.Add(this.groupBoxFunctions);
