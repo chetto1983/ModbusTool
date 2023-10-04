@@ -36,6 +36,24 @@
             this.grpExchange.SuspendLayout();
             this.SuspendLayout();
             // 
+            // listBoxCommLog
+            // 
+            this.listBoxCommLog.Location = new System.Drawing.Point(3, 34);
+            this.listBoxCommLog.Size = new System.Drawing.Size(847, 95);
+            // 
+            // buttonClear
+            // 
+            this.buttonClear.Location = new System.Drawing.Point(668, 4);
+            this.buttonClear.Size = new System.Drawing.Size(86, 25);
+            // 
+            // comboBoxSerialPorts
+            // 
+            this.comboBoxSerialPorts.Items.AddRange(new object[] {
+            "COM3",
+            "COM6",
+            "COM7",
+            "COM9"});
+            // 
             // label8
             // 
             this.label8.Visible = false;
@@ -43,6 +61,24 @@
             // txtIP
             // 
             this.txtIP.Visible = false;
+            // 
+            // comboBoxParity
+            // 
+            this.comboBoxParity.Items.AddRange(new object[] {
+            "Odd",
+            "Even",
+            "Mark",
+            "Space"});
+            // 
+            // buttonPauseLog
+            // 
+            this.buttonPauseLog.Location = new System.Drawing.Point(576, 4);
+            this.buttonPauseLog.Size = new System.Drawing.Size(86, 25);
+            // 
+            // buttonSave
+            // 
+            this.buttonSave.Location = new System.Drawing.Point(760, 4);
+            this.buttonSave.Size = new System.Drawing.Size(86, 25);
             // 
             // buttonDisconnect
             // 
@@ -65,7 +101,7 @@
             // SlaveForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.ClientSize = new System.Drawing.Size(869, 887);
+            this.ClientSize = new System.Drawing.Size(869, 830);
             this.Controls.Add(this.buttonDisconnect);
             this.Controls.Add(this.btnConnect);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));

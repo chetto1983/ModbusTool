@@ -50,14 +50,23 @@
             this.groupBoxFunctions.SuspendLayout();
             this.SuspendLayout();
             // 
+            // listBoxCommLog
+            // 
+            this.listBoxCommLog.Location = new System.Drawing.Point(2, 37);
+            this.listBoxCommLog.Size = new System.Drawing.Size(847, 108);
+            // 
             // groupBox3
             // 
-            this.groupBox3.Size = new System.Drawing.Size(189, 110);
+            this.groupBox3.Size = new System.Drawing.Size(189, 96);
             // 
             // radioButtonInteger
             // 
             this.radioButtonInteger.Location = new System.Drawing.Point(86, 20);
             this.radioButtonInteger.Size = new System.Drawing.Size(64, 21);
+            // 
+            // buttonClear
+            // 
+            this.buttonClear.Location = new System.Drawing.Point(660, 3);
             // 
             // label1
             // 
@@ -67,14 +76,33 @@
             // 
             this.textBoxSlaveDelay.Visible = false;
             // 
+            // grpExchange
+            // 
+            this.grpExchange.Controls.Add(this.txtPollDelay);
+            this.grpExchange.Controls.Add(this.cbPoll);
+            this.grpExchange.Controls.SetChildIndex(this.textBoxSlaveDelay, 0);
+            this.grpExchange.Controls.SetChildIndex(this.label7, 0);
+            this.grpExchange.Controls.SetChildIndex(this.label1, 0);
+            this.grpExchange.Controls.SetChildIndex(this.buttonExport, 0);
+            this.grpExchange.Controls.SetChildIndex(this.textBoxSlaveID, 0);
+            this.grpExchange.Controls.SetChildIndex(this.buttonImport, 0);
+            this.grpExchange.Controls.SetChildIndex(this.cbPoll, 0);
+            this.grpExchange.Controls.SetChildIndex(this.txtPollDelay, 0);
+            // 
+            // buttonPauseLog
+            // 
+            this.buttonPauseLog.Location = new System.Drawing.Point(568, 3);
+            // 
             // radioButtonReverseFloat
             // 
             this.radioButtonReverseFloat.Location = new System.Drawing.Point(86, 40);
             // 
+            // buttonSave
+            // 
+            this.buttonSave.Location = new System.Drawing.Point(752, 3);
+            // 
             // groupBoxFunctions
             // 
-            this.groupBoxFunctions.Controls.Add(this.txtPollDelay);
-            this.groupBoxFunctions.Controls.Add(this.cbPoll);
             this.groupBoxFunctions.Controls.Add(this.btnReadCoils);
             this.groupBoxFunctions.Controls.Add(this.btnReadDisInp);
             this.groupBoxFunctions.Controls.Add(this.btnWriteMultipleReg);
@@ -86,14 +114,14 @@
             this.groupBoxFunctions.Enabled = false;
             this.groupBoxFunctions.Location = new System.Drawing.Point(216, 144);
             this.groupBoxFunctions.Name = "groupBoxFunctions";
-            this.groupBoxFunctions.Size = new System.Drawing.Size(340, 128);
+            this.groupBoxFunctions.Size = new System.Drawing.Size(340, 113);
             this.groupBoxFunctions.TabIndex = 35;
             this.groupBoxFunctions.TabStop = false;
             this.groupBoxFunctions.Text = "Functions";
             // 
             // txtPollDelay
             // 
-            this.txtPollDelay.Location = new System.Drawing.Point(56, 100);
+            this.txtPollDelay.Location = new System.Drawing.Point(62, 68);
             this.txtPollDelay.Name = "txtPollDelay";
             this.txtPollDelay.Size = new System.Drawing.Size(52, 20);
             this.txtPollDelay.TabIndex = 25;
@@ -103,7 +131,7 @@
             // cbPoll
             // 
             this.cbPoll.AutoSize = true;
-            this.cbPoll.Location = new System.Drawing.Point(7, 102);
+            this.cbPoll.Location = new System.Drawing.Point(13, 70);
             this.cbPoll.Name = "cbPoll";
             this.cbPoll.Size = new System.Drawing.Size(43, 17);
             this.cbPoll.TabIndex = 24;
@@ -210,7 +238,7 @@
             // MasterForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.ClientSize = new System.Drawing.Size(869, 893);
+            this.ClientSize = new System.Drawing.Size(869, 837);
             this.Controls.Add(this.buttonDisconnect);
             this.Controls.Add(this.btnConnect);
             this.Controls.Add(this.groupBoxFunctions);
@@ -240,7 +268,6 @@
             this.grpExchange.ResumeLayout(false);
             this.grpExchange.PerformLayout();
             this.groupBoxFunctions.ResumeLayout(false);
-            this.groupBoxFunctions.PerformLayout();
             this.ResumeLayout(false);
 
         }

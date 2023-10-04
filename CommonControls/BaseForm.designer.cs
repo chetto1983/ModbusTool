@@ -89,6 +89,31 @@
             this.tabPage2.SuspendLayout();
             this.SuspendLayout();
             // 
+            // dataTab1
+            // 
+            dataTab1.DataLength = ((ushort)(127));
+            dataTab1.DisplayFormat = Modbus.Common.DisplayFormat.Integer;
+            dataTab1.Location = new System.Drawing.Point(3, 3);
+            dataTab1.Name = "dataTab1";
+            dataTab1.RegisterData = new ushort[0];
+            dataTab1.ShowDataLength = false;
+            dataTab1.Size = new System.Drawing.Size(839, 382);
+            dataTab1.StartAddress = ((ushort)(4100));
+            dataTab1.TabIndex = 0;
+            // 
+            // dataTab2
+            // 
+            dataTab2.DataLength = ((ushort)(127));
+            dataTab2.DisplayFormat = Modbus.Common.DisplayFormat.LED;
+            dataTab2.Location = new System.Drawing.Point(3, 3);
+            dataTab2.Name = "dataTab2";
+            dataTab2.RegisterData = new ushort[] {
+        ((ushort)(0))};
+            dataTab2.ShowDataLength = false;
+            dataTab2.Size = new System.Drawing.Size(839, 406);
+            dataTab2.StartAddress = ((ushort)(4100));
+            dataTab2.TabIndex = 0;
+            // 
             // groupBox4
             // 
             this.groupBox4.Controls.Add(this.buttonSave);
@@ -97,14 +122,14 @@
             this.groupBox4.Controls.Add(this.buttonClear);
             this.groupBox4.Location = new System.Drawing.Point(10, 684);
             this.groupBox4.Name = "groupBox4";
-            this.groupBox4.Size = new System.Drawing.Size(859, 194);
+            this.groupBox4.Size = new System.Drawing.Size(859, 143);
             this.groupBox4.TabIndex = 20;
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "Communication Log";
             // 
             // buttonSave
             // 
-            this.buttonSave.Location = new System.Drawing.Point(760, 19);
+            this.buttonSave.Location = new System.Drawing.Point(760, 0);
             this.buttonSave.Name = "buttonSave";
             this.buttonSave.Size = new System.Drawing.Size(86, 28);
             this.buttonSave.TabIndex = 26;
@@ -113,7 +138,7 @@
             // 
             // buttonPauseLog
             // 
-            this.buttonPauseLog.Location = new System.Drawing.Point(576, 19);
+            this.buttonPauseLog.Location = new System.Drawing.Point(576, 0);
             this.buttonPauseLog.Name = "buttonPauseLog";
             this.buttonPauseLog.Size = new System.Drawing.Size(86, 28);
             this.buttonPauseLog.TabIndex = 25;
@@ -126,14 +151,14 @@
             this.listBoxCommLog.ForeColor = System.Drawing.Color.LimeGreen;
             this.listBoxCommLog.FormattingEnabled = true;
             this.listBoxCommLog.HorizontalScrollbar = true;
-            this.listBoxCommLog.Location = new System.Drawing.Point(3, 54);
+            this.listBoxCommLog.Location = new System.Drawing.Point(3, 34);
             this.listBoxCommLog.Name = "listBoxCommLog";
-            this.listBoxCommLog.Size = new System.Drawing.Size(847, 134);
+            this.listBoxCommLog.Size = new System.Drawing.Size(847, 95);
             this.listBoxCommLog.TabIndex = 3;
             // 
             // buttonClear
             // 
-            this.buttonClear.Location = new System.Drawing.Point(668, 19);
+            this.buttonClear.Location = new System.Drawing.Point(668, 0);
             this.buttonClear.Name = "buttonClear";
             this.buttonClear.Size = new System.Drawing.Size(86, 28);
             this.buttonClear.TabIndex = 24;
@@ -546,18 +571,6 @@
             this.tabPage1.Text = "Address1";
             this.tabPage1.UseVisualStyleBackColor = true;
             // 
-            // dataTab1
-            // 
-            dataTab1.DataLength = ((ushort)(127));
-            dataTab1.DisplayFormat = Modbus.Common.DisplayFormat.Integer;
-            dataTab1.Location = new System.Drawing.Point(3, 3);
-            dataTab1.Name = "dataTab1";
-            dataTab1.RegisterData = new ushort[0];
-            dataTab1.ShowDataLength = false;
-            dataTab1.Size = new System.Drawing.Size(839, 382);
-            dataTab1.StartAddress = ((ushort)(4100));
-            dataTab1.TabIndex = 0;
-            // 
             // tabPage2
             // 
             this.tabPage2.Controls.Add(dataTab2);
@@ -569,24 +582,11 @@
             this.tabPage2.Text = "...";
             this.tabPage2.UseVisualStyleBackColor = true;
             // 
-            // dataTab2
-            // 
-            dataTab2.DataLength = ((ushort)(127));
-            dataTab2.DisplayFormat = Modbus.Common.DisplayFormat.LED;
-            dataTab2.Location = new System.Drawing.Point(3, 3);
-            dataTab2.Name = "dataTab2";
-            dataTab2.RegisterData = new ushort[] {
-        ((ushort)(0))};
-            dataTab2.ShowDataLength = false;
-            dataTab2.Size = new System.Drawing.Size(839, 406);
-            dataTab2.StartAddress = ((ushort)(4100));
-            dataTab2.TabIndex = 0;
-            // 
             // BaseForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(869, 883);
+            this.ClientSize = new System.Drawing.Size(869, 825);
             this.Controls.Add(this.grpExchange);
             this.Controls.Add(this.tabControl1);
             this.Controls.Add(this.groupBox4);
