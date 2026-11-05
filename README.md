@@ -36,9 +36,18 @@ Rust backend, Svelte frontend, one window for both roles.
 
 ## Install
 
-Download the installer for your system from the latest successful
-[CI run](https://github.com/chetto1983/ModbusTool/actions/workflows/ci.yml) artifacts
-(`.msi`/`.exe` for Windows, `.deb`/`.AppImage` for Linux). macOS is not built in CI: run `npx tauri build` on a Mac.
+Download the installer for your system from the
+[latest release](https://github.com/chetto1983/ModbusTool/releases/latest).
+
+**Windows** — `ModbusTool_<version>_x64-setup.exe` (or the `.msi`). The installer is not signed:
+when SmartScreen stops it, choose *More info → Run anyway*. WebView2 is needed; Windows 10 and 11
+usually have it, otherwise the installer downloads it.
+
+**Linux** — on Debian/Ubuntu `sudo apt install ./ModbusTool_<version>_amd64.deb`, elsewhere
+`chmod +x ModbusTool_<version>_amd64.AppImage` and run it. For serial ports add your user to the
+`dialout` group (`sudo usermod -aG dialout $USER`) and log in again.
+
+**macOS** is not built in CI: run `npx tauri build` on a Mac.
 
 ## Known limits
 
