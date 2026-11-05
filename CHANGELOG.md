@@ -4,7 +4,7 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
-## v3.0.0 — unreleased
+## v3.0.0 — 2026-11-05
 
 A rewrite of the C# WinForms tool as one Tauri desktop app for both roles, on Windows and Linux.
 Nothing is shared with v2: projects and settings do not carry over, the CSV export of v2 can
