@@ -28,3 +28,6 @@ codegen-units = 1
 lto = true
 opt-level = "s"
 strip = true
+
+[dev-dependencies]
+tauri = { version = "2", features = ["test"] }

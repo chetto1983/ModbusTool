@@ -9,6 +9,7 @@ export default defineConfig({
   build: { target: "es2022" },
   test: {
     include: ["src/**/*.test.ts"],
-    coverage: { include: ["src/lib/**/*.ts"], exclude: ["src/lib/**/*.test.ts", "src/lib/api.ts"] },
+    environment: "happy-dom",
+    coverage: { include: ["src/lib/**/*.ts"], exclude: ["src/lib/**/*.test.ts"] },
   },
 });

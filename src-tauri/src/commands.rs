@@ -13,7 +13,7 @@ use std::sync::mpsc::{self, Receiver};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Runtime, State};
 
 pub const TRAFFIC_EVENT: &str = "traffic";
 pub const POLL_EVENT: &str = "poll-result";
@@ -29,8 +29,8 @@ pub struct AppState {
 }
 
 /// Forwards items to the UI in batches, so a busy bus does not flood the webview with events.
-fn batch_to_ui<T: Serialize + Clone + Send + 'static>(
-    app: AppHandle,
+fn batch_to_ui<R: Runtime, T: Serialize + Clone + Send + 'static>(
+    app: AppHandle<R>,
     event: &'static str,
     rx: Receiver<T>,
 ) {
@@ -46,7 +46,7 @@ fn batch_to_ui<T: Serialize + Clone + Send + 'static>(
 }
 
 impl AppState {
-    pub fn new(app: &AppHandle) -> Self {
+    pub fn new<R: Runtime>(app: &AppHandle<R>) -> Self {
         let (traffic_tx, traffic_rx) = mpsc::channel::<TrafficEvent>();
         let (results_tx, results_rx) = mpsc::channel::<PollResult>();
         batch_to_ui(app.clone(), TRAFFIC_EVENT, traffic_rx);
@@ -198,3 +198,7 @@ pub fn slave_write(
 ) -> Result<(), String> {
     state.store.write(unit, table, address, &values)
 }
+
+#[cfg(test)]
+#[path = "commands_tests.rs"]
+mod tests;
