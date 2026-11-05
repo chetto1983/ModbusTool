@@ -1,3 +1,7 @@
+pub mod describe;
+pub mod frame_io;
+pub mod link;
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
