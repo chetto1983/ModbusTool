@@ -42,6 +42,6 @@ Vedi spec §Architettura. Root: `package.json`, `vite.config.ts`, `index.html`, 
 - [x] **T7 Vista Master**: connessione, poll multipli, griglia con tipi dati, scritture, statistiche.
 - [x] **T8 Vista Slave**: unit, griglia editabile, simulazione, import/export.
 - [x] **T9 Traffico + Trend + Progetto**.
-- [ ] **T10 Verifica E2E**: app accesa, pymodbus come master contro il nostro slave e come slave
+- [x] **T10 Verifica E2E**: app accesa, pymodbus come master contro il nostro slave e come slave
   contro il nostro master; coverage ≥85%, mutation ≥70% su `frame_io`/`slave`/`master`/
   `datatypes`; file in `docs/superpowers/verification/`; README.
