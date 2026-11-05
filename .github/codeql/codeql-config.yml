@@ -1,6 +1,7 @@
 # Shared config for the CodeQL matrix in ../workflows/codeql.yml (pattern from Aura).
-# paths only bound interpreted languages: the TypeScript analysis covers the app source,
-# not tests, build configs or the E2E harness.
+# paths bound every language extracted without a build, Rust included (measured on
+# 2026-11-05: with only `src` listed, CodeQL found no Rust code and the job failed). The scan
+# covers the shipped sources, not tests, build configs or the E2E harness.
 name: "ModbusTool CodeQL config"
 
 queries:
@@ -8,6 +9,8 @@ queries:
 
 paths:
   - src
+  - src-tauri/src
 
 paths-ignore:
   - "src/**/*.test.ts"
+  - "src-tauri/src/**/*_tests.rs"
