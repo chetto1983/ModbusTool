@@ -21,6 +21,7 @@ be imported.
   register.
 - Traffic monitor frame by frame with decoded descriptions and CSV export; live trend chart.
 - Projects saved as JSON; dark and light theme in the Aura design system.
+- Windows installer as an MSI; Linux as .deb and AppImage.
 
 ### Known limits
 

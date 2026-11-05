@@ -61,7 +61,7 @@ Discipline that reviewers check (full list in `CLAUDE.md`):
 - Keep PRs focused and fill in the PR template checklist. Green CI (rust, frontend, file-size,
   bundles, CodeQL, security audit) is required to merge.
 - Update [`CHANGELOG.md`](CHANGELOG.md) when behaviour changes; its section becomes the release
-  notes when a `vX.Y.Z` tag is pushed.
+  notes. Releasing and Windows code signing: [`docs/signing.md`](docs/signing.md).
 
 ## Reporting security issues
 

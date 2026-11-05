@@ -1,38 +1,63 @@
 name: Release
 
-# Pushing a tag vX.Y.Z builds the Windows and Linux installers and publishes them as a GitHub
-# release, with the matching CHANGELOG.md section as notes (Aura's release flow).
+# Builds the Windows MSI and the Linux packages, signs the MSI through SignPath when it is
+# configured, and publishes a GitHub release whose text is the version's CHANGELOG.md section.
+#
+# Start it by pushing a tag vX.Y.Z, or from the Actions tab (Run workflow) with the tag to
+# create: the release then creates the tag on the commit the workflow ran on.
+#
+# Signing (docs/signing.md): set the repository variables SIGNPATH_ORGANIZATION_ID,
+# SIGNPATH_PROJECT_SLUG and SIGNPATH_SIGNING_POLICY_SLUG and the secret SIGNPATH_API_TOKEN.
+# Without SIGNPATH_PROJECT_SLUG the MSI is published unsigned. SignPath requires every job of
+# this workflow to run on GitHub-hosted runners.
 on:
   push:
     tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to create, e.g. v3.0.1 (must match the app version)"
+        required: true
 
 permissions:
-  contents: write
+  contents: read
 
 defaults:
   run:
     shell: bash
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
   notes:
     runs-on: ubuntu-24.04
     outputs:
       body: ${{ steps.notes.outputs.body }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - name: CHANGELOG section of this tag
+      - name: The tag matches the app version
+        id: version
+        run: |
+          version=$(jq -r .version src-tauri/tauri.conf.json)
+          if [ "$TAG" != "v$version" ]; then
+            echo "Tag $TAG does not match the app version $version (src-tauri/tauri.conf.json)" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: CHANGELOG section of this version
         id: notes
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          body=$(awk -v v="$version" '
+          body=$(awk -v v="${TAG#v}" '
             $0 ~ "^## v?" v "( |$)" { found = 1; next }
             found && /^## / { exit }
             found { print }
           ' CHANGELOG.md)
           if [ -z "$body" ]; then
-            echo "CHANGELOG.md has no section for $version" >&2
+            echo "CHANGELOG.md has no section for $TAG" >&2
             exit 1
           fi
           {
@@ -41,13 +66,11 @@ jobs:
             echo "CHANGELOG_EOF"
           } >> "$GITHUB_OUTPUT"
 
-  publish:
+  build-windows:
     needs: notes
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, ubuntu-24.04]
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -57,23 +80,116 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
-      # Reads the cache ci.yml's bundle job saves on master; tags never write it.
+      # Reads the cache ci.yml's bundle job saves on master; releases never write it.
+      - uses: Swatinem/rust-cache@e9d7b9f1e587218970671bac74e5511ed9506e6a # v2
+        with:
+          workspaces: src-tauri
+          shared-key: bundle
+          save-if: false
+      - run: npm ci
+      # MSI only: SignPath deep-signs an MSI (the app inside too) but not an NSIS installer
+      # (docs/superpowers/specs/2026-11-05-signing-design.md).
+      - run: npx tauri build --bundles msi
+      - name: Unsigned MSI
+        id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: windows-unsigned
+          path: src-tauri/target/release/bundle/msi/*.msi
+          if-no-files-found: error
+
+  build-linux:
+    needs: notes
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
       - uses: Swatinem/rust-cache@e9d7b9f1e587218970671bac74e5511ed9506e6a # v2
         with:
           workspaces: src-tauri
           shared-key: bundle
           save-if: false
       - name: System dependencies
-        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libudev-dev
       - run: npm ci
-      - uses: tauri-apps/tauri-action@fce9c6108b31ea247710505d3aaaa893ee6768d4 # v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: npx tauri build --bundles deb,appimage
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: ModbusTool ${{ github.ref_name }}
-          releaseBody: ${{ needs.notes.outputs.body }}
-          releaseDraft: false
+          name: linux
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/appimage/*.AppImage
+          if-no-files-found: error
+
+  sign-windows:
+    needs: [notes, build-windows]
+    if: vars.SIGNPATH_PROJECT_SLUG != ''
+    runs-on: ubuntu-24.04
+    # The request waits for a person to approve it in SignPath; a hosted job lasts at most 6 h.
+    timeout-minutes: 355
+    steps:
+      # The artifact configuration in SignPath is .signpath/artifact-configuration.xml. Every
+      # signing request waits for a manual approval in SignPath (SignPath Foundation terms).
+      - uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ needs.build-windows.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 21000
+          output-artifact-directory: signed
+          # The artifact configuration enforces this as the PE ProductVersion.
+          parameters: |
+            version: "${{ needs.notes.outputs.version }}"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: windows-signed
+          path: signed/*.msi
+          if-no-files-found: error
+
+  publish:
+    needs: [notes, build-windows, build-linux, sign-windows]
+    # sign-windows is skipped while SignPath is not configured; a failed signing stops the release.
+    if: >-
+      always() && needs.notes.result == 'success' && needs.build-windows.result == 'success' &&
+      needs.build-linux.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.sign-windows.result)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Signed MSI
+        if: needs.sign-windows.result == 'success'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: windows-signed
+          path: assets
+      - name: Unsigned MSI (SignPath not configured)
+        if: needs.sign-windows.result == 'skipped'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: windows-unsigned
+          path: assets
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: linux
+          path: assets
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTES: ${{ needs.notes.outputs.body }}
+        run: |
+          printf '%s\n' "$NOTES" > notes.md
+          find assets -type f -print
+          gh release create "$TAG" assets/*.msi assets/deb/*.deb assets/appimage/*.AppImage \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "ModbusTool $TAG" --notes-file notes.md
