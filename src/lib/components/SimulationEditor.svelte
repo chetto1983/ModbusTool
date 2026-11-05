@@ -101,13 +101,13 @@
     display: grid;
     gap: 9px;
     padding: 10px;
-    border: 1px solid var(--line-soft);
-    border-left: 3px solid var(--signal);
+    border: 1px solid var(--color-border);
+    border-left: 3px solid var(--color-ring);
     border-radius: var(--radius-sm);
-    background: var(--panel-2);
+    background: var(--color-surface-2);
   }
   .rule.off {
-    border-left-color: var(--line);
+    border-left-color: var(--color-border);
     opacity: 0.7;
   }
   .kind {

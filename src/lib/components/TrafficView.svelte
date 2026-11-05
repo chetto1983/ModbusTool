@@ -102,70 +102,65 @@
   }
   .segmented {
     display: inline-flex;
-    border: 1px solid var(--line);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     overflow: hidden;
   }
   .segmented button {
     all: unset;
-    padding: 5px 11px;
-    font-family: var(--font-display);
-    font-size: 11px;
+    padding: 6px 12px;
+    font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--ink-3);
+    text-transform: capitalize;
+    color: var(--color-text-muted);
     cursor: pointer;
   }
   .segmented button.active {
-    background: var(--signal);
-    color: var(--signal-ink);
+    background: var(--color-accent);
+    color: var(--color-on-accent);
   }
   .check {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
-    color: var(--ink-2);
+    font-size: 13px;
+    color: var(--color-text-muted);
   }
   .search {
-    width: 240px;
-    height: 28px;
+    width: 260px;
+    height: 32px;
   }
   .count {
-    font-size: 11px;
+    color: var(--color-text-faint);
   }
   .cols,
   .line {
     display: grid;
     grid-template-columns: 112px 58px 18px minmax(120px, 0.9fr) minmax(220px, 2fr) minmax(160px, 1.6fr);
     gap: 12px;
-    padding: 0 14px;
+    padding: 0 16px;
     align-items: center;
   }
   .cols {
-    height: 28px;
-    font-family: var(--font-display);
-    font-size: 10.5px;
+    height: 36px;
+    font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--ink-3);
-    border-bottom: 1px solid var(--line);
-    background: var(--panel-2);
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface-2);
   }
   .body {
     flex: 1;
     min-height: 0;
     overflow: auto;
-    font-family: var(--font-data);
-    font-size: 11.5px;
+    font-family: var(--font-mono);
+    font-size: 12px;
   }
   .line {
-    min-height: 26px;
-    border-bottom: 1px solid var(--line-soft);
+    min-height: 30px;
+    border-bottom: 1px solid var(--color-border);
     content-visibility: auto;
-    contain-intrinsic-size: auto 26px;
+    contain-intrinsic-size: auto 30px;
   }
   .line > span {
     overflow: hidden;
@@ -173,39 +168,39 @@
     text-overflow: ellipsis;
   }
   .origin {
-    text-transform: uppercase;
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    color: var(--ink-3);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    text-transform: capitalize;
+    color: var(--color-text-faint);
   }
   .tx .dir {
-    color: var(--tx);
+    color: var(--color-info);
   }
   .rx .dir {
-    color: var(--rx);
+    color: var(--color-success);
   }
   .info {
-    color: var(--ink-2);
-    background: color-mix(in srgb, var(--panel-2) 60%, transparent);
+    color: var(--color-text-muted);
+    background: color-mix(in oklab, var(--color-surface-2) 55%, transparent);
   }
   .info .dir {
-    color: var(--signal);
+    color: var(--color-warning);
   }
   .exception .desc {
-    color: var(--danger);
+    color: var(--color-danger);
   }
   .desc b {
     margin-right: 6px;
-    color: var(--signal);
-    font-weight: 500;
+    color: var(--color-accent-text);
+    font-weight: 400;
   }
   .bytes {
-    color: var(--ink-3);
+    color: var(--color-text-faint);
   }
   .empty {
     padding: 30px;
     text-align: center;
-    font-family: var(--font-ui);
+    font-family: var(--font-sans);
     font-size: 14px;
   }
 </style>

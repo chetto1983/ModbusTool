@@ -15,23 +15,20 @@ si registra la misura nella spec, poi si implementa. Quando una misura contraddi
 Corollario: **una suite unitaria verde non chiude niente.** La prova è l'E2E vero: app accesa,
 master contro slave reale (o simulatore di riferimento indipendente), traffico verificato.
 
-## Frontend aesthetics
+## Frontend design system
 
-You tend to converge toward generic, "on distribution" outputs. In frontend design this creates
-what users call the "AI slop" aesthetic. Avoid this: make creative, distinctive frontends that
-surprise and delight.
+The UI uses the **Aura design system** (user decision 2026-11-05): the tokens of
+`chetto1983/Aura` `web/tokens/tokens.json`, copied into `src/app.css` with the same names
+(`--color-*`, `--radius-*`, `--font-display|sans|mono`, `--motion-*`), Fraunces for headings,
+Atkinson Hyperlegible Next for text, Commit Mono for data, both themes (dark default, light).
 
-- **Typography**: distinctive, interesting fonts. Avoid generic ones (Arial, Inter, Roboto, system
-  fonts) and the usual "safe" picks (Space Grotesk included).
-- **Color & theme**: commit to a cohesive aesthetic with CSS variables. Dominant colors with sharp
-  accents beat timid, evenly-distributed palettes. Draw from IDE themes, industrial/HMI panels,
-  cultural aesthetics. No purple gradients on white.
-- **Motion**: CSS-first. One well-orchestrated load with staggered reveals beats scattered
-  micro-interactions.
-- **Backgrounds**: atmosphere and depth (layered gradients, geometric patterns, contextual effects),
-  not flat solid fills.
-- No predictable cookie-cutter layouts: design for the context (a field engineer's tool for
-  industrial buses), not for a generic SaaS dashboard.
+- Colours only from the tokens: no hard-coded hex in components.
+- Follow Aura's component language: cards on `--color-surface` with `--radius-md` and a
+  `--color-border` line; selected rows on `--color-surface-2`; primary actions filled with
+  `--color-accent` and `--color-on-accent` text; status colours (`success`, `warning`,
+  `danger`, `info`) for state, not for decoration; focus shown with `--color-ring`.
+- Sentence-case labels, no letter-spaced uppercase.
+- When Aura's tokens change, update `src/app.css` from them; do not fork the palette.
 
 ## Workflow: spec → piano → esecuzione → verifica
 

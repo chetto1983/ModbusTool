@@ -152,43 +152,40 @@
     grid-template-columns: 76px minmax(90px, 1fr) minmax(110px, 1.1fr) minmax(130px, 1.2fr) 34px;
     align-items: center;
     gap: 10px;
-    padding: 0 14px;
+    padding: 0 16px;
   }
   .head {
-    height: 30px;
-    font-family: var(--font-display);
-    font-size: 10.5px;
+    height: 36px;
+    font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--ink-3);
-    border-bottom: 1px solid var(--line);
-    background: var(--panel-2);
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface-2);
   }
   .body {
     overflow: auto;
     flex: 1;
   }
   .line {
-    height: 32px;
-    border-bottom: 1px solid var(--line-soft);
-    font-family: var(--font-data);
-    font-size: 12px;
+    height: 34px;
+    border-bottom: 1px solid var(--color-border);
+    font-family: var(--font-mono);
+    font-size: 12.5px;
     content-visibility: auto;
     contain-intrinsic-size: auto 32px;
   }
   .line:hover {
-    background: var(--panel-2);
+    background: var(--color-surface-2);
   }
   .line.stale .value,
   .line.stale .raw {
-    color: var(--ink-3);
+    color: var(--color-text-faint);
   }
   .addr {
-    color: var(--signal);
+    color: var(--color-accent-text);
   }
   .raw {
-    color: var(--ink-3);
+    color: var(--color-text-faint);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -198,44 +195,45 @@
     text-align: right;
   }
   input.label {
-    height: 24px;
+    height: 28px;
     border-color: transparent;
     background: transparent;
-    font-family: var(--font-ui);
+    font-family: var(--font-sans);
     font-size: 13px;
     padding: 0 6px;
   }
   input.label:hover {
-    border-color: var(--line);
+    border-color: var(--color-border);
   }
   .cell {
     all: unset;
     display: inline-block;
     min-width: 60px;
     padding: 2px 6px;
-    border-radius: 4px;
-    color: var(--ink);
-    animation: flash 700ms ease-out;
+    border-radius: 6px;
+    color: var(--color-text);
+    animation: flash 900ms var(--motion-ease-out);
   }
   .cell.editable {
     cursor: text;
   }
   .cell.editable:hover {
-    background: var(--signal-soft);
+    background: var(--color-accent-soft);
   }
   @keyframes flash {
     from {
-      color: var(--signal);
-      text-shadow: 0 0 10px var(--signal);
+      background: var(--color-accent);
+      color: var(--color-on-accent);
     }
   }
   input.edit {
-    height: 26px;
+    height: 28px;
     text-align: right;
+    font-family: var(--font-mono);
   }
   .edit-error {
     padding: 4px 14px 6px 100px;
-    color: var(--danger);
+    color: var(--color-danger);
     font-size: 12px;
   }
   .switch {
@@ -244,9 +242,9 @@
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    color: var(--ink-3);
-    font-size: 11px;
-    letter-spacing: 0.08em;
+    color: var(--color-text-faint);
+    font-size: 12px;
+    font-weight: 600;
   }
   .switch:disabled {
     cursor: default;
@@ -255,8 +253,8 @@
     width: 26px;
     height: 14px;
     border-radius: 8px;
-    background: var(--panel-3);
-    border: 1px solid var(--line);
+    background: var(--color-surface-3);
+    border: 1px solid var(--color-border);
     position: relative;
     transition: background 150ms;
   }
@@ -268,20 +266,19 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--ink-3);
+    background: var(--color-text-faint);
     transition: transform 150ms, background 150ms;
   }
   .switch.on {
-    color: var(--rx);
+    color: var(--color-success);
   }
   .switch.on i {
-    background: color-mix(in srgb, var(--rx) 25%, transparent);
-    border-color: var(--rx);
+    background: color-mix(in oklab, var(--color-success) 25%, transparent);
+    border-color: var(--color-success);
   }
   .switch.on i::after {
     transform: translateX(12px);
-    background: var(--rx);
-    box-shadow: 0 0 8px var(--rx);
+    background: var(--color-success);
   }
   .trend {
     all: unset;
@@ -297,7 +294,7 @@
     width: 14px;
     height: 14px;
     fill: none;
-    stroke: var(--ink-2);
+    stroke: var(--color-text-muted);
     stroke-width: 1.8;
   }
   .line:hover .trend,
@@ -305,6 +302,6 @@
     opacity: 1;
   }
   .trend.active svg {
-    stroke: var(--signal);
+    stroke: var(--color-ring);
   }
 </style>

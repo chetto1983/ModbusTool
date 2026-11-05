@@ -28,7 +28,7 @@ Rust backend, Svelte frontend, one window for both roles.
   with byte orders ABCD, CDAB, BADC, DCBA. Labels per register.
 - Traffic monitor, frame by frame, with decoded descriptions, filters and CSV export.
 - Live trend chart of any value.
-- Projects saved as JSON (`Ctrl+S`, `Ctrl+O`). Dark and light theme.
+- Projects saved as JSON (`Ctrl+S`, `Ctrl+O`). Dark and light theme, same design as Aura.
 
 | Slave | Traffic monitor |
 |---|---|
@@ -81,4 +81,9 @@ Project rules for contributors and coding agents are in [CLAUDE.md](CLAUDE.md).
 
 ## License
 
-Apache License 2.0, see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE). Version 3 shares no code with the earlier C# releases, which were
+published under the Apache License 2.0 and remain so in the git history.
+
+The interface follows the design tokens of [Aura](https://github.com/chetto1983/Aura). Bundled
+fonts (Fraunces, Atkinson Hyperlegible Next, Commit Mono) are under the SIL Open Font License 1.1,
+see [src/assets/fonts/OFL.txt](src/assets/fonts/OFL.txt).

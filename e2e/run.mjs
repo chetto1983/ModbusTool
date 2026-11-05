@@ -17,6 +17,7 @@ const shots = process.argv[2] ? resolve(process.argv[2]) : null;
 const tmp = mkdtempSync(join(tmpdir(), "modbustool-e2e-"));
 const children = [];
 const results = [];
+let currentBrowser = null;
 
 function background(command, args) {
   const child = spawn(command, args, { stdio: "ignore" });
@@ -37,6 +38,8 @@ async function check(name, fn) {
   } catch (e) {
     results.push({ name, ok: false, error: e.message });
     console.log(`  ✗ ${name}\n      ${e.message}`);
+    await currentBrowser?.saveScreenshot(join(tmp, `failure-${results.length}.png`)).catch(() => {});
+    console.log(`      screenshot: ${join(tmp, `failure-${results.length}.png`)}`);
   }
 }
 
@@ -113,6 +116,7 @@ async function masterScenario(browser, ports, serialRef) {
   const conn = panel("Connection");
   console.log("Master against pymodbus");
   // The theme persists across runs; start from the dark one so screenshots are comparable.
+  await browser.waitUntil(async () => Boolean(await browser.execute(() => document.documentElement.dataset.theme)));
   if ((await browser.execute(() => document.documentElement.dataset.theme)) === "light") {
     await click(browser, "//nav//button[contains(@class,'theme')]");
   }
@@ -164,6 +168,7 @@ async function masterScenario(browser, ports, serialRef) {
   for (const [name, protocol, fields] of others) {
     await check(`${name}: read once FC04 matches the reference`, async () => {
       await click(browser, button(conn, "Disconnect"));
+      await browser.$(button(conn, "Connect")).waitForClickable({ timeout: 5000 });
       await setField(browser, conn, "Protocol", protocol);
       for (const [label, value] of Object.entries(fields)) await setField(browser, conn, label, value);
       await click(browser, button(conn, "Connect"));
@@ -228,6 +233,8 @@ async function slaveScenario(browser, ports, slaveSerial, clientSerial) {
   for (const [name, protocol, fields, client] of others) {
     await check(`${name}: reference reads FC03 from the slave`, async () => {
       await click(browser, button(listener, "Stop"));
+      // The fields stay disabled until the listener has stopped.
+      await browser.$(button(listener, "Start listening")).waitForClickable({ timeout: 5000 });
       await setField(browser, listener, "Protocol", protocol);
       for (const [label, value] of Object.entries(fields)) await setField(browser, listener, label, value);
       await click(browser, button(listener, "Start listening"));
@@ -273,6 +280,7 @@ async function main() {
     logLevel: "error",
     capabilities: { "tauri:options": { application: join(root, "src-tauri/target/debug/modbus-tool") } },
   });
+  currentBrowser = browser;
   try {
     await masterScenario(browser, ports, join(tmp, "refB"));
     await slaveScenario(browser, ports, join(tmp, "slaveA"), join(tmp, "slaveB"));

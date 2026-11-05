@@ -7,7 +7,7 @@
   let host: HTMLDivElement;
   let plot: uPlot | null = null;
 
-  const PALETTE_VARS = ["--signal", "--tx", "--rx", "--danger", "--ink-2"];
+  const PALETTE_VARS = ["--color-ring", "--color-success", "--color-warning", "--color-danger", "--color-text-muted"];
 
   function palette(): string[] {
     const style = getComputedStyle(document.documentElement);
@@ -28,13 +28,13 @@
     plot?.destroy();
     const colors = palette();
     const style = getComputedStyle(document.documentElement);
-    const ink = style.getPropertyValue("--ink-3").trim();
-    const grid = style.getPropertyValue("--line-soft").trim();
+    const ink = style.getPropertyValue("--color-text-faint").trim();
+    const grid = style.getPropertyValue("--color-border").trim();
     const axis: uPlot.Axis = {
       stroke: ink,
       grid: { stroke: grid, width: 1 },
       ticks: { stroke: grid, width: 1 },
-      font: "11px Martian Mono, monospace",
+      font: "11px Commit Mono, monospace",
     };
     plot = new uPlot(
       {
@@ -101,14 +101,14 @@
     inset: 0;
     display: grid;
     place-items: center;
-    color: var(--ink-3);
+    color: var(--color-text-faint);
   }
   .trend :global(.u-legend) {
-    font-family: var(--font-data);
+    font-family: var(--font-mono);
     font-size: 11px;
-    color: var(--ink-2);
+    color: var(--color-text-muted);
   }
   .trend :global(.u-select) {
-    background: var(--signal-soft);
+    background: var(--color-accent-soft);
   }
 </style>

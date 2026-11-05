@@ -130,19 +130,19 @@
     cursor: pointer;
   }
   .item:hover {
-    background: var(--panel-2);
+    background: var(--color-surface-2);
   }
   .item.active {
-    border-color: var(--signal);
-    background: var(--signal-soft);
+    background: var(--color-surface-2);
+    border-color: var(--color-border);
   }
   .name {
     font-weight: 600;
   }
   .meta {
     grid-column: 2;
-    color: var(--ink-3);
-    font-size: 11px;
+    color: var(--color-text-faint);
+    font-size: 12px;
   }
   .empty {
     padding: 14px 10px;
@@ -151,6 +151,6 @@
   .editor {
     display: grid;
     gap: 10px;
-    border-top: 1px solid var(--line-soft);
+    border-top: 1px solid var(--color-border);
   }
 </style>

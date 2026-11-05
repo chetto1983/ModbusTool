@@ -18,6 +18,8 @@ che mancavano.
 | D4 | FC22 (mask write) e FC23 (read/write multiple) **fuori dalla v1** | Non supportate da `rmodbus` 0.13 (vedi inventario) |
 | D5 | Conversioni dei tipi di dato e simulazione valori vivono **solo nel frontend** (TS) | Una sola implementazione delle conversioni (regola REUSABLE CODE) |
 | D6 | Il nome delle eccezioni si ricava dal byte grezzo del frame, non da `rmodbus` | Incoerenza misurata in `rmodbus` (sotto) |
+| D7 | Design: token, font e linguaggio dei componenti di Aura (`web/tokens/tokens.json`), sostituiscono il tema "sala controllo" | Scelta utente 2026-11-05 |
+| D8 | Licenza MIT per la versione 3 (nessun codice in comune con la v2 Apache-2.0) | Scelta utente 2026-11-05 |
 
 ## Inventario (misurato 2026-11-05 sul sorgente installato)
 

@@ -42,23 +42,24 @@
 </script>
 
 <div class="shell">
-  <nav class="rail">
-    <div class="brand" title="ModbusTool">
+  <nav class="side" aria-label="Sections">
+    <div class="brand">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 16 H6 V8 H10 V16 H14 V8 H18 V16 H22" /></svg>
+      <span>ModbusTool</span>
     </div>
     {#each NAV as item (item.id)}
-      <button class="nav" class:active={app.view === item.id} onclick={() => (app.view = item.id)}>
+      <button
+        class="nav"
+        aria-current={app.view === item.id ? "page" : undefined}
+        onclick={() => (app.view = item.id)}
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d={item.glyph} /></svg>
         <span>{item.label}</span>
         <i class="led" class:on={status(item.id) && item.id !== "traffic"} class:warn={item.id === "traffic" && status(item.id)}></i>
       </button>
     {/each}
     <span class="spacer"></span>
-    <button
-      class="nav theme"
-      title="Switch theme"
-      onclick={() => setTheme(app.theme === "dark" ? "light" : "dark")}
-    >
+    <button class="nav theme" title="Switch theme" onclick={() => setTheme(app.theme === "dark" ? "light" : "dark")}>
       <svg viewBox="0 0 24 24" aria-hidden="true">
         {#if app.theme === "dark"}
           <path d="M20 14 A8 8 0 1 1 10 4 A6.5 6.5 0 0 0 20 14 Z" />
@@ -66,18 +67,15 @@
           <path d="M12 4 V2 M12 22 V20 M4 12 H2 M22 12 H20 M6 6 L4.5 4.5 M18 18 L19.5 19.5 M6 18 L4.5 19.5 M18 6 L19.5 4.5 M16 12 A4 4 0 1 1 8 12 A4 4 0 1 1 16 12" />
         {/if}
       </svg>
-      <span>{app.theme === "dark" ? "Dark" : "Light"}</span>
+      <span>{app.theme === "dark" ? "Dark theme" : "Light theme"}</span>
     </button>
   </nav>
 
   <div class="main">
     <header class="top">
-      <h1>
-        <span class="mark">ModbusTool</span>
-        <span class="view">/ {app.view}</span>
-      </h1>
+      <h1>{NAV.find((n) => n.id === app.view)?.label}</h1>
       <span class="spacer"></span>
-      <span class="file data">{app.projectPath ? fileName(app.projectPath) : "unsaved project"}</span>
+      <span class="file">{app.projectPath ? fileName(app.projectPath) : "Unsaved project"}</span>
       <button class="btn small" onclick={openProject} title="Ctrl+O">Open</button>
       <button class="btn small" onclick={() => saveProject()} title="Ctrl+S">Save</button>
       <button class="btn small ghost" onclick={() => saveProject(true)} title="Ctrl+Shift+S">Save as</button>
@@ -101,53 +99,55 @@
 <style>
   .shell {
     display: grid;
-    grid-template-columns: 84px 1fr;
+    grid-template-columns: 15rem 1fr;
     height: 100%;
   }
-  .rail {
+  .side {
     display: flex;
     flex-direction: column;
-    align-items: stretch;
-    gap: 4px;
-    padding: 14px 8px;
-    border-right: 1px solid var(--line);
-    background: color-mix(in srgb, var(--panel) 85%, transparent);
-    backdrop-filter: blur(6px);
+    gap: 2px;
+    padding: 12px;
+    border-right: 1px solid var(--color-border);
+    background: var(--color-surface);
   }
   .brand {
-    display: grid;
-    place-items: center;
-    height: 48px;
-    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 44px;
+    padding: 0 10px;
+    margin-bottom: 12px;
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 600;
   }
   .brand svg {
-    width: 34px;
+    width: 26px;
     fill: none;
-    stroke: var(--signal);
-    stroke-width: 2.6;
+    stroke: var(--color-ring);
+    stroke-width: 2.4;
     stroke-linejoin: round;
-    filter: drop-shadow(0 0 6px var(--signal-soft));
   }
   .nav {
     all: unset;
-    position: relative;
-    display: grid;
-    justify-items: center;
-    gap: 5px;
-    padding: 11px 0 9px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    padding: 0 12px;
     border-radius: var(--radius-sm);
     cursor: pointer;
-    color: var(--ink-3);
-    font-family: var(--font-display);
-    font-size: 10.5px;
+    font-size: 14px;
     font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    transition: color 120ms, background 120ms;
+    color: var(--color-text-muted);
+    transition: background var(--motion-fast), color var(--motion-fast);
+  }
+  .nav span {
+    flex: 1;
   }
   .nav svg {
-    width: 22px;
-    height: 22px;
+    width: 18px;
+    height: 18px;
     fill: none;
     stroke: currentColor;
     stroke-width: 1.8;
@@ -155,29 +155,15 @@
     stroke-linejoin: round;
   }
   .nav:hover {
-    color: var(--ink);
-    background: var(--panel-2);
+    background: var(--color-surface-2);
+    color: var(--color-text);
   }
-  .nav.active {
-    color: var(--signal);
-    background: var(--signal-soft);
+  .nav[aria-current="page"] {
+    background: var(--color-surface-2);
+    color: var(--color-text);
   }
-  .nav.active::before {
-    content: "";
-    position: absolute;
-    left: -8px;
-    top: 10px;
-    bottom: 10px;
-    width: 3px;
-    border-radius: 0 3px 3px 0;
-    background: var(--signal);
-  }
-  .nav .led {
-    position: absolute;
-    top: 9px;
-    right: 14px;
-    width: 6px;
-    height: 6px;
+  .nav:focus-visible {
+    box-shadow: 0 0 0 2px var(--color-ring);
   }
   .nav .led:not(.on):not(.warn) {
     display: none;
@@ -192,52 +178,43 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    height: 58px;
-    padding: 0 20px;
-    border-bottom: 1px solid var(--line-soft);
+    min-height: 64px;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--color-border);
   }
   h1 {
     margin: 0;
     font-family: var(--font-display);
-    font-size: 19px;
+    font-size: 22px;
     font-weight: 600;
-    letter-spacing: 0.02em;
-  }
-  .mark {
-    color: var(--ink);
-  }
-  .view {
-    color: var(--ink-3);
-    font-weight: 500;
-    text-transform: capitalize;
   }
   .file {
     margin-right: 8px;
-    color: var(--ink-3);
-    font-size: 11px;
+    font-size: 13px;
+    color: var(--color-text-faint);
   }
   .content {
     flex: 1;
     min-height: 0;
-    padding: 16px 20px 20px;
+    padding: 20px 24px 24px;
   }
   .notice {
     position: fixed;
-    right: 20px;
-    bottom: 20px;
+    right: 24px;
+    bottom: 24px;
     max-width: 420px;
-    padding: 11px 16px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--line);
-    background: var(--panel-3);
-    box-shadow: var(--shadow);
-    animation: rise 260ms ease-out both;
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-2);
+    box-shadow: var(--shadow-popover);
+    animation: enter var(--motion-base) var(--motion-ease-out) both;
   }
   .notice.ok {
-    border-left: 3px solid var(--rx);
+    border-color: var(--color-success);
   }
   .notice.error {
-    border-left: 3px solid var(--danger);
-    color: var(--danger);
+    border-color: var(--color-danger);
+    background: color-mix(in oklab, var(--color-danger) 12%, var(--color-surface-2));
   }
 </style>

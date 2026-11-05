@@ -142,21 +142,21 @@
   }
   .stats {
     display: flex;
-    gap: 18px;
-    padding: 8px 14px;
-    border-bottom: 1px solid var(--line-soft);
-    font-size: 11px;
-    color: var(--ink-2);
+    gap: 20px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 12px;
+    color: var(--color-text-muted);
   }
   .stats b {
-    color: var(--ink);
-    font-weight: 500;
+    color: var(--color-text);
+    font-weight: 400;
   }
   .stats .ok b {
-    color: var(--rx);
+    color: var(--color-success);
   }
   .stats .bad b {
-    color: var(--danger);
+    color: var(--color-danger);
   }
   .error-line.flush {
     margin: 0;
@@ -172,12 +172,12 @@
     place-content: center;
     justify-items: center;
     gap: 10px;
-    color: var(--ink-3);
+    color: var(--color-text-faint);
   }
   .placeholder svg {
     width: 180px;
     fill: none;
-    stroke: var(--signal);
+    stroke: var(--color-ring);
     stroke-width: 2.5;
     stroke-dasharray: 260;
     animation: draw 2.4s ease-in-out infinite alternate;

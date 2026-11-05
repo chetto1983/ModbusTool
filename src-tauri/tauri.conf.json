@@ -13,9 +13,9 @@
     "windows": [
       {
         "title": "ModbusTool",
-        "width": 1360,
-        "height": 860,
-        "minWidth": 1024,
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1180,
         "minHeight": 640
       }
     ],
