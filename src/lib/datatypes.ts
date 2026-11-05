@@ -20,17 +20,17 @@ export type DataType =
 export type ByteOrder = "ABCD" | "CDAB" | "BADC" | "DCBA";
 
 export const DATA_TYPES: { id: DataType; label: string; registers: number }[] = [
-  { id: "uint16", label: "Unsigned 16", registers: 1 },
-  { id: "int16", label: "Signed 16", registers: 1 },
+  { id: "uint16", label: "UInt16", registers: 1 },
+  { id: "int16", label: "Int16", registers: 1 },
   { id: "hex", label: "Hex", registers: 1 },
   { id: "binary", label: "Binary", registers: 1 },
-  { id: "uint32", label: "Unsigned 32", registers: 2 },
-  { id: "int32", label: "Signed 32", registers: 2 },
-  { id: "float32", label: "Float 32", registers: 2 },
-  { id: "uint64", label: "Unsigned 64", registers: 4 },
-  { id: "int64", label: "Signed 64", registers: 4 },
-  { id: "float64", label: "Float 64", registers: 4 },
-  { id: "ascii", label: "ASCII (2 chars)", registers: 1 },
+  { id: "uint32", label: "UInt32", registers: 2 },
+  { id: "int32", label: "Int32", registers: 2 },
+  { id: "float32", label: "Float32", registers: 2 },
+  { id: "uint64", label: "UInt64", registers: 4 },
+  { id: "int64", label: "Int64", registers: 4 },
+  { id: "float64", label: "Float64", registers: 4 },
+  { id: "ascii", label: "ASCII", registers: 1 },
 ];
 
 export const BYTE_ORDERS: ByteOrder[] = ["ABCD", "CDAB", "BADC", "DCBA"];

@@ -55,7 +55,7 @@ export function addPoll(): PollConfig {
 export async function removePoll(id: string): Promise<void> {
   await stopPoll(id);
   app.project.master.polls = app.project.master.polls.filter((p) => p.id !== id);
-  master.trend = master.trend.filter((s) => s.pollId !== id);
+  clearTrend(id);
   delete master.runtime[id];
   if (master.selectedPoll === id) master.selectedPoll = app.project.master.polls[0]?.id ?? null;
 }
@@ -77,6 +77,17 @@ export async function stopPoll(id: string): Promise<void> {
 /** Applies edited settings to a running poll. */
 export async function restartIfRunning(poll: PollConfig): Promise<void> {
   if (master.runtime[poll.id]?.running) await startPoll(poll);
+}
+
+/** Trend points recorded before a change of function, unit, address or type mean something else. */
+export function clearTrend(pollId: string): void {
+  master.trend = master.trend.filter((s) => s.pollId !== pollId);
+}
+
+/** For edits that change what the poll's values mean. */
+export async function redefinePoll(poll: PollConfig): Promise<void> {
+  clearTrend(poll.id);
+  await restartIfRunning(poll);
 }
 
 export async function readOnce(poll: PollConfig): Promise<void> {

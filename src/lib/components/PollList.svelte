@@ -1,6 +1,6 @@
 <script lang="ts">
   import { app, master } from "../state.svelte";
-  import { addPoll, READ_KINDS, removePoll, restartIfRunning, startPoll, stopPoll } from "../masterActions.svelte";
+  import { addPoll, clearTrend, READ_KINDS, redefinePoll, removePoll, restartIfRunning, startPoll, stopPoll } from "../masterActions.svelte";
   import { BYTE_ORDERS, DATA_TYPES } from "../datatypes";
 
   const polls = $derived(app.project.master.polls);
@@ -51,7 +51,7 @@
       </label>
       <label class="field">
         Function
-        <select bind:value={selected.kind} onchange={() => restartIfRunning(selected)}>
+        <select bind:value={selected.kind} onchange={() => redefinePoll(selected)}>
           {#each READ_KINDS as kind (kind.id)}
             <option value={kind.id}>{kind.code} · {kind.label}</option>
           {/each}
@@ -60,11 +60,11 @@
       <div class="grid-3">
         <label class="field">
           Unit
-          <input type="number" min="0" max="255" bind:value={selected.unit} onchange={() => restartIfRunning(selected)} />
+          <input type="number" min="0" max="255" bind:value={selected.unit} onchange={() => redefinePoll(selected)} />
         </label>
         <label class="field">
           Address
-          <input type="number" min="0" max="65535" bind:value={selected.address} onchange={() => restartIfRunning(selected)} />
+          <input type="number" min="0" max="65535" bind:value={selected.address} onchange={() => redefinePoll(selected)} />
         </label>
         <label class="field">
           Quantity
@@ -78,13 +78,13 @@
         </label>
         <label class="field">
           Type
-          <select bind:value={selected.dataType}>
+          <select bind:value={selected.dataType} onchange={() => clearTrend(selected.id)}>
             {#each DATA_TYPES as type (type.id)}<option value={type.id}>{type.label}</option>{/each}
           </select>
         </label>
         <label class="field">
           Order
-          <select bind:value={selected.byteOrder}>
+          <select bind:value={selected.byteOrder} onchange={() => clearTrend(selected.id)}>
             {#each BYTE_ORDERS as order (order)}<option value={order}>{order}</option>{/each}
           </select>
         </label>

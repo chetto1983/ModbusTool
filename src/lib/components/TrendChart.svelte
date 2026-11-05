@@ -14,6 +14,10 @@
     return PALETTE_VARS.map((v) => style.getPropertyValue(v).trim());
   }
 
+  // The legend is rendered below the canvas, inside the same host.
+  const LEGEND_HEIGHT = 30;
+  const plotHeight = () => Math.max(80, host.clientHeight - LEGEND_HEIGHT);
+
   function data(): uPlot.AlignedData {
     if (master.trend.length === 0) return [[]];
     // Series sample at different instants; join aligns them on a shared time axis.
@@ -35,11 +39,11 @@
     plot = new uPlot(
       {
         width: host.clientWidth,
-        height: host.clientHeight,
+        height: plotHeight(),
         legend: { show: true },
         cursor: { drag: { x: true, y: false } },
         scales: { x: { time: true } },
-        axes: [axis, { ...axis, size: 64 }],
+        axes: [{ ...axis, space: 110 }, { ...axis, size: 64 }],
         series: [
           {},
           ...master.trend.map((s, i) => ({
@@ -73,7 +77,7 @@
   });
 
   $effect(() => {
-    const observer = new ResizeObserver(() => plot?.setSize({ width: host.clientWidth, height: host.clientHeight }));
+    const observer = new ResizeObserver(() => plot?.setSize({ width: host.clientWidth, height: plotHeight() }));
     observer.observe(host);
     return () => observer.disconnect();
   });

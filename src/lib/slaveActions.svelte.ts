@@ -91,7 +91,8 @@ export async function exportCsv(unit: number, table: Table, start: number, count
 export function newRule(unit: number, table: Table, address: number): SimulationRule {
   return {
     id: newId(),
-    enabled: true,
+    // Disabled until configured, so it does not overwrite the address that was selected.
+    enabled: false,
     unit,
     table,
     address,
