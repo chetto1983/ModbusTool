@@ -1,6 +1,15 @@
 <script lang="ts">
   import { app, master } from "../state.svelte";
-  import { addPoll, clearTrend, READ_KINDS, redefinePoll, removePoll, restartIfRunning, startPoll, stopPoll } from "../masterActions.svelte";
+  import {
+    addPoll,
+    clearTrend,
+    READ_KINDS,
+    redefinePoll,
+    removePoll,
+    restartIfRunning,
+    startPoll,
+    stopPoll,
+  } from "../masterActions.svelte";
   import { BYTE_ORDERS, DATA_TYPES } from "../datatypes";
 
   const polls = $derived(app.project.master.polls);
@@ -30,7 +39,11 @@
   <ul class="list">
     {#each polls as poll (poll.id)}
       <li>
-        <button class="item" class:active={poll.id === master.selectedPoll} onclick={() => (master.selectedPoll = poll.id)}>
+        <button
+          class="item"
+          class:active={poll.id === master.selectedPoll}
+          onclick={() => (master.selectedPoll = poll.id)}
+        >
           <span class="led {status(poll.id)}"></span>
           <span class="name">{poll.name}</span>
           <span class="meta data">
@@ -64,17 +77,35 @@
         </label>
         <label class="field">
           Address
-          <input type="number" min="0" max="65535" bind:value={selected.address} onchange={() => redefinePoll(selected)} />
+          <input
+            type="number"
+            min="0"
+            max="65535"
+            bind:value={selected.address}
+            onchange={() => redefinePoll(selected)}
+          />
         </label>
         <label class="field">
           Quantity
-          <input type="number" min="1" max={maxQuantity} bind:value={selected.quantity} onchange={() => restartIfRunning(selected)} />
+          <input
+            type="number"
+            min="1"
+            max={maxQuantity}
+            bind:value={selected.quantity}
+            onchange={() => restartIfRunning(selected)}
+          />
         </label>
       </div>
       <div class="grid-3">
         <label class="field">
           Every ms
-          <input type="number" min="10" step="100" bind:value={selected.intervalMs} onchange={() => restartIfRunning(selected)} />
+          <input
+            type="number"
+            min="10"
+            step="100"
+            bind:value={selected.intervalMs}
+            onchange={() => restartIfRunning(selected)}
+          />
         </label>
         <label class="field">
           Type

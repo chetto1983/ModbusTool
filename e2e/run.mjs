@@ -26,7 +26,9 @@ function background(command, args) {
 }
 
 function reference(...args) {
-  const out = execFileSync("python3", [join(root, "e2e/reference_client.py"), ...args.map(String)], { encoding: "utf8" });
+  const out = execFileSync("python3", [join(root, "e2e/reference_client.py"), ...args.map(String)], {
+    encoding: "utf8",
+  });
   return JSON.parse(out.trim().split("\n").pop());
 }
 
@@ -129,12 +131,19 @@ async function masterScenario(browser, ports, serialRef) {
   await click(browser, button(panel("Polls"), "▶ Start"));
 
   await check("TCP poll FC03 shows the reference values", () =>
-    eventually(async () => expectEqual((await gridValues(browser)).slice(0, 4), ["111", "222", "333", "444"], "grid"), "poll"),
+    eventually(
+      async () => expectEqual((await gridValues(browser)).slice(0, 4), ["111", "222", "333", "444"], "grid"),
+      "poll",
+    ),
   );
 
   await check("TCP write FC06 from the grid reaches the reference", async () => {
     await editCell(browser, 3, 4242);
-    await eventually(async () => expectEqual(reference("read", "tcp", `127.0.0.1:${ports.tcp}`, "holding", 3, 1).values, [4242], "reference"), "write");
+    await eventually(
+      async () =>
+        expectEqual(reference("read", "tcp", `127.0.0.1:${ports.tcp}`, "holding", 3, 1).values, [4242], "reference"),
+      "write",
+    );
   });
 
   await check("TCP float32 CDAB display of a written value", async () => {
@@ -152,9 +161,20 @@ async function masterScenario(browser, ports, serialRef) {
 
   await check("TCP coils FC01 toggle writes FC05", async () => {
     await setField(browser, panel("Polls"), "Function", "FC01 · Coils");
-    await eventually(async () => expectEqual((await gridValues(browser)).slice(0, 4), ["ON", "OFF", "ON", "OFF"], "coils"), "coils");
+    await eventually(
+      async () => expectEqual((await gridValues(browser)).slice(0, 4), ["ON", "OFF", "ON", "OFF"], "coils"),
+      "coils",
+    );
     await click(browser, "//button[@aria-label='Toggle 1']");
-    await eventually(async () => expectEqual(reference("read", "tcp", `127.0.0.1:${ports.tcp}`, "coils", 0, 4).values, [1, 1, 1, 0], "reference"), "toggle");
+    await eventually(
+      async () =>
+        expectEqual(
+          reference("read", "tcp", `127.0.0.1:${ports.tcp}`, "coils", 0, 4).values,
+          [1, 1, 1, 0],
+          "reference",
+        ),
+      "toggle",
+    );
   });
 
   await click(browser, button(panel("Polls"), "■ Stop"));
@@ -174,7 +194,10 @@ async function masterScenario(browser, ports, serialRef) {
       await click(browser, button(conn, "Connect"));
       await browser.$(button(conn, "Disconnect")).waitForExist({ timeout: 5000 });
       await click(browser, "//button[normalize-space()='Read once']");
-      await eventually(async () => expectEqual((await gridValues(browser)).slice(0, 3), ["1000", "1001", "1002"], "grid"), "read");
+      await eventually(
+        async () => expectEqual((await gridValues(browser)).slice(0, 3), ["1000", "1001", "1002"], "grid"),
+        "read",
+      );
     });
   }
   await click(browser, button(conn, "Disconnect"));
@@ -201,7 +224,10 @@ async function slaveScenario(browser, ports, slaveSerial, clientSerial) {
 
   await check("TCP: a value edited in the grid is read by the reference", async () => {
     await editCell(browser, 1, 555);
-    await eventually(() => expectEqual(reference("read", "tcp", target, "holding", 11, 1).values, [555], "read"), "edit");
+    await eventually(
+      () => expectEqual(reference("read", "tcp", target, "holding", 11, 1).values, [555], "read"),
+      "edit",
+    );
   });
 
   await check("TCP: coils written by the reference (FC15) read back (FC01)", () => {
@@ -227,7 +253,12 @@ async function slaveScenario(browser, ports, slaveSerial, clientSerial) {
 
   const others = [
     ["UDP", "Modbus UDP", { Port: ports.slaveUdp }, ["udp", `127.0.0.1:${ports.slaveUdp}`]],
-    ["RTU over TCP", "RTU over TCP", { Port: ports.slaveRtuOverTcp }, ["rtuovertcp", `127.0.0.1:${ports.slaveRtuOverTcp}`]],
+    [
+      "RTU over TCP",
+      "RTU over TCP",
+      { Port: ports.slaveRtuOverTcp },
+      ["rtuovertcp", `127.0.0.1:${ports.slaveRtuOverTcp}`],
+    ],
     ["RTU serial", "RTU · serial", { "Serial port": slaveSerial }, ["rtu", clientSerial]],
   ];
   for (const [name, protocol, fields, client] of others) {
@@ -239,7 +270,10 @@ async function slaveScenario(browser, ports, slaveSerial, clientSerial) {
       for (const [label, value] of Object.entries(fields)) await setField(browser, listener, label, value);
       await click(browser, button(listener, "Start listening"));
       await browser.$(button(listener, "Stop")).waitForExist({ timeout: 5000 });
-      await eventually(() => expectEqual(reference("read", ...client, "holding", 10, 3).values, [7, 555, 9], "read"), "read");
+      await eventually(
+        () => expectEqual(reference("read", ...client, "holding", 10, 3).values, [7, 555, 9], "read"),
+        "read",
+      );
     });
   }
   await click(browser, button(listener, "Stop"));
@@ -253,7 +287,13 @@ async function trafficScenario(browser) {
     if (lines.length < 20) throw new Error(`only ${lines.length} lines`);
     // Off-screen rows use content-visibility: auto, so getText would only see the visible ones.
     const text = await browser.$("//div[contains(@class,'body')]").getProperty("textContent");
-    for (const expected of ["Read Holding Registers", "Write Single Register", "Write Multiple Coils", "MASTER", "SLAVE"]) {
+    for (const expected of [
+      "Read Holding Registers",
+      "Write Single Register",
+      "Write Multiple Coils",
+      "MASTER",
+      "SLAVE",
+    ]) {
       if (!text.toUpperCase().includes(expected.toUpperCase())) throw new Error(`missing "${expected}"`);
     }
   });
@@ -266,11 +306,18 @@ async function trafficScenario(browser) {
 
 async function main() {
   const ports = { tcp: 15020, udp: 15022, rtuOverTcp: 15021, slaveTcp: 15030, slaveUdp: 15031, slaveRtuOverTcp: 15032 };
-  const pty = (a, b) => background("socat", [`pty,raw,echo=0,link=${join(tmp, a)}`, `pty,raw,echo=0,link=${join(tmp, b)}`]);
+  const pty = (a, b) =>
+    background("socat", [`pty,raw,echo=0,link=${join(tmp, a)}`, `pty,raw,echo=0,link=${join(tmp, b)}`]);
   pty("refA", "refB");
   pty("slaveA", "slaveB");
   await sleep(800);
-  background("python3", [join(root, "e2e/reference_servers.py"), ports.tcp, ports.udp, ports.rtuOverTcp, join(tmp, "refA")]);
+  background("python3", [
+    join(root, "e2e/reference_servers.py"),
+    ports.tcp,
+    ports.udp,
+    ports.rtuOverTcp,
+    join(tmp, "refA"),
+  ]);
   background("tauri-driver", []);
   await sleep(2000);
 

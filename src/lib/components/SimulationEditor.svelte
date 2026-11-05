@@ -80,7 +80,9 @@
         {#if simulationErrors[rule.id]}<div class="error-line">{simulationErrors[rule.id]}</div>{/if}
       </article>
     {:else}
-      <p class="muted empty">Generators write changing values into the slave tables: sine, ramp, random or square wave.</p>
+      <p class="muted empty">
+        Generators write changing values into the slave tables: sine, ramp, random or square wave.
+      </p>
     {/each}
   </div>
 </section>

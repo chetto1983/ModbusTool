@@ -70,8 +70,16 @@
     <label class="field">
       Serial port
       <div class="row">
-        <input list="serial-ports" bind:value={link.serial.port} {disabled} spellcheck="false" placeholder="COM1, /dev/ttyUSB0" />
-        <button class="btn small ghost" type="button" onclick={refreshPorts} {disabled} title="Rescan serial ports">↻</button>
+        <input
+          list="serial-ports"
+          bind:value={link.serial.port}
+          {disabled}
+          spellcheck="false"
+          placeholder="COM1, /dev/ttyUSB0"
+        />
+        <button class="btn small ghost" type="button" onclick={refreshPorts} {disabled} title="Rescan serial ports"
+          >↻</button
+        >
       </div>
       <datalist id="serial-ports">
         {#each ports as port (port)}<option value={port}></option>{/each}

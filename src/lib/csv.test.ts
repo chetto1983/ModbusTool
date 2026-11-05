@@ -43,12 +43,14 @@ describe("traffic export", () => {
         direction: "tx",
         peer: "TCP 127.0.0.1:502",
         bytes: [0, 1, 0xab],
-        summary: { unit: 1, function: 3, exception: null, text: "Read, quoted \"x\"" },
+        summary: { unit: 1, function: 3, exception: null, text: 'Read, quoted "x"' },
         message: null,
       },
       { timestampMs: 0, origin: "slave", direction: "info", peer: "p", bytes: [], summary: null, message: "Listening" },
     ]);
-    expect(csv.split("\n")[1]).toBe('1970-01-01T00:00:00.000Z,master,tx,TCP 127.0.0.1:502,00 01 AB,"Read, quoted ""x"""');
+    expect(csv.split("\n")[1]).toBe(
+      '1970-01-01T00:00:00.000Z,master,tx,TCP 127.0.0.1:502,00 01 AB,"Read, quoted ""x"""',
+    );
     expect(csv.split("\n")[2]).toBe("1970-01-01T00:00:00.000Z,slave,info,p,,Listening");
   });
 });

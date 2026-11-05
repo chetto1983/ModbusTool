@@ -115,7 +115,9 @@ body {
   background:
     linear-gradient(180deg, color-mix(in oklab, var(--color-accent) 16%, transparent), transparent 20rem),
     var(--color-bg);
-  font-feature-settings: "kern" 1, "liga" 1;
+  font-feature-settings:
+    "kern" 1,
+    "liga" 1;
 }
 
 ::selection {
@@ -220,9 +222,12 @@ select:disabled {
 select {
   appearance: none;
   padding-right: 30px;
-  background-image: linear-gradient(45deg, transparent 50%, var(--color-text-faint) 50%),
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--color-text-faint) 50%),
     linear-gradient(135deg, var(--color-text-faint) 50%, transparent 50%);
-  background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%;
+  background-position:
+    calc(100% - 16px) 50%,
+    calc(100% - 11px) 50%;
   background-size: 5px 5px;
   background-repeat: no-repeat;
 }
@@ -251,7 +256,9 @@ input[type="checkbox"] {
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  transition: background var(--motion-fast), border-color var(--motion-fast);
+  transition:
+    background var(--motion-fast),
+    border-color var(--motion-fast);
 }
 
 .btn:hover:not(:disabled) {

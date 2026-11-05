@@ -4,7 +4,16 @@
   import SimulationEditor from "./SimulationEditor.svelte";
   import { api, type Table } from "../api";
   import { app, slave } from "../state.svelte";
-  import { applyUnits, exportCsv, importCsv, setSlaveLabel, slaveLabel, startSlave, stopSlave, TABLES } from "../slaveActions.svelte";
+  import {
+    applyUnits,
+    exportCsv,
+    importCsv,
+    setSlaveLabel,
+    slaveLabel,
+    startSlave,
+    stopSlave,
+    TABLES,
+  } from "../slaveActions.svelte";
   import { parseUnits } from "../units";
   import { BYTE_ORDERS, DATA_TYPES, type ByteOrder, type DataType } from "../datatypes";
 

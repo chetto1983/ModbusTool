@@ -43,7 +43,10 @@
         legend: { show: true },
         cursor: { drag: { x: true, y: false } },
         scales: { x: { time: true } },
-        axes: [{ ...axis, space: 110 }, { ...axis, size: 64 }],
+        axes: [
+          { ...axis, space: 110 },
+          { ...axis, size: 64 },
+        ],
         series: [
           {},
           ...master.trend.map((s, i) => ({

@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { BYTE_ORDERS, DATA_TYPES, EncodeError, decode, encode, numeric, registerCount, type DataType } from "./datatypes";
+import {
+  BYTE_ORDERS,
+  DATA_TYPES,
+  EncodeError,
+  decode,
+  encode,
+  numeric,
+  registerCount,
+  type DataType,
+} from "./datatypes";
+
+const sortedBytes = (registers: number[]) => registers.flatMap((w) => [w >> 8, w & 0xff]).toSorted((a, b) => a - b);
 
 const word = fc.integer({ min: 0, max: 0xffff });
 
@@ -88,9 +99,8 @@ describe("properties", () => {
   it("byte orders are permutations of the same bytes", () => {
     fc.assert(
       fc.property(fc.integer({ min: 0, max: 0xffffffff }), (n) => {
-        const sorted = (r: number[]) => r.flatMap((w) => [w >> 8, w & 0xff]).sort((a, b) => a - b);
-        const reference = sorted(encode(String(n), "uint32", "ABCD"));
-        for (const order of BYTE_ORDERS) expect(sorted(encode(String(n), "uint32", order))).toEqual(reference);
+        const reference = sortedBytes(encode(String(n), "uint32", "ABCD"));
+        for (const order of BYTE_ORDERS) expect(sortedBytes(encode(String(n), "uint32", order))).toEqual(reference);
       }),
     );
   });

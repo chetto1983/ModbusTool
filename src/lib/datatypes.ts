@@ -44,7 +44,7 @@ const swapsBytes = (order: ByteOrder) => order === "BADC" || order === "DCBA";
 
 /** Registers in wire order -> big-endian bytes. */
 function toBytes(registers: number[], order: ByteOrder): DataView {
-  const words = swapsWords(order) ? [...registers].reverse() : registers;
+  const words = swapsWords(order) ? registers.toReversed() : registers;
   const view = new DataView(new ArrayBuffer(words.length * 2));
   words.forEach((w, i) => view.setUint16(i * 2, w, swapsBytes(order)));
   return view;
@@ -54,7 +54,7 @@ function toBytes(registers: number[], order: ByteOrder): DataView {
 function fromBytes(view: DataView, order: ByteOrder): number[] {
   const words: number[] = [];
   for (let i = 0; i < view.byteLength; i += 2) words.push(view.getUint16(i, swapsBytes(order)));
-  return swapsWords(order) ? words.reverse() : words;
+  return swapsWords(order) ? words.toReversed() : words;
 }
 
 function formatFloat(value: number, significant: number): string {
@@ -79,7 +79,10 @@ export function decode(registers: number[], type: DataType, order: ByteOrder = "
     case "hex":
       return "0x" + r.toString(16).toUpperCase().padStart(4, "0");
     case "binary":
-      return r.toString(2).padStart(16, "0").replace(/(.{4})(?!$)/g, "$1 ");
+      return r
+        .toString(2)
+        .padStart(16, "0")
+        .replace(/(.{4})(?!$)/g, "$1 ");
     case "ascii":
       return asciiChar(r >> 8) + asciiChar(r & 0xff);
   }

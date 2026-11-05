@@ -28,7 +28,16 @@ describe("project files", () => {
     bad.slave.units = [0];
     expect(() => parseProject(JSON.stringify(bad))).toThrow(/units/);
     const badPoll = defaultProject() as unknown as { master: { polls: unknown[] } };
-    badPoll.master.polls.push({ id: "x", name: "y", unit: 1, address: 0, quantity: 0, intervalMs: 100, dataType: "uint16", byteOrder: "ABCD" });
+    badPoll.master.polls.push({
+      id: "x",
+      name: "y",
+      unit: 1,
+      address: 0,
+      quantity: 0,
+      intervalMs: 100,
+      dataType: "uint16",
+      byteOrder: "ABCD",
+    });
     expect(() => parseProject(JSON.stringify(badPoll))).toThrow(/quantity/);
   });
 });

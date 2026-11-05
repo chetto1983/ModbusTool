@@ -69,7 +69,8 @@ export function defaultProject(): Project {
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
-const isInt = (v: unknown, min: number, max: number) => Number.isInteger(v) && (v as number) >= min && (v as number) <= max;
+const isInt = (v: unknown, min: number, max: number) =>
+  Number.isInteger(v) && (v as number) >= min && (v as number) <= max;
 
 function check(condition: boolean, what: string): void {
   if (!condition) throw new ProjectError(`Invalid project: ${what}`);
@@ -81,7 +82,10 @@ function checkPoll(p: unknown): void {
   check(typeof poll.id === "string" && typeof poll.name === "string", "poll id/name");
   check(isInt(poll.unit, 0, 255) && isInt(poll.address, 0, 0xffff), "poll unit/address");
   check(isInt(poll.quantity, 1, 2000) && isInt(poll.intervalMs, 10, 3_600_000), "poll quantity/interval");
-  check(DATA_TYPES.some((t) => t.id === poll.dataType) && BYTE_ORDERS.includes(poll.byteOrder as ByteOrder), "poll data type");
+  check(
+    DATA_TYPES.some((t) => t.id === poll.dataType) && BYTE_ORDERS.includes(poll.byteOrder as ByteOrder),
+    "poll data type",
+  );
 }
 
 export function parseProject(json: string): Project {
@@ -100,9 +104,16 @@ export function parseProject(json: string): Project {
   check(isObject(master.config) && Array.isArray(master.polls), "master section");
   check(isObject(slave.config) && Array.isArray(slave.units) && Array.isArray(slave.simulations), "slave section");
   (master.polls as unknown[]).forEach(checkPoll);
-  check((slave.units as unknown[]).every((u) => isInt(u, 1, 247)), "slave units must be 1..247");
+  check(
+    (slave.units as unknown[]).every((u) => isInt(u, 1, 247)),
+    "slave units must be 1..247",
+  );
   check(data.labels === undefined || isObject(data.labels), "labels");
-  return { ...defaultProject(), ...(data as unknown as Project), labels: (data.labels as Record<string, string>) ?? {} };
+  return {
+    ...defaultProject(),
+    ...(data as unknown as Project),
+    labels: (data.labels as Record<string, string>) ?? {},
+  };
 }
 
 export function serializeProject(project: Project): string {

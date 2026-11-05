@@ -16,8 +16,20 @@
     onTrend?: (offset: number, label: string) => void;
   }
 
-  let { start, values, count, bits, dataType, byteOrder, editable, labelFor, onLabel, onWrite, trended, onTrend }: Props =
-    $props();
+  let {
+    start,
+    values,
+    count,
+    bits,
+    dataType,
+    byteOrder,
+    editable,
+    labelFor,
+    onLabel,
+    onWrite,
+    trended,
+    onTrend,
+  }: Props = $props();
 
   const width = $derived(bits ? 1 : registerCount(dataType));
   const rows = $derived.by(() => {
@@ -267,7 +279,9 @@
     height: 8px;
     border-radius: 50%;
     background: var(--color-text-faint);
-    transition: transform 150ms, background 150ms;
+    transition:
+      transform 150ms,
+      background 150ms;
   }
   .switch.on {
     color: var(--color-success);

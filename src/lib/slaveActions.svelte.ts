@@ -65,7 +65,7 @@ export async function importCsv(unit: number, table: Table): Promise<number | nu
   if (!path) return null;
   try {
     const entries = parseRegisters(await readTextFile(path));
-    for (const run of runs(entries)) await api.slaveWrite(unit, table, run.address, run.values);
+    await Promise.all(runs(entries).map((run) => api.slaveWrite(unit, table, run.address, run.values)));
     for (const e of entries) if (e.label) setSlaveLabel(unit, table, e.address, e.label);
     notify("ok", `Imported ${entries.length} values`);
     return entries[0]?.address ?? null;
@@ -137,4 +137,3 @@ export function startSimulationLoop(): () => void {
     simulationTimer = null;
   };
 }
-

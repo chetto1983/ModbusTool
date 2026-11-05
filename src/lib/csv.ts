@@ -45,19 +45,23 @@ function legacyValue(text: string): number {
   return parseInt(t, 10);
 }
 
+const inRange = (n: number, max: number) => Number.isInteger(n) && n >= 0 && n <= max;
+
 function checked(entry: AddressValue, source: string): AddressValue {
-  const ok = (n: number, max: number) => Number.isInteger(n) && n >= 0 && n <= max;
-  if (!ok(entry.address, 0xffff) || !ok(entry.value, 0xffff)) throw new CsvError(`Invalid entry "${source}"`);
+  if (!inRange(entry.address, 0xffff) || !inRange(entry.value, 0xffff)) throw new CsvError(`Invalid entry "${source}"`);
   return entry;
 }
 
 export function parseRegisters(text: string): AddressValue[] {
   const lines = text.split(/\r?\n/).filter((line) => line.trim() !== "");
   if (lines.length === 1 && /^\d+:/.test(lines[0].trim())) {
-    return lines[0].trim().split(",").map((pair) => {
-      const [address, value] = pair.split(":");
-      return checked({ address: Number(address), value: legacyValue(value ?? "") }, pair);
-    });
+    return lines[0]
+      .trim()
+      .split(",")
+      .map((pair) => {
+        const [address, value] = pair.split(":");
+        return checked({ address: Number(address), value: legacyValue(value ?? "") }, pair);
+      });
   }
   return lines
     .filter((line, i) => !(i === 0 && /^address\b/i.test(line)))

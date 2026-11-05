@@ -17,21 +17,22 @@
   const status = (id: View) =>
     id === "master" ? master.connected : id === "slave" ? slave.running : traffic.events.length > 0;
 
+  function shortcuts(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      saveProject(e.shiftKey);
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "o") {
+      e.preventDefault();
+      openProject();
+    }
+  }
+
   onMount(() => {
     setTheme(app.theme);
     api.slaveSetUnits($state.snapshot(app.project.slave.units));
     const stopSimulation = startSimulationLoop();
     const listeners = [onTraffic(pushTraffic), onPollResults(applyPollResults)];
-    const shortcuts = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
-        e.preventDefault();
-        saveProject(e.shiftKey);
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "o") {
-        e.preventDefault();
-        openProject();
-      }
-    };
     window.addEventListener("keydown", shortcuts);
     return () => {
       window.removeEventListener("keydown", shortcuts);
@@ -48,14 +49,14 @@
       <span>ModbusTool</span>
     </div>
     {#each NAV as item (item.id)}
-      <button
-        class="nav"
-        aria-current={app.view === item.id ? "page" : undefined}
-        onclick={() => (app.view = item.id)}
-      >
+      <button class="nav" aria-current={app.view === item.id ? "page" : undefined} onclick={() => (app.view = item.id)}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d={item.glyph} /></svg>
         <span>{item.label}</span>
-        <i class="led" class:on={status(item.id) && item.id !== "traffic"} class:warn={item.id === "traffic" && status(item.id)}></i>
+        <i
+          class="led"
+          class:on={status(item.id) && item.id !== "traffic"}
+          class:warn={item.id === "traffic" && status(item.id)}
+        ></i>
       </button>
     {/each}
     <span class="spacer"></span>
@@ -64,7 +65,9 @@
         {#if app.theme === "dark"}
           <path d="M20 14 A8 8 0 1 1 10 4 A6.5 6.5 0 0 0 20 14 Z" />
         {:else}
-          <path d="M12 4 V2 M12 22 V20 M4 12 H2 M22 12 H20 M6 6 L4.5 4.5 M18 18 L19.5 19.5 M6 18 L4.5 19.5 M18 6 L19.5 4.5 M16 12 A4 4 0 1 1 8 12 A4 4 0 1 1 16 12" />
+          <path
+            d="M12 4 V2 M12 22 V20 M4 12 H2 M22 12 H20 M6 6 L4.5 4.5 M18 18 L19.5 19.5 M6 18 L4.5 19.5 M18 6 L19.5 4.5 M16 12 A4 4 0 1 1 8 12 A4 4 0 1 1 16 12"
+          />
         {/if}
       </svg>
       <span>{app.theme === "dark" ? "Dark theme" : "Light theme"}</span>
@@ -140,7 +143,9 @@
     font-size: 14px;
     font-weight: 600;
     color: var(--color-text-muted);
-    transition: background var(--motion-fast), color var(--motion-fast);
+    transition:
+      background var(--motion-fast),
+      color var(--motion-fast);
   }
   .nav span {
     flex: 1;

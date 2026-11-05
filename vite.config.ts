@@ -10,6 +10,11 @@ export default defineConfig({
   test: {
     include: ["src/**/*.test.ts"],
     environment: "happy-dom",
-    coverage: { include: ["src/lib/**/*.ts"], exclude: ["src/lib/**/*.test.ts"] },
+    coverage: {
+      include: ["src/lib/**/*.ts"],
+      exclude: ["src/lib/**/*.test.ts"],
+      // CLAUDE.md coverage floor.
+      thresholds: { lines: 85, statements: 85, functions: 85, branches: 85 },
+    },
   },
 });
