@@ -1,0 +1,43 @@
+name: Security audit
+
+# Known vulnerabilities in the dependency graphs: RustSec for the crates, the npm advisory
+# database for the frontend. Runs on dependency changes and weekly, after CodeQL.
+on:
+  push:
+    paths: ["src-tauri/Cargo.lock", "package-lock.json", ".github/workflows/security.yml"]
+  pull_request:
+    paths: ["src-tauri/Cargo.lock", "package-lock.json", ".github/workflows/security.yml"]
+  schedule:
+    - cron: "41 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  cargo-audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2
+        with:
+          tool: cargo-audit
+      - run: cargo audit --file src-tauri/Cargo.lock
+
+  npm-audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+      # Only what ships in the app: dev tooling never reaches users.
+      - run: npm audit --omit=dev --audit-level=high

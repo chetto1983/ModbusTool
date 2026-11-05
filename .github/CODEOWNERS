@@ -1,0 +1,10 @@
+# Code ownership — requested as reviewer automatically on matching PRs.
+# https://docs.github.com/en/repositories/managing-your-repos-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything.
+*       @chetto1983
+
+# Truth sources and protocol core — extra scrutiny on changes here.
+/CLAUDE.md                @chetto1983
+/docs/superpowers/specs/  @chetto1983
+/src-tauri/src/           @chetto1983

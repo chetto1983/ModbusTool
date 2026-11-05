@@ -1,0 +1,53 @@
+# Local git hooks (https://lefthook.dev), adapted from Aura: a fast subset of the CI gates so
+# problems surface at commit/push time instead of in CI.
+#
+# Install once per clone:  npx lefthook install
+# Bypass in an emergency:  git commit --no-verify   /   git push --no-verify
+#
+# Heavy gates (coverage, mutation, E2E, bundles) stay in CI.
+
+pre-commit:
+  parallel: true
+  commands:
+    rustfmt:
+      glob: "src-tauri/**/*.rs"
+      root: "src-tauri/"
+      run: cargo fmt --check
+    clippy:
+      glob: "src-tauri/**/*.rs"
+      root: "src-tauri/"
+      run: cargo clippy --all-targets -- -D warnings
+    oxlint:
+      glob: "*.{ts,svelte,mjs}"
+      run: npx oxlint --max-warnings=0 {staged_files}
+    prettier:
+      glob: "*.{ts,svelte,mjs,json,css,html}"
+      exclude:
+        - "src-tauri/**"
+        - "docs/**"
+        - "package-lock.json"
+      run: npx prettier --check {staged_files}
+    svelte-check:
+      glob: "src/**/*.{ts,svelte}"
+      run: npm run -s check
+    # Per-file property: only the staged files can introduce a violation.
+    file-size:
+      glob: "*.{rs,ts,svelte,mjs}"
+      run: bash scripts/check-file-size.sh {staged_files}
+
+pre-push:
+  parallel: true
+  commands:
+    cargo-test:
+      glob: "src-tauri/**"
+      root: "src-tauri/"
+      run: cargo test
+    vitest:
+      glob: "{src/**,package.json,vite.config.ts}"
+      run: npm test
+    deadcode:
+      glob: "{src/**,e2e/**,package.json}"
+      run: npm run -s deadcode
+    dup:
+      glob: "{src/**,e2e/**}"
+      run: npm run -s dup

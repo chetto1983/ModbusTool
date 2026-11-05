@@ -1,0 +1,8 @@
+dist/
+coverage/
+reports/
+src-tauri/
+docs/
+package-lock.json
+*.md
+.claude/
