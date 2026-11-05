@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SignPath artifact configuration for the Windows release (paste it into the SignPath project).
+  The artifact is the ZIP actions/upload-artifact makes of the MSI (release.yml, build-windows).
+  Deep signing: SignPath signs modbus-tool.exe inside the MSI (the main binary keeps Cargo's
+  output name), repackages the MSI, then signs the MSI itself.
+  product-name / product-version are enforced as the SignPath Foundation terms require: Tauri
+  writes ProductName = productName and ProductVersion = version (tauri-build 2.7, lib.rs).
+  Validate it with "Upload an artifact sample" in SignPath using a windows-unsigned artifact.
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <!-- Supplied by release.yml (sign-windows, parameters) from the release tag. -->
+  <parameters>
+    <parameter name="version" required="true" />
+  </parameters>
+  <zip-file>
+    <msi-file path="ModbusTool_*_x64_en-US.msi">
+      <pe-file path="modbus-tool.exe" product-name="ModbusTool" product-version="${version}">
+        <authenticode-sign/>
+      </pe-file>
+      <authenticode-sign/>
+    </msi-file>
+  </zip-file>
+</artifact-configuration>
