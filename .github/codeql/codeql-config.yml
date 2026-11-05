@@ -1,0 +1,13 @@
+# Shared config for the CodeQL matrix in ../workflows/codeql.yml (pattern from Aura).
+# paths only bound interpreted languages: the TypeScript analysis covers the app source,
+# not tests, build configs or the E2E harness.
+name: "ModbusTool CodeQL config"
+
+queries:
+  - uses: security-and-quality
+
+paths:
+  - src
+
+paths-ignore:
+  - "src/**/*.test.ts"

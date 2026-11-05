@@ -231,3 +231,21 @@ fn idle_listeners_do_not_report_errors() {
         "{messages:?}"
     );
 }
+
+#[test]
+fn finished_connection_threads_are_pruned() {
+    let done = thread::spawn(|| {});
+    let (release, wait) = std::sync::mpsc::channel::<()>();
+    let running = thread::spawn(move || {
+        let _ = wait.recv();
+    });
+    while !done.is_finished() {
+        thread::yield_now();
+    }
+    let mut connections = vec![done, running];
+    prune_finished(&mut connections);
+    assert_eq!(connections.len(), 1);
+    assert!(!connections[0].is_finished());
+    release.send(()).unwrap();
+    connections.pop().unwrap().join().unwrap();
+}

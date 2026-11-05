@@ -152,11 +152,17 @@ fn accept_loop(listener: TcpListener, ctx: Ctx) {
                 thread::sleep(POLL);
             }
         }
-        connections.retain(|c: &JoinHandle<()>| !c.is_finished());
+        prune_finished(&mut connections);
     }
     for connection in connections {
         let _ = connection.join();
     }
+}
+
+/// Drops the handles of connection threads that already ended, so a long-running listener
+/// does not accumulate one handle per past client.
+fn prune_finished(connections: &mut Vec<JoinHandle<()>>) {
+    connections.retain(|c| !c.is_finished());
 }
 
 fn serve_stream<S: ByteStream + Write>(mut stream: S, peer: String, ctx: Ctx) {

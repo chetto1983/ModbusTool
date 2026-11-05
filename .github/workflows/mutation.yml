@@ -1,0 +1,75 @@
+name: Mutation
+
+# Mutation testing of the protocol core (cargo mutants) and of the frontend conversions
+# (Stryker). Too slow for every push: runs on master, weekly and on demand.
+on:
+  push:
+    branches: ["master"]
+    paths: ["src-tauri/src/**", "src/lib/**", "stryker.config.json", "src-tauri/.cargo/mutants.toml"]
+  schedule:
+    - cron: "13 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  cargo-mutants:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: System dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libudev-dev
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      - uses: Swatinem/rust-cache@e9d7b9f1e587218970671bac74e5511ed9506e6a # v2
+        with:
+          workspaces: src-tauri
+      - uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2
+        with:
+          tool: cargo-mutants
+      - name: Frontend dist placeholder (required by tauri::generate_context)
+        run: mkdir -p dist
+      # Scope and documented exclusions: src-tauri/.cargo/mutants.toml. Exit 2 = a mutant
+      # survived and fails the job. Exit 3 = only timeouts: those mutants turn a loop into an
+      # endless one, which the timeout catches.
+      - name: cargo mutants
+        working-directory: src-tauri
+        run: |
+          set +e
+          cargo mutants -j 2 --timeout 60
+          code=$?
+          [ "$code" -eq 0 ] || [ "$code" -eq 3 ]
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: cargo-mutants
+          path: src-tauri/mutants.out
+
+  stryker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      # The break threshold (stryker.config.json) fails the job below 70%.
+      - run: npm run mutation
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: stryker
+          path: reports/mutation

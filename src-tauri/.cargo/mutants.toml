@@ -1,0 +1,22 @@
+# cargo mutants configuration (https://mutants.rs). Scope: the protocol core.
+examine_globs = [
+  "src/frame_io.rs",
+  "src/slave.rs",
+  "src/slave_server.rs",
+  "src/master.rs",
+  "src/describe.rs",
+]
+
+# Survivors analysed in docs/superpowers/verification/2026-11-05-e2e-pymodbus.md. Each one is
+# excluded for a stated reason; any other survivor fails the mutation job.
+exclude_re = [
+  # Equivalent: for address <= 65535 and quantity <= 2000, address * quantity > 65536 exactly
+  # when address + quantity > 65536 is reachable only with both >= 2, where both reject.
+  'replace \+ with \* in check_limits',
+  # Equivalent: on a broadcast read rmodbus reports processing_required = false, and
+  # process_write on a read frame returns an error that changes no storage.
+  'replace && with \|\| in UnitStore::handle_broadcast',
+  # Only differ on real accept()/recv() errors (e.g. EMFILE), not reproducible deterministically.
+  'replace match guard e\.kind\(\) == io::ErrorKind::WouldBlock with true in accept_loop',
+  'replace match guard crate::frame_io::is_timeout\(&e\) with true in udp_loop',
+]

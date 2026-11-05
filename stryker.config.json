@@ -2,7 +2,17 @@
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
   "testRunner": "vitest",
   "mutate": ["src/lib/datatypes.ts", "src/lib/csv.ts", "src/lib/simulation.ts"],
-  "reporters": ["clear-text", "progress"],
-  "thresholds": { "high": 90, "low": 70, "break": 70 },
-  "tempDirName": "node_modules/.stryker-tmp"
+  "reporters": ["clear-text", "progress", "json"],
+  "thresholds": {
+    "high": 90,
+    "low": 70,
+    "break": 70
+  },
+  "tempDirName": ".stryker-tmp",
+  "ignorePatterns": ["src-tauri", "docs", "e2e", "dist", "coverage", "reports"],
+  "coverageAnalysis": "perTest",
+  "jsonReporter": {
+    "fileName": "reports/mutation/mutation.json"
+  },
+  "cleanTempDir": true
 }

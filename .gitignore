@@ -8,3 +8,4 @@ src-tauri/gen/
 __pycache__/
 .stryker-tmp/
 reports/
+mutants.out*/
