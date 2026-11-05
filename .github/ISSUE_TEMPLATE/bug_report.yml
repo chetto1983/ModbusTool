@@ -1,0 +1,54 @@
+name: Bug report
+description: Something isn't working as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **Security vulnerabilities must not be filed here** —
+        follow [SECURITY.md](../blob/master/SECURITY.md) instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and what you expected instead.
+      placeholder: When I poll FC03 from a device over RTU, the grid shows …; I expected …
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal, exact steps. Attach the project file (.json) if it helps.
+      placeholder: |
+        1. Master, RTU serial COM3 9600 8E1
+        2. Poll FC03 unit 1 address 0 quantity 10
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: traffic
+    attributes:
+      label: Traffic
+      description: Export the traffic monitor to CSV and paste the relevant frames.
+      render: text
+    validations:
+      required: false
+  - type: textarea
+    id: device
+    attributes:
+      label: Device
+      description: The Modbus device or simulator on the other side, and the link (TCP, UDP, RTU, ASCII, RTU over TCP).
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: OS, ModbusTool version (window title or CI artifact), serial adapter if any.
+      placeholder: |
+        OS: Windows 11
+        ModbusTool: 3.0.0
+        Adapter: FTDI USB-RS485
+    validations:
+      required: true

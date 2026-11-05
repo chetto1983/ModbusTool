@@ -62,10 +62,12 @@ npx tauri dev            # run the app with hot reload
 npx tauri build          # installers in src-tauri/target/release/bundle
 ```
 
-Checks (the same as CI):
+Checks (the same as CI, see [CONTRIBUTING.md](CONTRIBUTING.md)):
 
 ```sh
-npm run check && npm test && npm run build
+npx lefthook install   # runs the fast checks on commit and push
+npm run check && npm run lint && npm run format:check && npm run deadcode && npm run dup
+npm run coverage && npm run file-size && npm run build
 cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test
 ```
 
@@ -77,7 +79,8 @@ npx tauri build --debug --no-bundle
 node e2e/run.mjs docs/screenshots
 ```
 
-Project rules for contributors and coding agents are in [CLAUDE.md](CLAUDE.md).
+Project rules for contributors and coding agents are in [CLAUDE.md](CLAUDE.md); security
+reports follow [SECURITY.md](SECURITY.md); changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

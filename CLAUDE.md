@@ -110,19 +110,28 @@ After every Rust edit (`src-tauri/`):
 
 - `cargo fmt --check`
 - `cargo clippy --all-targets -- -D warnings`
-- `cargo test`
+- `cargo test` (CI runs it as `cargo llvm-cov --fail-under-lines 85`)
+- Protocol core changes: `cargo mutants` (scope and analysed exclusions in
+  `src-tauri/.cargo/mutants.toml`)
 
 After every frontend edit (`src/`):
 
 - `npm run check` (svelte-check + TypeScript)
-- `npm test` (vitest)
+- `npm run lint` (oxlint, zero warnings) and `npm run format:check` (prettier)
+- `npm run deadcode` (knip) and `npm run dup` (jscpd)
+- `npm run coverage` (vitest, fails below 85%)
 - `npm run build`
+
+Repository-wide: `npm run file-size` (600-LOC cap). The lefthook hooks (`npx lefthook install`)
+run a fast subset on commit and push; CI runs all of them, plus CodeQL, the security audit and,
+on master, the Mutation workflow.
 
 Fix issues before moving on.
 
 ## Commit discipline
 
 - One task = one atomic commit (or N with the atomicity stated in the plan).
-- Imperative subject + body explaining *why*.
+- Conventional Commits: `type(scope): subject`, imperative subject + body explaining *why*.
+- Behaviour changes update `CHANGELOG.md`; the section of a pushed `vX.Y.Z` tag is the release text.
 - Co-Authored-By trailer per project convention.
 - Spec-amendment commit before the code commit when a task revealed an architectural gap.
