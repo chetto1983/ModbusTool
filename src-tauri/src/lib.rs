@@ -1,6 +1,9 @@
 pub mod describe;
 pub mod frame_io;
 pub mod link;
+pub mod slave;
+pub mod slave_server;
+pub mod traffic;
 
 pub fn run() {
     tauri::Builder::default()

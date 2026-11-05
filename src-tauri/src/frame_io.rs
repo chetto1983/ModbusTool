@@ -159,6 +159,15 @@ impl FrameReader {
     }
 }
 
+/// Offset of the unit id in a binary frame: after the 6-byte MBAP prefix for TCP/UDP.
+pub fn unit_offset(proto: ModbusProto) -> usize {
+    if proto == ModbusProto::TcpUdp {
+        6
+    } else {
+        0
+    }
+}
+
 /// Converts a frame from its wire form to the binary form rmodbus parses
 /// (for ASCII: unit + PDU + LRC; other protocols are already binary).
 pub fn wire_to_binary(proto: ModbusProto, wire: &[u8]) -> Result<Vec<u8>, FrameError> {

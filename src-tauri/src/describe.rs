@@ -1,6 +1,6 @@
 //! Human readable frame summaries for the traffic monitor.
 
-use crate::frame_io::FrameKind;
+use crate::frame_io::{unit_offset, FrameKind};
 use rmodbus::server::ModbusFrame;
 use rmodbus::{consts::ModbusErrorCode, ModbusProto};
 use serde::Serialize;
@@ -50,7 +50,7 @@ pub fn exception_name(code: u8) -> &'static str {
 
 /// `binary` is the frame in rmodbus binary form (ASCII already decoded, MBAP header included).
 pub fn describe(proto: ModbusProto, binary: &[u8], kind: FrameKind) -> FrameSummary {
-    let start = if proto == ModbusProto::TcpUdp { 6 } else { 0 };
+    let start = unit_offset(proto);
     let (Some(&unit), Some(&function)) = (binary.get(start), binary.get(start + 1)) else {
         return FrameSummary {
             unit: None,

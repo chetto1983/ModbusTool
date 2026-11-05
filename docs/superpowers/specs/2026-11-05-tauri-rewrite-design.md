@@ -44,6 +44,17 @@ nessun accesso ai frame grezzi.
 
 Scartate: `modbus-rs` (484 download, 2026), `stonecrab` (249 download, 2026-10): troppo giovani.
 
+## Limiti di `rmodbus` misurati con test (2026-11-05)
+
+| Misura | Test | Conseguenza |
+|---|---|---|
+| Frame limitati a 255 byte: su TCP una risposta con ≥124 registri (MBAP length ≥251) è `FrameBroken` | `frame_io::tests::rmodbus_tcp_frame_length_cap` | Su TCP/UDP la lettura massima è 123 registri (spec: 125) |
+| Server: richiesta TCP con MBAP length < 6 o > 250 scartata senza risposta | `slave::tests::short_tcp_request_gets_no_response` | Lo slave non risponde a 0x2B/0x0E (il client va in timeout invece di ricevere "Illegal function"); scritture TCP limitate a 121 registri |
+| Storage `ModbusStorage<65536 ×4>` = 393 216 byte; `Box::default()` funziona in un thread con stack 2 MB (debug) | prova in scratchpad, `size_of` | Uno storage per unit su heap |
+
+Non dimostrato: il comportamento su bus RTU multi-drop con altri slave (le risposte di altri
+dispositivi verrebbero lette come richieste).
+
 ## Perimetro v1
 
 Master:
