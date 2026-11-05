@@ -2,6 +2,8 @@ name: Mutation
 
 # Mutation testing of the protocol core (cargo mutants) and of the frontend conversions
 # (Stryker). Too slow for every push: runs on master, weekly and on demand.
+# Caching follows Aura's ci.yml: a measurement is cached per commit (a re-run reuses it), and
+# Stryker runs incrementally from the last report of the same test toolchain.
 on:
   push:
     branches: ["master"]
@@ -25,29 +27,70 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+
+      # A finished measurement of this exact commit (a re-run) is reused instead of re-mutated.
+      - name: Restore this commit's mutation results
+        id: results
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: src-tauri/mutants.out
+          key: cargo-mutants-v1-${{ runner.os }}-${{ github.sha }}
+
       - name: System dependencies
+        if: steps.results.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libudev-dev
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        if: steps.results.outputs.cache-hit != 'true'
+      # This workflow only runs on master (push, schedule, dispatch), so it is the one writer of
+      # its own dependency cache.
       - uses: Swatinem/rust-cache@e9d7b9f1e587218970671bac74e5511ed9506e6a # v2
+        if: steps.results.outputs.cache-hit != 'true'
         with:
           workspaces: src-tauri
+          shared-key: mutation
+          save-if: ${{ github.ref == 'refs/heads/master' }}
       - uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2
+        if: steps.results.outputs.cache-hit != 'true'
         with:
           tool: cargo-mutants
       - name: Frontend dist placeholder (required by tauri::generate_context)
+        if: steps.results.outputs.cache-hit != 'true'
         run: mkdir -p dist
-      # Scope and documented exclusions: src-tauri/.cargo/mutants.toml. Exit 2 = a mutant
-      # survived and fails the job. Exit 3 = only timeouts: those mutants turn a loop into an
-      # endless one, which the timeout catches.
+
+      # --copy-target starts every scratch build from the restored dependency cache instead of
+      # a cold build. Scope and analysed exclusions: src-tauri/.cargo/mutants.toml. The exit code
+      # is stored with the results so a cached run is judged like a fresh one.
       - name: cargo mutants
+        if: steps.results.outputs.cache-hit != 'true'
         working-directory: src-tauri
         run: |
           set +e
-          cargo mutants -j 2 --timeout 60
-          code=$?
-          [ "$code" -eq 0 ] || [ "$code" -eq 3 ]
+          cargo mutants -j 2 --timeout 60 --copy-target=true
+          echo $? > mutants.out/exit-code
+
+      # Saved when the gate fails too: a measurement stays a measurement for this commit.
+      # A run that did not finish (baseline failure, crash) is not saved.
+      - name: Save this commit's mutation results
+        if: always() && steps.results.outputs.cache-hit != 'true' && hashFiles('src-tauri/mutants.out/exit-code') != ''
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: src-tauri/mutants.out
+          key: ${{ steps.results.outputs.cache-primary-key }}
+
+      # 0 = every mutant caught; 3 = only timeouts (mutants that make a loop endless, caught by
+      # the timeout); 2 = a mutant survived; anything else = the run did not complete.
+      - name: Mutation gate
+        working-directory: src-tauri
+        run: |
+          code=$(cat mutants.out/exit-code)
+          if [ "$code" -ne 0 ] && [ "$code" -ne 3 ]; then
+            echo "cargo mutants exit code $code" >&2
+            cat mutants.out/missed.txt >&2 || true
+            exit 1
+          fi
+
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
@@ -65,9 +108,42 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
+
+      # Incremental mode does not see a dependency change, so the key carries what decides a
+      # verdict besides the code: the test toolchain's versions as package-lock.json pins them,
+      # and the Stryker and Vitest config. A toolchain bump starts a full run; an application
+      # dependency bump (most Dependabot PRs) reuses the last report. Same scheme as Aura.
+      - name: Key the Stryker report by its test toolchain
+        id: toolchain
+        run: |
+          hash="$(jq -c '[.packages | to_entries[]
+            | select(.key | test("^node_modules/(vitest|@vitest/[^/]+|@stryker-mutator/[^/]+|typescript|vite|happy-dom|fast-check)$"))
+            | [.key, .value.version]]' package-lock.json | sha256sum | cut -c1-16)"
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the Stryker incremental report
+        id: incremental
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: reports/stryker-incremental.json
+          key: stryker-incremental-v1-${{ runner.os }}-${{ steps.toolchain.outputs.hash }}-${{ hashFiles('stryker.config.json', 'vite.config.ts') }}-${{ github.sha }}
+          restore-keys: |
+            stryker-incremental-v1-${{ runner.os }}-${{ steps.toolchain.outputs.hash }}-${{ hashFiles('stryker.config.json', 'vite.config.ts') }}-
+
       - run: npm ci
-      # The break threshold (stryker.config.json) fails the job below 70%.
-      - run: npm run mutation
+      # Vitest's GitHub reporter appends a job summary after every test run, once per mutant
+      # under Stryker, and the summary has a 1 MiB cap (Aura run 36382875100).
+      # The break threshold in stryker.config.json fails the job below 70%.
+      - name: Stryker
+        run: env -u GITHUB_STEP_SUMMARY npm run mutation
+
+      - name: Save the Stryker incremental report
+        if: always() && steps.incremental.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: reports/stryker-incremental.json
+          key: ${{ steps.incremental.outputs.cache-primary-key }}
+
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:

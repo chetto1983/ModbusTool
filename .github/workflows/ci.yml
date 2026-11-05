@@ -29,9 +29,12 @@ jobs:
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
           components: rustfmt, clippy, llvm-tools-preview
+      # One writer per cache, as in Aura: master saves, branches and PRs only read, so a branch
+      # push never evicts the entry master's next run needs.
       - uses: Swatinem/rust-cache@e9d7b9f1e587218970671bac74e5511ed9506e6a # v2
         with:
           workspaces: src-tauri
+          save-if: ${{ github.ref == 'refs/heads/master' }}
       - uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2
         with:
           tool: cargo-llvm-cov
@@ -89,9 +92,12 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      # Shared with release.yml: a tag builds from master's warm dependency cache.
       - uses: Swatinem/rust-cache@e9d7b9f1e587218970671bac74e5511ed9506e6a # v2
         with:
           workspaces: src-tauri
+          shared-key: bundle
+          save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: System dependencies
         if: runner.os == 'Linux'
         run: |
