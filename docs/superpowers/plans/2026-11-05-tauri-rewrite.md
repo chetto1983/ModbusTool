@@ -29,7 +29,7 @@ Vedi spec §Architettura. Root: `package.json`, `vite.config.ts`, `index.html`, 
 ## Task
 
 - [x] **T1 Scaffold**: rimuovi C#; Tauri 2 + Svelte 5 + TS; CI (fmt, clippy, test, svelte-check,
-  vitest, build Linux/Windows/macOS). Verifica: `cargo test`, `npm run check`, `npm run build`.
+  vitest, build Linux/Windows). Verifica: `cargo test`, `npm run check`, `npm run build`.
 - [x] **T2 Link + frame_io + describe**: test su frame dagli esempi della specifica, frame
   spezzati, timeout, ASCII.
 - [x] **T3 Slave core**: server TCP/UDP/RTU-over-TCP/RTU/ASCII, multi-unit, broadcast, ritardo,

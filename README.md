@@ -1,6 +1,6 @@
 # ModbusTool
 
-A Modbus **master and slave** tool for Windows, macOS and Linux.
+A Modbus **master and slave** tool for Windows and Linux (macOS can be built from source).
 Version 3 is a full rewrite of the WinForms tool as a [Tauri](https://tauri.app) desktop app:
 Rust backend, Svelte frontend, one window for both roles.
 
@@ -38,7 +38,7 @@ Rust backend, Svelte frontend, one window for both roles.
 
 Download the installer for your system from the latest successful
 [CI run](https://github.com/chetto1983/ModbusTool/actions/workflows/ci.yml) artifacts
-(`.msi`/`.exe` for Windows, `.dmg` for macOS, `.deb`/`.AppImage` for Linux).
+(`.msi`/`.exe` for Windows, `.deb`/`.AppImage` for Linux). macOS is not built in CI: run `npx tauri build` on a Mac.
 
 ## Known limits
 
