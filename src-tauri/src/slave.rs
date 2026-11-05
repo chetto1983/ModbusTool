@@ -141,7 +141,8 @@ impl UnitStore {
         for storage in units.values_mut() {
             let mut response = Vec::new();
             let mut frame = ModbusFrame::new(BROADCAST_UNIT, request, proto, &mut response);
-            if frame.parse().is_ok() && frame.processing_required && !frame.readonly {
+            // rmodbus sets processing_required on broadcast frames only for writes.
+            if frame.parse().is_ok() && frame.processing_required {
                 let _ = frame.process_write(&mut **storage);
             }
         }

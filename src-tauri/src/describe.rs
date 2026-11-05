@@ -139,6 +139,68 @@ mod tests {
     }
 
     #[test]
+    fn every_name_in_the_tables() {
+        let functions: Vec<_> = [
+            0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x0F, 0x10, 0x16, 0x17, 0x2B, 0x63,
+        ]
+        .iter()
+        .map(|&c| function_name(c))
+        .collect();
+        assert_eq!(
+            functions,
+            [
+                "Read Coils",
+                "Read Discrete Inputs",
+                "Read Holding Registers",
+                "Read Input Registers",
+                "Write Single Coil",
+                "Write Single Register",
+                "Write Multiple Coils",
+                "Write Multiple Registers",
+                "Mask Write Register",
+                "Read/Write Multiple Registers",
+                "Encapsulated Interface Transport",
+                "Unknown function",
+            ]
+        );
+        assert_eq!(function_name(0x83), "Read Holding Registers");
+        let exceptions: Vec<_> = [1, 2, 3, 4, 5, 6, 8, 0x0A, 0x0B, 0x07]
+            .iter()
+            .map(|&c| exception_name(c))
+            .collect();
+        assert_eq!(
+            exceptions,
+            [
+                "Illegal function",
+                "Illegal data address",
+                "Illegal data value",
+                "Server device failure",
+                "Acknowledge",
+                "Server device busy",
+                "Memory parity error",
+                "Gateway path unavailable",
+                "Gateway target device failed to respond",
+                "Unknown exception",
+            ]
+        );
+    }
+
+    #[test]
+    fn broadcast_read_has_nothing_to_process() {
+        // Unit 0 read: rmodbus parses it but marks nothing to process or answer.
+        let frame = [0, 1, 0, 0, 0, 6, 0x00, 0x03, 0x00, 0x6B, 0x00, 0x03];
+        let s = describe(ModbusProto::TcpUdp, &frame, FrameKind::Request);
+        assert_eq!(s.text, "Read Holding Registers");
+    }
+
+    #[test]
+    fn tcp_write_acknowledge_reads_fields_after_the_header() {
+        let ack = [0, 1, 0, 0, 0, 6, 0x01, 0x10, 0x00, 0x0A, 0x00, 0x03];
+        let s = describe(ModbusProto::TcpUdp, &ack, FrameKind::Response);
+        assert_eq!(s.text, "Write Multiple Registers · addr 10 · ack 3");
+    }
+
+    #[test]
     fn gateway_exceptions_use_spec_codes() {
         assert_eq!(exception_name(0x0A), "Gateway path unavailable");
         assert_eq!(

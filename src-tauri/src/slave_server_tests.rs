@@ -212,3 +212,22 @@ fn missing_serial_port_fails_to_start() {
     };
     assert!(SlaveServer::start(&config, store_with(1), recorder().0).is_err());
 }
+
+#[test]
+fn idle_listeners_do_not_report_errors() {
+    let (sink, events) = recorder();
+    let tcp_server = SlaveServer::start(&tcp_config(tcp, 0), store_with(1), sink.clone()).unwrap();
+    let udp_server = SlaveServer::start(&tcp_config(udp, 0), store_with(1), sink).unwrap();
+    thread::sleep(POLL * 4);
+    drop((tcp_server, udp_server));
+    let messages: Vec<_> = events
+        .lock()
+        .unwrap()
+        .iter()
+        .filter_map(|e| e.message.clone())
+        .collect();
+    assert!(
+        messages.iter().all(|m| m.starts_with("Listening on")),
+        "{messages:?}"
+    );
+}

@@ -326,3 +326,84 @@ fn connect_errors_are_reported() {
     };
     assert!(Master::connect(unresolvable).is_err());
 }
+
+#[test]
+fn limit_boundaries() {
+    let holding = |address, quantity| Operation::ReadHoldingRegisters { address, quantity };
+    assert!(check_limits(ModbusProto::Rtu, &holding(0, 125)).is_ok());
+    assert!(check_limits(ModbusProto::TcpUdp, &holding(0, 123)).is_ok());
+    assert!(check_limits(ModbusProto::TcpUdp, &holding(0, 124)).is_err());
+    assert!(check_limits(ModbusProto::Rtu, &holding(0, 0)).is_err());
+    assert!(check_limits(ModbusProto::Rtu, &holding(65535, 1)).is_ok());
+    let coils = |n| Operation::WriteMultipleCoils {
+        address: 0,
+        values: vec![true; n],
+    };
+    assert!(check_limits(ModbusProto::Rtu, &coils(1968)).is_ok());
+    assert!(check_limits(ModbusProto::Rtu, &coils(1969)).is_err());
+}
+
+#[test]
+fn endpoint_and_response_time() {
+    let link = LinkConfig::Tcp {
+        host: "127.0.0.1".into(),
+        port: 0,
+    };
+    let store = Arc::new(UnitStore::default());
+    store.set_units(&[1]);
+    let config = SlaveConfig { link, delay_ms: 60 };
+    let server = SlaveServer::start(&config, store, recorder().0).unwrap();
+    let port = server.local_addr.unwrap().port();
+    let mut m = master(local(tcp, port), 0);
+    assert_eq!(m.endpoint(), format!("TCP 127.0.0.1:{port}"));
+    let op = Operation::ReadCoils {
+        address: 0,
+        quantity: 1,
+    };
+    let elapsed = m.execute(1, &op, &recorder().0).unwrap().elapsed_ms;
+    assert!((55.0..1000.0).contains(&elapsed), "{elapsed} ms");
+}
+
+/// Without transaction ids, a late answer left in the serial input buffer would be taken as
+/// the response to the next request; the master flushes the input before sending.
+#[cfg(unix)]
+#[test]
+fn serial_input_is_flushed_before_each_request() {
+    use crate::link::{Parity, SerialConfig};
+    use std::io::Read;
+    let (mut device, port) = serialport::TTYPort::pair().unwrap();
+    let serial = SerialConfig {
+        port: port.name().unwrap(),
+        baud_rate: 19200,
+        data_bits: 8,
+        parity: Parity::None,
+        stop_bits: 1,
+    };
+    let config = MasterConfig {
+        link: LinkConfig::Rtu { serial },
+        timeout_ms: 1000,
+        retries: 0,
+    };
+    let mut m = Master::connect(config).unwrap();
+    // A late answer to an earlier request is already waiting in the master's input buffer.
+    device
+        .write_all(&[0x01, 0x03, 0x02, 0x00, 0x07, 0xF9, 0x86])
+        .unwrap();
+    thread::sleep(Duration::from_millis(50));
+    let device_thread = thread::spawn(move || {
+        device.set_timeout(Duration::from_secs(2)).unwrap();
+        let mut request = [0u8; 8];
+        device.read_exact(&mut request).unwrap();
+        device
+            .write_all(&[0x01, 0x03, 0x02, 0x00, 0x2A, 0x39, 0x9B])
+            .unwrap();
+        device
+    });
+    let op = Operation::ReadHoldingRegisters {
+        address: 0,
+        quantity: 1,
+    };
+    assert_eq!(m.execute(1, &op, &recorder().0).unwrap().values, [42]);
+    drop(device_thread.join().unwrap());
+    drop(port);
+}

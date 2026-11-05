@@ -287,6 +287,40 @@ mod tests {
         assert_eq!(reader.next_frame(&mut rest, soon()).unwrap(), TCP_REQUEST);
     }
 
+    struct Failing;
+
+    impl ByteStream for Failing {
+        fn read_chunk(&mut self, _buf: &mut [u8], _timeout: Duration) -> io::Result<usize> {
+            Err(io::ErrorKind::ConnectionReset.into())
+        }
+    }
+
+    #[test]
+    fn io_errors_are_not_timeouts() {
+        assert!(!is_timeout(&io::ErrorKind::ConnectionReset.into()));
+        assert!(is_timeout(&io::ErrorKind::WouldBlock.into()));
+        let mut reader = FrameReader::new(ModbusProto::TcpUdp, FrameKind::Request);
+        assert!(matches!(
+            reader.next_frame(&mut Failing, soon()),
+            Err(FrameError::Io(_))
+        ));
+        assert!(matches!(
+            FrameError::from(io::Error::from(io::ErrorKind::TimedOut)),
+            FrameError::Timeout
+        ));
+    }
+
+    #[test]
+    fn clear_drops_a_partial_frame() {
+        let mut reader = FrameReader::new(ModbusProto::TcpUdp, FrameKind::Request);
+        let mut first = Script(VecDeque::from([Some(TCP_REQUEST[..5].to_vec())]));
+        let past = Instant::now() + Duration::from_millis(5);
+        assert!(reader.next_frame(&mut first, past).is_err());
+        reader.clear();
+        let mut whole = script(&[&TCP_REQUEST]);
+        assert_eq!(reader.next_frame(&mut whole, soon()).unwrap(), TCP_REQUEST);
+    }
+
     #[test]
     fn closed_stream_is_reported() {
         let mut reader = FrameReader::new(ModbusProto::TcpUdp, FrameKind::Request);
