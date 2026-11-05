@@ -126,7 +126,7 @@ namespace Modbus.Common
                 groupBoxData.Controls.Add(labData);
                 labData.Size = new Size(40, 20);
                 labData.Location = new Point(screenX, screenY);
-                labData.Font = new Font("Calibri", 8.25F, FontStyle.Regular, GraphicsUnit.Point, 0);
+                Theme.StyleAddressLabel(labData);
                 switch (DisplayFormat)
                 {
                     case DisplayFormat.LED:
@@ -135,7 +135,7 @@ namespace Modbus.Common
                         bulb.Size = new Size(25, 25);
                         bulb.Location = new Point(screenX + 40, screenY - 5);
                         bulb.Padding = new Padding(3);
-                        bulb.Color = Color.Red;
+                        bulb.Color = Theme.Led;
                         bulb.On = false;
                         bulb.Tag = idxControl;
                         bulb.Click += BulbClick;
@@ -145,6 +145,7 @@ namespace Modbus.Common
                     case DisplayFormat.Binary:
                         var txtDataB = new TextBox();
                         groupBoxData.Controls.Add(txtDataB);
+                        Theme.StyleValueBox(txtDataB);
                         txtDataB.Size = new Size(110, 20);
                         txtDataB.Location = new Point(screenX + 40, screenY - 2);
                         txtDataB.TextAlign = HorizontalAlignment.Right;
@@ -159,6 +160,7 @@ namespace Modbus.Common
                     case DisplayFormat.Hex:
                         var txtDataH = new TextBox();
                         groupBoxData.Controls.Add(txtDataH);
+                        Theme.StyleValueBox(txtDataH);
                         txtDataH.Size = new Size(55, 20);
                         txtDataH.Location = new Point(screenX + 40, screenY - 2);
                         txtDataH.TextAlign = HorizontalAlignment.Right;
@@ -173,6 +175,7 @@ namespace Modbus.Common
                     case DisplayFormat.Integer:
                         var txtData = new TextBox();
                         groupBoxData.Controls.Add(txtData);
+                        Theme.StyleValueBox(txtData);
                         txtData.Size = new Size(55, 20);
                         txtData.Location = new Point(screenX + 40, screenY - 2);
                         txtData.TextAlign = HorizontalAlignment.Right;
@@ -192,6 +195,7 @@ namespace Modbus.Common
                         {
                             var txtFloatReverse = new TextBox();
                             groupBoxData.Controls.Add(txtFloatReverse);
+                            Theme.StyleValueBox(txtFloatReverse);
                             txtFloatReverse.Size = new Size(55, 40);
                             txtFloatReverse.Location = new Point(screenX + 40, screenY - 2);
                             txtFloatReverse.TextAlign = HorizontalAlignment.Right;

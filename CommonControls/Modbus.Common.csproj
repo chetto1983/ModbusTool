@@ -74,6 +74,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
+    <Compile Include="Theme.cs" />
     <Compile Include="TabControlEx.cs">
       <SubType>Component</SubType>
     </Compile>

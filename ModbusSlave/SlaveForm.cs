@@ -25,6 +25,7 @@ namespace ModbusSlave
         {
             base.ShowDataLength = false;
             InitializeComponent();
+            Theme.SetPrimary(btnConnect);
             this.Text += String.Format(" ({0})", Assembly.GetExecutingAssembly().GetName().Version.ToString());
         }
 

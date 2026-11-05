@@ -31,6 +31,8 @@ namespace Modbus.Common
 
         private void BaseFormLoading(object sender, EventArgs e)
         {
+            Theme.Apply(this);
+            Theme.StyleLog(listBoxCommLog);
             comboBoxBaudRate.SelectedIndex = 4;
             FillRTUDropDownLists();
             CurrentTab.RegisterData = _registerData;
@@ -591,6 +593,7 @@ namespace Modbus.Common
         protected void ButtonClearLogClick(object sender, EventArgs e)
         {
             listBoxCommLog.Items.Clear();
+            listBoxCommLog.HorizontalExtent = 0;
         }
 
         private void buttonPauseLog_Click(object sender, EventArgs e)
@@ -652,8 +655,8 @@ namespace Modbus.Common
             var now = DateTime.Now;
             var tmpStr = ">" + now.ToLongTimeString() + ": " + log;
             listBoxCommLog.Items.Add(tmpStr);
-            listBoxCommLog.SelectedIndex = listBoxCommLog.Items.Count - 1;
-            //listBoxCommLog.SelectedIndex = -1;
+            Theme.TrackLogExtent(listBoxCommLog, tmpStr);
+            listBoxCommLog.TopIndex = listBoxCommLog.Items.Count - 1;
         }
 
         #endregion
@@ -737,6 +740,7 @@ namespace Modbus.Common
                 tabPage.Text = "...";
                 tabPage.UseVisualStyleBackColor = true;
                 tabControl1.Controls.Add(tabPage);
+                Theme.Apply(tabPage);
             }
             var address = CurrentTab.StartAddress;
             tab.Text = address.ToString();
