@@ -4,7 +4,10 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
-## Unreleased
+## v3.1.2 — 2026-11-06
+
+Windows: the language menu now changes the interface language, and the app talks to its backend
+without the Content Security Policy errors.
 
 ### Fixed
 
