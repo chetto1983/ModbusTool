@@ -8,6 +8,7 @@
 
   let host: HTMLDivElement;
   let plot: uPlot | null = null;
+  let clock: Intl.DateTimeFormat;
 
   const PALETTE_VARS = ["--color-ring", "--color-success", "--color-warning", "--color-danger", "--color-text-muted"];
 
@@ -26,7 +27,17 @@
     return uPlot.join(master.trend.map((s) => [s.times, s.values] as uPlot.AlignedData));
   }
 
+  const stepped = uPlot.paths.stepped!({ align: 1 });
+  // Tick steps in whole seconds: labels are HH:MM:SS, so finer steps would repeat a label.
+  const CLOCK_STEPS_S = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600];
+
   function build() {
+    clock = new Intl.DateTimeFormat(currentLocale(), {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    });
     plot?.destroy();
     const colors = palette();
     const style = getComputedStyle(document.documentElement);
@@ -44,18 +55,32 @@
         height: plotHeight(),
         legend: { show: true },
         cursor: { drag: { x: true, y: false } },
-        scales: { x: { time: true } },
+        scales: {
+          // The newest sample at the right edge, the chosen window to its left.
+          x: {
+            time: true,
+            range: (_u, min, max) => (max == null ? [min, max] : [Math.max(min, max - master.trendWindowS), max]),
+          },
+        },
         axes: [
-          { ...axis, space: 110 },
+          {
+            ...axis,
+            space: 90,
+            incrs: CLOCK_STEPS_S,
+            values: (_u, splits) => splits.map((t) => clock.format(t * 1000)),
+          },
           { ...axis, size: 64 },
         ],
         series: [
-          { label: m.trend_time() },
+          { label: m.trend_time(), value: (_u, t) => (t == null ? "--" : clock.format(t * 1000)) },
           ...master.trend.map((s, i) => ({
             label: s.label,
             stroke: colors[i % colors.length],
             width: 1.8,
             spanGaps: true,
+            // A polled value holds until the next sample: lines between samples would turn a
+            // square wave sampled once per level into a triangle.
+            paths: stepped,
             points: { show: false },
           })),
         ],
@@ -65,8 +90,10 @@
     );
   }
 
-  // Rebuild when the series, the theme or the language change; otherwise just push new data.
-  const signature = $derived(master.trend.map((s) => s.key).join("|") + app.theme + currentLocale());
+  // Rebuild when the series, the theme, the language or the window change; otherwise push new data.
+  const signature = $derived(
+    [master.trend.map((s) => s.key).join("|"), app.theme, currentLocale(), master.trendWindowS].join(" "),
+  );
   $effect(() => {
     void signature;
     untrack(build);

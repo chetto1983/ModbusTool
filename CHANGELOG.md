@@ -13,6 +13,9 @@ publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full hi
 
 ### Changed
 
+- Trend: values are drawn as steps (a polled value holds until the next sample), so square waves
+  no longer look like triangles; time window 10 s to 10 min; 24-hour time axis. Each series keeps
+  the last 10 minutes instead of the last 600 samples.
 - The Connection (master) and Listener (slave) panels fold away by clicking their title.
 - Polls and simulation generators are edited in a dialog with Save and Cancel; the sidebar keeps
   a compact list. A running poll restarts once on save, only if what it reads changed.

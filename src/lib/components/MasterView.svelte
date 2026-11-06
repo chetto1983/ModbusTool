@@ -5,7 +5,7 @@
   import PollList from "./PollList.svelte";
   import RegisterGrid from "./RegisterGrid.svelte";
   import TrendChart from "./TrendChart.svelte";
-  import { app, master, toggleTrend } from "../state.svelte";
+  import { app, master, toggleTrend, TREND_WINDOWS_S } from "../state.svelte";
   import { connect, disconnect, isWritable, labelFor, readOnce, setLabel, writeValues } from "../masterActions.svelte";
 
   const config = $derived(app.project.master.config);
@@ -100,6 +100,13 @@
     <header class="panel-head">
       <h2 class="panel-title">{m.trend_title()}</h2>
       <span class="spacer"></span>
+      <div class="segmented" role="group" aria-label={m.trend_window()}>
+        {#each TREND_WINDOWS_S as seconds (seconds)}
+          <button class:active={master.trendWindowS === seconds} onclick={() => (master.trendWindowS = seconds)}>
+            {seconds < 60 ? m.trend_seconds({ count: seconds }) : m.trend_minutes({ count: seconds / 60 })}
+          </button>
+        {/each}
+      </div>
       {#if master.trend.length}
         <button class="btn small ghost" onclick={() => (master.trend = [])}>{m.common_clear()}</button>
       {/if}

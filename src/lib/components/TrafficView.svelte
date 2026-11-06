@@ -107,24 +107,8 @@
   .panel-head {
     flex-wrap: wrap;
   }
-  .segmented {
-    display: inline-flex;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-  }
   .segmented button {
-    all: unset;
-    padding: 6px 12px;
-    font-size: 13px;
-    font-weight: 600;
     text-transform: capitalize;
-    color: var(--color-text-muted);
-    cursor: pointer;
-  }
-  .segmented button.active {
-    background: var(--color-accent);
-    color: var(--color-on-accent);
   }
   .check {
     display: inline-flex;
