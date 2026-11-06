@@ -171,6 +171,10 @@ jobs:
           cargo install --git https://github.com/chippers/msedgedriver-tool
           & "$HOME/.cargo/bin/msedgedriver-tool.exe"
           $PWD.Path >> $env:GITHUB_PATH
+          # The driver must match WebView2, which can differ from Edge: print both to compare.
+          $webview = Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" -ErrorAction SilentlyContinue
+          $edge = (Get-Item "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe" -ErrorAction SilentlyContinue).VersionInfo.ProductVersion
+          Write-Output "WebView2 $($webview.pv), Edge $edge, $(& .\msedgedriver.exe --version)"
       - run: npm ci
       - run: npx tauri build --debug --no-bundle
       - name: E2E (Linux)
