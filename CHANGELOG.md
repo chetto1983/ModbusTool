@@ -4,6 +4,19 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
+## Unreleased
+
+### Changed
+
+- Dashboard variables next to each other (same unit, table and period) are read in one request,
+  up to 125 registers or 2000 bits. 20 neighbouring registers read every 200 ms now take 5
+  requests a second instead of 100. Addresses that no panel asks for are never read.
+
+### Security
+
+- Development tooling: minimatch raised to 11.0.5 for Stryker and the E2E driver
+  (GHSA-g3hv-75wg-m249). The app as shipped had no known vulnerabilities.
+
 ## v3.3.0 — 2026-11-06
 
 Dashboards untied from the master's polls: every panel reads its own variables, scaled as SCADA

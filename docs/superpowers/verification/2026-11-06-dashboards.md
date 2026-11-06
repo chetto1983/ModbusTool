@@ -64,6 +64,23 @@ Data: 2026-11-06. Spec: `docs/superpowers/specs/2026-11-06-dashboards-design.md`
   da 240° centrato nel pannello, zone di avviso (60) e allarme (80) sull'arco, etichette min/max,
   numero proporzionato al pannello.
 
+## Letture raggruppate (D21), misurate il 2026-11-06
+
+- **Misura prima e dopo**, sull'app vera, con il master TCP collegato al riferimento pymodbus. La
+  dashboard legge ogni 200 ms un pannello barre con 20 variabili contigue (HR 0…19). Gli eventi del
+  Traffico sono contati per 5 s e divisi per 2 (richiesta + risposta):
+  - prima, una lettura per variabile: **100 richieste/s**;
+  - dopo, un blocco: **5 richieste/s**;
+  - valori identici nei due casi (111…2220).
+- **E2E** 88/88 con le letture raggruppate.
+- **Unit test**:
+  - blocchi contigui e sovrapposti;
+  - un buco che separa i blocchi e non viene letto;
+  - i limiti di 125 registri e 2000 bit;
+  - separazione per unit e per periodo;
+  - posizione di ogni variabile nel suo blocco;
+  - un'eccezione sul blocco segna come non aggiornate tutte le sue variabili.
+
 ## Cosa NON dimostra
 
 - Il gauge nel tema scuro e su WebView2: provato solo in WebKitGTK, tema chiaro.
@@ -72,8 +89,9 @@ Data: 2026-11-06. Spec: `docs/superpowers/specs/2026-11-06-dashboards-design.md`
 - Il pannello trend e le barre contro il riferimento: coperti da unit test e dal trend del master,
   non da un controllo E2E dedicato.
 - La scalatura nei pannelli trend e barre con dati reali: coperta da unit test, non dall'E2E.
-- Molte variabili: ogni variabile è una richiesta Modbus a sé, senza raggruppare i registri
-  contigui. Il carico sul dispositivo con decine di variabili non è misurato.
+- Il guadagno sulla seriale reale: le pty di socat non hanno i tempi della linea, quindi la
+  durata a 9600 baud è solo calcolata (D21). Le variabili non contigue restano una richiesta
+  ciascuna.
 - Prestazioni con molti pannelli e poll veloci (obiettivo della spec: 20 pannelli a 200 ms).
 - Il layout salvato e riaperto da file: coperto dal test di round-trip del progetto, non
   dall'E2E.

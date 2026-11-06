@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrafficEvent } from "./api";
 import { defaultProject, type PollConfig } from "./project";
-import { newDashboard, newPanel, newVariable } from "./dashboards";
+import { newDashboard, newPanel, newVariable, type Variable } from "./dashboards";
 import {
   app,
   clearMasterTrend,
@@ -10,6 +10,8 @@ import {
   pruneHistory,
   readings,
   readKey,
+  readLayout,
+  READ_PREFIX,
   variableStale,
   variableValue,
   applyPollResults,
@@ -58,6 +60,12 @@ const result = (values: number[] | null, error: string | null = null, timeout = 
   elapsedMs: 2,
 });
 
+/** A variable read on its own: a block of just it, started with no reading yet. */
+function alone(variable: Variable): void {
+  readings[readKey(variable)] = { values: null, error: null };
+  readLayout[readKey(variable)] = { block: readKey(variable), offset: 0 };
+}
+
 describe("state", () => {
   beforeEach(() => {
     app.project = defaultProject();
@@ -65,6 +73,7 @@ describe("state", () => {
     master.trend = [];
     for (const key of Object.keys(history)) delete history[key];
     for (const key of Object.keys(readings)) delete readings[key];
+    for (const key of Object.keys(readLayout)) delete readLayout[key];
     traffic.events = [];
     traffic.paused = false;
   });
@@ -135,7 +144,7 @@ describe("state", () => {
     // Results of reads not started (or already stopped) are dropped.
     applyPollResults([read(signed, [0xfffe])]);
     expect(variableValue(signed)).toBeNull();
-    for (const v of [signed, coil, wide]) readings[readKey(v)] = { values: null, error: null };
+    for (const v of [signed, coil, wide]) alone(v);
     expect(variableStale(signed)).toBe(true);
     applyPollResults([read(signed, [0xfffe]), read(coil, [1]), read(wide, [1])]);
     expect(variableValue(signed)).toBe(-2);
@@ -154,7 +163,7 @@ describe("state", () => {
     const level = newVariable({ address: 1, scaling });
     const coil = newVariable({ table: "coils", address: 1, scaling });
     const code = newVariable({ address: 2, dataType: "hex", scaling });
-    for (const v of [level, coil, code]) readings[readKey(v)] = { values: null, error: null };
+    for (const v of [level, coil, code]) alone(v);
     applyPollResults([
       { ...result([13824]), id: readKey(level) },
       { ...result([1]), id: readKey(coil) },
@@ -165,6 +174,20 @@ describe("state", () => {
     expect(variableValue(code)).toBe(0x1f);
   });
 
+  it("takes each variable's registers from its place in a block read at once", () => {
+    const low = newVariable({ address: 10 });
+    const wide = newVariable({ address: 11, dataType: "int32" });
+    const block = `${READ_PREFIX}1:holdingRegisters:10+3@200`;
+    readings[block] = { values: null, error: null };
+    readLayout[readKey(low)] = { block, offset: 0 };
+    readLayout[readKey(wide)] = { block, offset: 1 };
+    applyPollResults([{ ...result([7, 0xffff, 0xfffe]), id: block }]);
+    expect(variableValue(low)).toBe(7);
+    expect(variableValue(wide)).toBe(-2);
+    applyPollResults([{ ...result(null, "Exception 0x02"), id: block }]);
+    expect(variableStale(wide)).toBe(true);
+  });
+
   it("keeps history only for variables a trend panel shows, once per location", () => {
     const flow = newVariable({ address: 7 });
     const dashboard = newDashboard("d", "D");
@@ -173,7 +196,7 @@ describe("state", () => {
     dashboard.panels.push(panel);
     app.project.dashboards = [dashboard];
     const lamp = newVariable({ address: 8 });
-    for (const v of [flow, lamp]) readings[readKey(v)] = { values: null, error: null };
+    for (const v of [flow, lamp]) alone(v);
     applyPollResults([
       { ...result([42]), id: readKey(flow) },
       { ...result([1]), id: readKey(lamp) },

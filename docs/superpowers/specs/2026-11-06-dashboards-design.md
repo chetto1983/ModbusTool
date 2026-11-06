@@ -57,6 +57,12 @@ Si riprende il modello d'uso, non il codice (React).
 | D19 | Una finestra trascinata su un trend (zoom di uPlot) **resta** mentre arrivano campioni: i dati si aggiornano senza ricalcolare le scale (`setData(data, false)`), finché si preme "Annulla zoom", si fa doppio clic o la finestra esce dallo storico. Stesso comportamento dei pannelli di wpt-iot (`panel-chart.tsx`: `xDomain` mantenuto, `resetZoom`, azzeramento se fuori dai dati) | Segnalazione utente: "il prossimo tick me lo toglie"; misura E2E: con 10 letture a 200 ms la finestra non si muove |
 | D20 | Il gauge usa **svelte-gauge 2.0.2** (MIT, nessuna dipendenza, CSS compilato nel pacchetto): quadrante da 240°, zone di avviso e allarme come segmenti, etichette min/max, colori dai token. wpt-iot usa `react-gauge-component` e `recharts`, che sono React e non si usano in Svelte | Scelta utente 2026-11-06 (link al pacchetto); inventario del tarball pubblicato, `npm audit` senza vulnerabilità |
 
+## Letture raggruppate (2026-11-06)
+
+| # | Decisione | Fonte |
+|---|---|---|
+| D21 | Le variabili con stessa unit, tabella e periodo, **contigue o sovrapposte**, si leggono in **un'unica richiesta** (al massimo 125 registri o 2000 bit, i limiti di FC03/04 e FC01/02, Modbus Application Protocol 1.1b3 §6.1–6.4). Non si leggono indirizzi che nessuna variabile chiede: un dispositivo con un buco nella mappa risponde con l'eccezione 02 all'intero blocco | Calcolo dalla specifica: in RTU a 9600 baud un carattere dura 11/9600 s ≈ 1,15 ms e la pausa tra frame 3,5 caratteri ≈ 4 ms (Modbus over Serial Line 1.02 §2.5.1.1). Una lettura di un registro (8 + 7 byte) costa ≈ 25 ms, quindi 30 variabili ≈ 750 ms, più di un periodo da 200 ms. Misurato solo il numero di richieste e la correttezza dei valori: le pty di socat non hanno i tempi della seriale |
+
 ## Cosa NON è dimostrato
 
 - Prestazioni con molti pannelli e poll veloci: da misurare (obiettivo: 20 pannelli, poll 200 ms).
