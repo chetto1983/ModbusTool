@@ -1,14 +1,17 @@
 # ModbusTool
 
-A Modbus **master and slave** tool for Windows and Linux (macOS can be built from source).
-Version 3 is a full rewrite of the WinForms tool as a [Tauri](https://tauri.app) desktop app:
-Rust backend, Svelte frontend, one window for both roles.
+A free, open-source Modbus **master and slave** for Windows and Linux, with live dashboards.
+TCP, UDP, RTU, ASCII and RTU over TCP in one window, every common data type and byte order, a
+frame-by-frame traffic monitor, and dashboards with trends, gauges, lamps and command panels.
 
-![Master view](docs/screenshots/master-dark.png)
+**[⬇ Download the latest release](https://github.com/chetto1983/ModbusTool/releases/latest)**:
+Windows `.msi`, Linux `.deb` and `.AppImage` (see [Install](#install)). It updates itself.
+
+![A dashboard reading a live slave: trend, gauge, lamp and bars](docs/screenshots/dashboard.gif)
 
 ## Features
 
-**Links** — Modbus TCP, Modbus UDP, RTU over TCP, RTU serial, ASCII serial.
+**Links**: Modbus TCP, Modbus UDP, RTU over TCP, RTU serial, ASCII serial.
 
 **Master**
 - Functions FC01–FC06, FC15, FC16.
@@ -23,6 +26,15 @@ Rust backend, Svelte frontend, one window for both roles.
 - Value generators: sine, ramp, random, square wave.
 - CSV import/export (also reads the ModbusTool 2 export format `4100:0x04c8,4101:12,...`).
 
+**Dashboards**
+- Several named dashboards per project, on a grid you arrange by dragging and resizing panels.
+- Panels: trend (steps, straight or smooth lines, zoom), value with gauge and warning/alarm
+  colours, bars, lamp, button, switch, selector and number input.
+- Every panel element reads its own variable (unit, table, address, type, byte order) while the
+  master is connected; neighbouring registers are read in one request.
+- Scaling as SCADA tags do it (raw range to engineering range, both ways), and a colour per
+  variable from the theme or a colour picker.
+
 **Both**
 - Data types: UInt16, Int16, Hex, Binary, UInt32, Int32, Float32, UInt64, Int64, Float64, ASCII,
   with byte orders ABCD, CDAB, BADC, DCBA. Labels per register.
@@ -31,9 +43,34 @@ Rust backend, Svelte frontend, one window for both roles.
 - Projects saved as JSON (`Ctrl+S`, `Ctrl+O`). Dark and light theme, same design as Aura.
 - Interface in English and Italian, chosen in the sidebar.
 
-| Slave | Traffic monitor |
-|---|---|
-| ![Slave](docs/screenshots/slave-dark.png) | ![Traffic](docs/screenshots/traffic-dark.png) |
+| Master | Slave | Traffic monitor |
+|---|---|---|
+| ![Master](docs/screenshots/master-dark.png) | ![Slave](docs/screenshots/slave-dark.png) | ![Traffic](docs/screenshots/traffic-dark.png) |
+
+## How it compares
+
+|  | **ModbusTool** | Modbus Poll + Modbus Slave | ModbusTools (serhmarch) | QModMaster | mbpoll | Simply Modbus |
+|---|---|---|---|---|---|---|
+| Price | Free (MIT) | USD 129 each | Free (GPL-3.0) | Free (GPL/LGPL-3.0) | Free (GPL-3.0) | From USD 60 per tool |
+| Windows / Linux / macOS | ✓ / ✓ / from source | ✓ / – / – | ✓ / ✓ / – | ✓ / ✓ / – | ✓ / ✓ / ✓ | ✓ / – / – |
+| Interface | Desktop app | Desktop app | Desktop app | Desktop app | Command line | Desktop app |
+| Master and slave | One app | Two products | Two apps | Master only | Master only | Separate products |
+| TCP · UDP · RTU · ASCII · RTU over TCP | ✓ · ✓ · ✓ · ✓ · ✓ | ✓ · ✓ · ✓ · ✓ · ✓ | ✓ · ✓ · ✓ · ✓ · ✓ | ✓ · – · ✓ · – · – | ✓ · – · ✓ · – · – | ✓ · – · ✓ · ✓ · ✓ |
+| 64-bit integers and doubles, 4 byte orders | ✓ | ✓ | ✓ | – | – (32-bit only) | – |
+| Traffic monitor | ✓ | ✓ | ✓ | ✓ | – | Log file |
+| Trend charts | ✓ | ✓ | – | – | – | – |
+| Dashboards with commands | ✓ | – | – | – | – | – |
+| Auto-update | ✓ | – | – | – | – | – |
+
+– means not offered, or not stated by the project. Checked on 2026-11-06 against each project's
+own site or repository: [Modbus Poll](https://www.modbustools.com/modbus_poll.html) and
+[Modbus Slave](https://www.modbustools.com/modbus_slave.html)
+([prices](https://www.modbustools.com/order.html)),
+[ModbusTools](https://github.com/serhmarch/ModbusTools),
+[QModMaster](https://sourceforge.net/projects/qmodmaster/),
+[mbpoll](https://github.com/epsilonrt/mbpoll),
+[Simply Modbus](https://www.simplymodbus.ca/tools.html) ([prices](https://www.simplymodbus.ca/purchase.html)).
+Corrections are welcome as issues.
 
 ## Install
 
@@ -111,7 +148,9 @@ cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings &
 ```
 
 End-to-end run of the real app against [pymodbus](https://github.com/pymodbus-dev/pymodbus) as an
-independent implementation (Linux; needs `tauri-driver`, `WebKitWebDriver`, `socat`, `pymodbus`):
+independent implementation. CI runs it on Linux and Windows (Windows without the serial checks,
+which need `socat`). Locally on Linux it needs `tauri-driver`, `WebKitWebDriver`, `socat` and
+`pymodbus`:
 
 ```sh
 npx tauri build --debug --no-bundle
