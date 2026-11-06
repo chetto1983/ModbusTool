@@ -4,7 +4,7 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
-## Unreleased
+## v3.2.0 — 2026-11-06
 
 Dashboards: a mini-SCADA view, Grafana style, with panels that show what the master's polls read
 and write values through the master.
