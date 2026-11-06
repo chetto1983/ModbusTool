@@ -5,6 +5,7 @@
   import MasterView from "./lib/components/MasterView.svelte";
   import SlaveView from "./lib/components/SlaveView.svelte";
   import TrafficView from "./lib/components/TrafficView.svelte";
+  import DashboardView from "./lib/components/DashboardView.svelte";
   import UpdatesDialog from "./lib/components/UpdatesDialog.svelte";
   import { startUpdateChecks, updates } from "./lib/updates.svelte";
   import { api, onPollResults, onTraffic } from "./lib/api";
@@ -25,11 +26,16 @@
   const NAV: { id: View; label: () => string; glyph: string }[] = [
     { id: "master", label: m.nav_master, glyph: "M 3 12 H 7 V 5 H 12 V 12 H 17 V 5 H 21" },
     { id: "slave", label: m.nav_slave, glyph: "M 4 4 H 20 V 10 H 4 Z M 4 14 H 20 V 20 H 4 Z M 7 7 H 9 M 7 17 H 9" },
+    {
+      id: "dashboard",
+      label: m.nav_dashboard,
+      glyph: "M 4 4 H 11 V 11 H 4 Z M 13 4 H 20 V 8 H 13 Z M 13 10 H 20 V 20 H 13 Z M 4 13 H 11 V 20 H 4 Z",
+    },
     { id: "traffic", label: m.nav_traffic, glyph: "M 3 7 H 17 L 14 4 M 21 17 H 7 L 10 20" },
   ];
 
   const status = (id: View) =>
-    id === "master" ? master.connected : id === "slave" ? slave.running : traffic.events.length > 0;
+    id === "master" ? master.connected : id === "slave" ? slave.running : id === "traffic" && traffic.events.length > 0;
 
   function shortcuts(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
@@ -129,6 +135,8 @@
         <MasterView />
       {:else if app.view === "slave"}
         <SlaveView />
+      {:else if app.view === "dashboard"}
+        <DashboardView />
       {:else}
         <TrafficView />
       {/if}

@@ -30,6 +30,7 @@ import {
   tmp,
   track,
 } from "./helpers.mjs";
+import { dashboardScenario } from "./dashboard.mjs";
 import { typesMaster, typesSlave } from "./types.mjs";
 
 const shots = process.argv[2] ? resolve(process.argv[2]) : null;
@@ -116,6 +117,7 @@ async function masterScenario(browser, ports, serialRef) {
   await click(browser, labelled("Stop Poll 1"));
   await editPoll(browser, { Function: "FC03 · Holding registers" });
   await typesMaster(browser, `127.0.0.1:${ports.tcp}`, 40);
+  await dashboardScenario(browser, `127.0.0.1:${ports.tcp}`);
   await editPoll(browser, {
     Function: "FC04 · Input registers",
     Address: 0,

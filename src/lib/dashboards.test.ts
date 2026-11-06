@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { bottom, newDashboard, newPanel, PANEL_KINDS, parseDashboards, type Dashboard } from "./dashboards";
+import { freePlace, newDashboard, newPanel, PANEL_KINDS, parseDashboards, type Dashboard } from "./dashboards";
 import { defaultProject, parseProject, ProjectError, serializeProject } from "./project";
 
 function dashboardWithEveryPanel(): Dashboard {
   const dashboard = newDashboard("d1", "Plant");
-  PANEL_KINDS.forEach((kind, i) => dashboard.panels.push(newPanel(`p${i}`, kind, kind, bottom(dashboard))));
+  PANEL_KINDS.forEach((kind, i) => dashboard.panels.push(newPanel(`p${i}`, kind, kind, dashboard.panels)));
   return dashboard;
 }
 
 const withPanel = (change: (panel: Record<string, unknown>) => void, kind = PANEL_KINDS[0]) => {
   const dashboard = newDashboard("d", "D");
-  const panel = newPanel("p", kind, "t", 0) as unknown as Record<string, unknown>;
+  const panel = newPanel("p", kind, "t", []) as unknown as Record<string, unknown>;
   change(panel);
   dashboard.panels.push(panel as never);
   return [dashboard];
@@ -29,13 +29,24 @@ describe("dashboards", () => {
     expect(parseProject(JSON.stringify(old)).dashboards).toEqual([]);
   });
 
-  it("stacks new panels below the others", () => {
+  it("puts new panels in the first free spot, row by row, without overlaps", () => {
     const dashboard = dashboardWithEveryPanel();
-    const ys = dashboard.panels.map((p) => p.place.y);
-    expect(ys).toEqual(ys.toSorted((a, b) => a - b));
-    expect(bottom(newDashboard("e", "E"))).toBe(0);
-    const last = dashboard.panels.at(-1)!;
-    expect(bottom(dashboard)).toBe(last.place.y + last.place.h);
+    // trend 6x4 at the top left, then value 3x2 and bars... fill the rest of the 12 columns.
+    expect(dashboard.panels.map((p) => [p.place.x, p.place.y])).toEqual([
+      [0, 0],
+      [6, 0],
+      [6, 2],
+      [9, 0],
+      [10, 2],
+      [0, 4],
+      [2, 4],
+      [0, 6],
+    ]);
+    const places = dashboard.panels.map((p) => p.place);
+    for (const a of places)
+      for (const b of places)
+        if (a !== b) expect(a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h).toBe(false);
+    expect(freePlace([], { w: 12, h: 1 })).toEqual({ x: 0, y: 0, w: 12, h: 1 });
   });
 
   it("rejects malformed dashboards with the reason", () => {
@@ -63,6 +74,12 @@ describe("dashboards", () => {
       ["button", (p) => (p.target = { ...(p.target as object), dataType: "float16" })],
       ["button", (p) => (p.confirm = "yes")],
       ["switch", (p) => (p.target = null)],
+      ["select", (p) => (p.options = [{ label: "On" }])],
+      ["select", (p) => (p.options = "On=1")],
+      ["select", (p) => (p.signal = 0)],
+      ["number", (p) => (p.min = "0")],
+      ["number", (p) => (p.max = Number.POSITIVE_INFINITY)],
+      ["number", (p) => (p.target = {})],
     ];
     for (const [kind, change] of bad) {
       expect(() => parseDashboards(withPanel(change, kind as never)), kind).toThrow(ProjectError);
@@ -77,5 +94,7 @@ describe("dashboards", () => {
       p.gauge = true;
     }, "value");
     expect(parseDashboards(valid)).toEqual(valid);
+    const setpoint = withPanel((p) => Object.assign(p, { min: -10, max: 10.5 }), "number");
+    expect(parseDashboards(setpoint)).toEqual(setpoint);
   });
 });

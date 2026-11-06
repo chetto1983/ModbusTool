@@ -4,6 +4,20 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
+## v3.2.0 — 2026-11-06
+
+Dashboards: a mini-SCADA view, Grafana style, with panels that show what the master's polls read
+and write values through the master.
+
+### Added
+
+- Dashboard view: several named dashboards, saved in the project file. In edit mode panels are
+  added, dragged by their title and resized on a 12-column grid.
+- Panels: trend, value (unit, scale, decimals, warning and alarm colours, optional gauge), bars,
+  lamp, button (with optional confirmation), switch, selector (options that write their value)
+  and number input (a setpoint with optional min and max).
+- Writes are disabled while the master is not connected; a failed write shows a notice.
+
 ## v3.1.2 — 2026-11-06
 
 Windows: the language menu now changes the interface language, and the app talks to its backend

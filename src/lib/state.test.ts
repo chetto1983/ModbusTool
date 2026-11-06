@@ -123,7 +123,7 @@ describe("state", () => {
     master.runtime.p = emptyRuntime(true);
     expect(signalValue({ pollId: "p", offset: 0 })).toBeNull();
     const dashboard = newDashboard("d", "D");
-    const panel = newPanel("t", "trend", "T", 0);
+    const panel = newPanel("t", "trend", "T", []);
     if (panel.kind === "trend") panel.signals.push({ pollId: "p", offset: 1 }, { pollId: "p", offset: 1 });
     dashboard.panels.push(panel);
     app.project.dashboards = [dashboard];

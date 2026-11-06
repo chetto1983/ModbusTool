@@ -1,7 +1,7 @@
 {
   "name": "modbus-tool",
   "private": true,
-  "version": "3.1.2",
+  "version": "3.2.0",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -55,6 +55,7 @@
     "@tauri-apps/plugin-fs": "^2.7.1",
     "@tauri-apps/plugin-process": "^2.4.0",
     "@tauri-apps/plugin-updater": "^2.14.1",
+    "gridstack": "^14.0.0",
     "uplot": "^1.6.32"
   },
   "overrides": {

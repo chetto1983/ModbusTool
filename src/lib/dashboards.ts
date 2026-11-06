@@ -82,7 +82,31 @@ export interface SwitchPanel extends PanelBase {
   signal: Signal | null;
 }
 
-export type Panel = TrendPanel | ValuePanel | BarsPanel | LampPanel | ButtonPanel | SwitchPanel;
+export interface SelectOption {
+  label: string;
+  /** Text encoded with the target's type, as for a button. */
+  value: string;
+}
+
+export interface SelectPanel extends PanelBase {
+  kind: "select";
+  target: WriteTarget;
+  options: SelectOption[];
+  /** What shows the chosen option: the one whose value equals the read value. */
+  signal: Signal | null;
+}
+
+export interface NumberPanel extends PanelBase {
+  kind: "number";
+  target: WriteTarget;
+  /** What shows the current setpoint, usually a poll reading the same register. */
+  signal: Signal | null;
+  min: number | null;
+  max: number | null;
+}
+
+export type Panel =
+  TrendPanel | ValuePanel | BarsPanel | LampPanel | ButtonPanel | SwitchPanel | SelectPanel | NumberPanel;
 export type PanelKind = Panel["kind"];
 
 export interface Dashboard {
@@ -91,7 +115,7 @@ export interface Dashboard {
   panels: Panel[];
 }
 
-export const PANEL_KINDS: PanelKind[] = ["trend", "value", "bars", "lamp", "button", "switch"];
+export const PANEL_KINDS: PanelKind[] = ["trend", "value", "bars", "lamp", "button", "switch", "select", "number"];
 
 export const GRID_COLUMNS = 12;
 
@@ -102,6 +126,8 @@ const SIZES: Record<PanelKind, Pick<Place, "w" | "h">> = {
   lamp: { w: 2, h: 2 },
   button: { w: 2, h: 2 },
   switch: { w: 2, h: 2 },
+  select: { w: 3, h: 2 },
+  number: { w: 3, h: 2 },
 };
 
 const defaultTarget = (table: WriteTarget["table"]): WriteTarget => ({
@@ -116,9 +142,21 @@ export function newDashboard(id: string, name: string): Dashboard {
   return { id, name, panels: [] };
 }
 
-/** A new panel of `kind`, placed below the others (gridstack moves it up if there is room). */
-export function newPanel(id: string, kind: PanelKind, title: string, below: number): Panel {
-  const base = { id, title, place: { x: 0, y: below, ...SIZES[kind] } };
+const overlaps = (a: Place, b: Place) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+/** The first free spot for a panel of this size, row by row from the top left, as Grafana does. */
+export function freePlace(panels: Panel[], size: Pick<Place, "w" | "h">): Place {
+  for (let y = 0; ; y++) {
+    for (let x = 0; x + size.w <= GRID_COLUMNS; x++) {
+      const place = { x, y, ...size };
+      if (!panels.some((p) => overlaps(p.place, place))) return place;
+    }
+  }
+}
+
+/** A new panel of `kind` in the first free spot of the dashboard. */
+export function newPanel(id: string, kind: PanelKind, title: string, panels: Panel[]): Panel {
+  const base = { id, title, place: freePlace(panels, SIZES[kind]) };
   switch (kind) {
     case "trend":
       return { ...base, kind, signals: [], windowS: 60 };
@@ -145,12 +183,18 @@ export function newPanel(id: string, kind: PanelKind, title: string, below: numb
       return { ...base, kind, target: defaultTarget("holdingRegisters"), value: "1", confirm: false };
     case "switch":
       return { ...base, kind, target: defaultTarget("coils"), signal: null };
+    case "select":
+      return {
+        ...base,
+        kind,
+        target: defaultTarget("holdingRegisters"),
+        options: ["0", "1"].map((value) => ({ label: value, value })),
+        signal: null,
+      };
+    case "number":
+      return { ...base, kind, target: defaultTarget("holdingRegisters"), signal: null, min: null, max: null };
   }
 }
-
-/** The first grid row free below every panel. */
-export const bottom = (dashboard: Dashboard): number =>
-  Math.max(0, ...dashboard.panels.map((p) => p.place.y + p.place.h));
 
 // ---------- project file validation ----------
 
@@ -179,6 +223,8 @@ function isPlace(v: unknown): boolean {
   );
 }
 
+const isOption = (v: unknown) => isObject(v) && typeof v.label === "string" && typeof v.value === "string";
+
 const PANEL_FIELDS: Record<PanelKind, (p: Record<string, unknown>) => boolean> = {
   trend: (p) => Array.isArray(p.signals) && p.signals.every(isSignal) && isInt(p.windowS, 1, 86_400),
   value: (p) =>
@@ -193,6 +239,9 @@ const PANEL_FIELDS: Record<PanelKind, (p: Record<string, unknown>) => boolean> =
   lamp: (p) => isOptionalSignal(p.signal),
   button: (p) => isTarget(p.target) && typeof p.value === "string" && typeof p.confirm === "boolean",
   switch: (p) => isTarget(p.target) && isOptionalSignal(p.signal),
+  select: (p) =>
+    isTarget(p.target) && Array.isArray(p.options) && p.options.every(isOption) && isOptionalSignal(p.signal),
+  number: (p) => isTarget(p.target) && isOptionalSignal(p.signal) && isNullableNumber(p.min) && isNullableNumber(p.max),
 };
 
 function checkPanel(v: unknown): void {
