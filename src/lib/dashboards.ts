@@ -33,10 +33,15 @@ interface PanelBase {
   place: Place;
 }
 
+/** How a trend joins its samples: held until the next one, straight, or smoothed. */
+export const INTERPOLATIONS = ["step", "linear", "spline"] as const;
+export type Interpolation = (typeof INTERPOLATIONS)[number];
+
 export interface TrendPanel extends PanelBase {
   kind: "trend";
   signals: Signal[];
   windowS: number;
+  interpolation: Interpolation;
 }
 
 export interface ValuePanel extends PanelBase {
@@ -159,7 +164,7 @@ export function newPanel(id: string, kind: PanelKind, title: string, panels: Pan
   const base = { id, title, place: freePlace(panels, SIZES[kind]) };
   switch (kind) {
     case "trend":
-      return { ...base, kind, signals: [], windowS: 60 };
+      return { ...base, kind, signals: [], windowS: 60, interpolation: "linear" };
     case "value":
       return {
         ...base,
@@ -226,7 +231,11 @@ function isPlace(v: unknown): boolean {
 const isOption = (v: unknown) => isObject(v) && typeof v.label === "string" && typeof v.value === "string";
 
 const PANEL_FIELDS: Record<PanelKind, (p: Record<string, unknown>) => boolean> = {
-  trend: (p) => Array.isArray(p.signals) && p.signals.every(isSignal) && isInt(p.windowS, 1, 86_400),
+  trend: (p) =>
+    Array.isArray(p.signals) &&
+    p.signals.every(isSignal) &&
+    isInt(p.windowS, 1, 86_400) &&
+    INTERPOLATIONS.includes(p.interpolation as Interpolation),
   value: (p) =>
     isOptionalSignal(p.signal) &&
     typeof p.unit === "string" &&
@@ -247,6 +256,8 @@ const PANEL_FIELDS: Record<PanelKind, (p: Record<string, unknown>) => boolean> =
 function checkPanel(v: unknown): void {
   check(isObject(v), "panel must be an object");
   const panel = v as Record<string, unknown>;
+  // Trends saved by 3.2.0 have no interpolation: they were drawn in steps.
+  if (panel.kind === "trend") panel.interpolation ??= "step";
   check(typeof panel.id === "string" && typeof panel.title === "string", "panel id/title");
   check(PANEL_KINDS.includes(panel.kind as PanelKind), `panel kind ${String(panel.kind)}`);
   check(isPlace(panel.place), "panel place");

@@ -4,6 +4,13 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
+## Unreleased
+
+### Added
+
+- Dashboard trends choose how samples are joined: steps (held value), straight lines or a smooth
+  curve. New trends use straight lines; trends saved by 3.2.0 keep their steps.
+
 ## v3.2.0 — 2026-11-06
 
 Dashboards: a mini-SCADA view, Grafana style, with panels that show what the master's polls read

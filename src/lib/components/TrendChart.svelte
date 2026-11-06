@@ -3,12 +3,22 @@
   import uPlot from "uplot";
   import "uplot/dist/uPlot.min.css";
   import { m } from "../../paraglide/messages.js";
+  import type { Interpolation } from "../dashboards";
   import { currentLocale } from "../i18n.svelte";
   import { app, history } from "../state.svelte";
 
-  // Stepped lines of signals over the last `windowS` seconds, from the shared signal history.
-  let { series, windowS, empty }: { series: { key: string; label: string }[]; windowS: number; empty: string } =
-    $props();
+  // Lines of signals over the last `windowS` seconds, from the shared signal history.
+  let {
+    series,
+    windowS,
+    empty,
+    interpolation = "step",
+  }: {
+    series: { key: string; label: string }[];
+    windowS: number;
+    empty: string;
+    interpolation?: Interpolation;
+  } = $props();
 
   let host: HTMLDivElement;
   let plot: uPlot | null = null;
@@ -33,7 +43,13 @@
     );
   }
 
-  const stepped = uPlot.paths.stepped!({ align: 1 });
+  // "step" holds a polled value until the next sample: straight lines would turn a square wave
+  // sampled once per level into a triangle. "linear" and "spline" suit analogue values.
+  const PATHS: Record<Interpolation, uPlot.Series.PathBuilder> = {
+    step: uPlot.paths.stepped!({ align: 1 }),
+    linear: uPlot.paths.linear!(),
+    spline: uPlot.paths.spline!(),
+  };
   // Tick steps in whole seconds: labels are HH:MM:SS, so finer steps would repeat a label.
   const CLOCK_STEPS_S = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600];
 
@@ -84,9 +100,7 @@
             stroke: colors[i % colors.length],
             width: 1.8,
             spanGaps: true,
-            // A polled value holds until the next sample: lines between samples would turn a
-            // square wave sampled once per level into a triangle.
-            paths: stepped,
+            paths: PATHS[interpolation],
             points: { show: false },
           })),
         ],
@@ -97,7 +111,9 @@
   }
 
   // Rebuild when the series, the theme, the language or the window change; otherwise push new data.
-  const signature = $derived([series.map((s) => s.key).join("|"), app.theme, currentLocale(), windowS].join(" "));
+  const signature = $derived(
+    [series.map((s) => s.key).join("|"), app.theme, currentLocale(), windowS, interpolation].join(" "),
+  );
   $effect(() => {
     void signature;
     untrack(build);

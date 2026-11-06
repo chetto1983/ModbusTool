@@ -74,6 +74,7 @@
   <TrendChart
     series={panel.signals.map((signal) => ({ key: signalKey(signal), label: signalLabel(signal) }))}
     windowS={panel.windowS}
+    interpolation={panel.interpolation}
     empty={m.panel_no_signal()}
   />
 {:else if panel.kind === "value"}

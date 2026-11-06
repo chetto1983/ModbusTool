@@ -64,6 +64,7 @@ describe("dashboards", () => {
     const bad: [string, (p: Record<string, unknown>) => void][] = [
       ["trend", (p) => (p.signals = [{ pollId: "a", offset: -1 }])],
       ["trend", (p) => (p.windowS = 0)],
+      ["trend", (p) => (p.interpolation = "cubic")],
       ["value", (p) => (p.scale = Number.NaN)],
       ["value", (p) => (p.decimals = 11)],
       ["value", (p) => (p.warn = "high")],
@@ -84,6 +85,12 @@ describe("dashboards", () => {
     for (const [kind, change] of bad) {
       expect(() => parseDashboards(withPanel(change, kind as never)), kind).toThrow(ProjectError);
     }
+  });
+
+  it("draws trends saved before the interpolation choice in steps, as they were", () => {
+    const old = withPanel((p) => delete p.interpolation, "trend");
+    expect(parseDashboards(JSON.parse(JSON.stringify(old)))[0].panels[0]).toMatchObject({ interpolation: "step" });
+    expect(newPanel("t", "trend", "T", [])).toMatchObject({ interpolation: "linear" });
   });
 
   it("accepts the optional parts set", () => {

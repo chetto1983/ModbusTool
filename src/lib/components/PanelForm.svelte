@@ -2,7 +2,7 @@
   import { m } from "../../paraglide/messages.js";
   import SignalSelect from "./SignalSelect.svelte";
   import { signalOptions, targetRegisters } from "../dashboardActions.svelte";
-  import type { Panel, Signal } from "../dashboards";
+  import { INTERPOLATIONS, type Interpolation, type Panel, type Signal } from "../dashboards";
   import { BYTE_ORDERS, DATA_TYPES } from "../datatypes";
   import { TREND_WINDOWS_S } from "../state.svelte";
 
@@ -20,6 +20,12 @@
       input.setCustomValidity(e instanceof Error ? e.message : String(e));
     }
   }
+
+  const INTERPOLATION_LABELS: Record<Interpolation, () => string> = {
+    step: m.trend_step,
+    linear: m.trend_linear,
+    spline: m.trend_spline,
+  };
 
   const windowLabel = (seconds: number) =>
     seconds < 60 ? m.trend_seconds({ count: seconds }) : m.trend_minutes({ count: seconds / 60 });
@@ -70,6 +76,12 @@
     {m.panel_window()}
     <select bind:value={panel.windowS}>
       {#each TREND_WINDOWS_S as seconds (seconds)}<option value={seconds}>{windowLabel(seconds)}</option>{/each}
+    </select>
+  </label>
+  <label class="field">
+    {m.trend_interpolation()}
+    <select bind:value={panel.interpolation}>
+      {#each INTERPOLATIONS as kind (kind)}<option value={kind}>{INTERPOLATION_LABELS[kind]()}</option>{/each}
     </select>
   </label>
 {:else if panel.kind === "bars"}
