@@ -59,7 +59,11 @@ async function masterScenario(browser, ports, serialRef) {
   const conn = panel("Connection");
   console.log("Master against pymodbus");
   // The theme persists across runs; start from the dark one so screenshots are comparable.
-  await browser.waitUntil(async () => Boolean(await browser.execute(() => document.documentElement.dataset.theme)));
+  // The app has started once its theme is set. A cold start on a fresh CI runner (WebKit's or
+  // WebView2's first launch) takes longer than the 5 s default.
+  await browser.waitUntil(async () => Boolean(await browser.execute(() => document.documentElement.dataset.theme)), {
+    timeout: 30_000,
+  });
   if ((await browser.execute(() => document.documentElement.dataset.theme)) === "light") {
     await click(browser, "//nav//button[contains(@class,'theme')]");
   }
