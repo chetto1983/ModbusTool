@@ -28,8 +28,8 @@ Apply at <https://signpath.org/apply> for a free open-source subscription, point
    system to the SignPath project.
 2. Create the project (e.g. slug `ModbusTool`) and an artifact configuration with the content of
    [`.signpath/artifact-configuration.xml`](../.signpath/artifact-configuration.xml). Validate it
-   with *Upload an artifact sample*, using the `windows-unsigned` artifact of a Release run (or
-   the `ModbusTool-Windows` artifact of a CI run).
+   with *Upload an artifact sample*, using the `windows-unsigned` artifact of a Release run (kept
+   one day) or the MSI of a published release.
 3. Create a signing policy (e.g. slug `release-signing`) with manual approval by the maintainer.
 4. Create an API token for a user with *submitter* permission on the policy.
 

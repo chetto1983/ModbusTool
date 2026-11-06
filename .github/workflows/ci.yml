@@ -118,14 +118,11 @@ jobs:
       - run: npx tauri build --bundles ${{ matrix.bundles }}
       - name: One Paraglide runtime in the frontend bundle
         run: node scripts/check-single-runtime.mjs
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: ModbusTool-${{ runner.os }}
-          path: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/deb/*.deb
-            src-tauri/target/release/bundle/appimage/*.AppImage
-          if-no-files-found: error
+      # Built and checked, not uploaded: about 90 MB a run filled the account's 500 MB of
+      # artifact storage (2026-11-06). Packages to try come from the releases.
+      - name: The packages were built
+        shell: bash
+        run: ls -l src-tauri/target/release/bundle/*/ModbusTool*
 
   # The real app against pymodbus (e2e/run.mjs), on both desktop platforms Tauri can drive.
   # Windows has no socat, so its run has no serial checks and says so in its output.
@@ -199,3 +196,4 @@ jobs:
           name: e2e-${{ runner.os }}
           path: ${{ runner.temp }}/e2e
           if-no-files-found: ignore
+          retention-days: 7

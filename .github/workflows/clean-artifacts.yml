@@ -1,0 +1,30 @@
+name: Clean artifacts
+
+# Deletes every workflow run artifact of this repository, to free the account's artifact storage
+# (500 MB on the Free plan, filled by the CI packages until 2026-11-06). Releases and their files
+# are not artifacts and are not touched. Start it from the Actions tab (Run workflow).
+# REST API: https://docs.github.com/en/rest/actions/artifacts
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  clean:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Delete the artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh api --paginate "repos/$REPO/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | "\(.id) \(.size_in_bytes)"' > artifacts.txt
+          count=$(wc -l < artifacts.txt)
+          bytes=$(awk '{ s += $2 } END { print s + 0 }' artifacts.txt)
+          echo "Deleting $count artifacts, $((bytes / 1048576)) MiB"
+          while read -r id _; do
+            gh api -X DELETE "repos/$REPO/actions/artifacts/$id"
+          done < artifacts.txt
+          echo "Left: $(gh api "repos/$REPO/actions/artifacts?per_page=1" --jq .total_count)"
