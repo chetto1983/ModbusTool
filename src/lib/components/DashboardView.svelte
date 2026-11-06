@@ -19,9 +19,11 @@
   } from "../dashboardActions.svelte";
   import { PANEL_KINDS, type Panel, type PanelKind } from "../dashboards";
   import { importMap } from "../mapActions.svelte";
+  import { recorder, startRecording, stopRecording } from "../recorder.svelte";
   import { app } from "../state.svelte";
 
   const dashboard = $derived(currentDashboard());
+  const recorded = $derived(app.project.dashboards.find((d) => d.id === recorder.dashboardId) ?? null);
   const fullscreen = $derived(dashboard?.panels.find((p) => p.id === dashboardUi.fullscreen) ?? null);
 
   // The panel being edited: a copy, applied by savePanel.
@@ -85,6 +87,20 @@
     <button class="btn small" onclick={startNew}>{m.dashboard_new()}</button>
     <button class="btn small" onclick={() => (mapUnit = 1)}>{m.map_import()}</button>
     <span class="spacer"></span>
+    {#if recorded}
+      <span class="recording" role="status" title={recorder.file}>
+        <i aria-hidden="true"></i>{m.record_status({
+          dashboard: recorded.name,
+          file: recorder.file || recorder.folder,
+          rows: recorder.rows,
+        })}
+      </span>
+      <button class="btn small" onclick={stopRecording}>{m.record_stop()}</button>
+    {:else if dashboard}
+      <button class="btn small" onclick={() => startRecording(dashboard)} title={m.record_help()}
+        >{m.record_start()}</button
+      >
+    {/if}
     {#if dashboard}
       {#if dashboardUi.editing}
         <label class="period">
@@ -253,6 +269,24 @@
   }
   .period input {
     width: 9ch;
+  }
+  .recording {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    user-select: text;
+  }
+  .recording i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-danger);
   }
   .kinds {
     display: grid;

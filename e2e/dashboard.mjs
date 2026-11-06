@@ -2,6 +2,7 @@
 // their own variables from the reference server, and command panels write to it.
 // Reference holding register n = 111 * (n + 1), even coils ON (reference_servers.py).
 
+import { readFileSync, rmSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 import {
   button,
@@ -305,6 +306,38 @@ export async function dashboardScenario(browser, target) {
     await eventually(async () => {
       if (JSON.stringify(await windowOf()) === JSON.stringify(zoomed)) throw new Error("still zoomed");
     }, "reset");
+  });
+
+  await check("Dashboard: a recording writes a row per period with the values read", async () => {
+    await click(browser, button("", "Record"));
+    const status = browser.$("//span[contains(@class,'recording')]");
+    await eventually(
+      async () => {
+        const rows = Number((await status.getProperty("textContent")).match(/(\d+) rows/)?.[1] ?? 0);
+        if (rows < 5) throw new Error(`${rows} rows`);
+      },
+      "rows",
+      10_000,
+    );
+    const file = await status.getAttribute("title");
+    await click(browser, button("", "Stop recording"));
+    const [header, ...lines] = readFileSync(file, "utf8").trim().split("\n");
+    rmSync(file);
+    const columns = header.split(",");
+    expectEqual(columns[0], "time", "first column");
+    const pressure = columns.indexOf("Pressure [bar]");
+    if (pressure < 0) throw new Error(`no pressure column in ${header}`);
+    const rows = lines.map((line) => line.split(","));
+    expectEqual(
+      rows.map((r) => r[pressure]),
+      rows.map(() => "333"),
+      "pressure",
+    );
+    // At most one row per half period (200 ms), times as spreadsheets read them.
+    const times = rows.map((r) => Date.parse(r[0].replace(" ", "T")));
+    for (let i = 1; i < times.length; i++) {
+      if (!(times[i] - times[i - 1] >= 100)) throw new Error(`rows ${times[i] - times[i - 1]} ms apart: ${lines}`);
+    }
   });
 
   await check("Dashboard: reads stop when the master disconnects", async () => {
