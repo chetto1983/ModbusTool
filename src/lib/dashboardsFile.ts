@@ -15,6 +15,7 @@ import {
   type Variable,
 } from "./dashboards";
 import type { PollConfig } from "./project";
+import { isScaling } from "./scaling";
 import { check, isInt, isNumber, isObject } from "./validation";
 
 const TABLES = new Set<unknown>(["coils", "discreteInputs", "holdingRegisters", "inputRegisters"]);
@@ -27,12 +28,13 @@ const isLocation = (v: Record<string, unknown>) =>
   DATA_TYPES.some((t) => t.id === v.dataType) &&
   BYTE_ORDERS.includes(v.byteOrder as ByteOrder);
 
-const isVariable = (v: unknown) => isObject(v) && typeof v.name === "string" && TABLES.has(v.table) && isLocation(v);
+const isVariable = (v: unknown) =>
+  isObject(v) && typeof v.name === "string" && TABLES.has(v.table) && isLocation(v) && isScaling(v.scaling, false);
 const isVariables = (v: unknown) => Array.isArray(v) && v.every(isVariable);
 const isState = (v: unknown) => v === null || isVariable(v);
 
 const isTarget = (v: unknown) =>
-  isObject(v) && (v.table === "coils" || v.table === "holdingRegisters") && isLocation(v);
+  isObject(v) && (v.table === "coils" || v.table === "holdingRegisters") && isLocation(v) && isScaling(v.scaling, true);
 
 const isPlace = (v: unknown) =>
   isObject(v) &&
@@ -51,7 +53,7 @@ const PANEL_FIELDS: Record<PanelKind, (p: Record<string, unknown>) => boolean> =
   value: (p) =>
     isVariable(p.variable) &&
     typeof p.unit === "string" &&
-    [p.scale, p.offset, p.min, p.max].every(isNumber) &&
+    [p.min, p.max].every(isNumber) &&
     isInt(p.decimals, 0, 10) &&
     typeof p.gauge === "boolean" &&
     isNullableNumber(p.warn) &&
@@ -83,6 +85,7 @@ function signalVariable(signal: unknown, polls: PollConfig[]): Variable | null {
     address: poll.address + (signal.offset as number),
     dataType: poll.dataType,
     byteOrder: poll.byteOrder,
+    scaling: null,
   };
 }
 
@@ -103,6 +106,19 @@ function convertPanel(panel: Record<string, unknown>, polls: PollConfig[]): void
   }
   // 3.2.0 drew trends in steps and had no choice.
   if (panel.kind === "trend") panel.interpolation ??= "step";
+  // Saved before scaling (D16): nothing scaled, except a value panel's own scale and offset (D18).
+  const variables = Array.isArray(panel.variables) ? panel.variables : [];
+  for (const v of [panel.variable, panel.state, panel.target, ...variables]) if (isObject(v)) v.scaling ??= null;
+  if (panel.kind === "value" && ("scale" in panel || "offset" in panel)) {
+    const { scale, offset } = panel;
+    check(isNumber(scale) && isNumber(offset), "value panel settings");
+    if (isObject(panel.variable) && (scale !== 1 || offset !== 0)) {
+      const [engMin, span] = [offset as number, scale as number];
+      panel.variable.scaling = { rawMin: 0, rawMax: 1, engMin, engMax: engMin + span, clamp: false };
+    }
+    delete panel.scale;
+    delete panel.offset;
+  }
 }
 
 function checkPanel(v: unknown, polls: PollConfig[]): void {

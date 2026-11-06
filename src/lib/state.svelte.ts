@@ -4,6 +4,7 @@ import type { PollResult, TrafficEvent } from "./api";
 import { defaultProject, type PollConfig, type Project } from "./project";
 import { variableKey, type Variable } from "./dashboards";
 import { numeric, registerCount } from "./datatypes";
+import { effectiveScaling, toEngineering } from "./scaling";
 import { readPreference, writePreference } from "./preferences";
 import { m } from "../paraglide/messages.js";
 
@@ -70,7 +71,7 @@ export const master = $state({
 
 /**
  * Samples of every watched series, for TREND_RETENTION_S: the master's trend by signalKey, the
- * dashboards' trend variables by readKey.
+ * dashboards' trend variables by readKey, unscaled (variables at one location can scale apart).
  */
 export const history = $state<Record<string, Samples>>({});
 
@@ -237,10 +238,15 @@ function applyReading(result: PollResult): void {
   if (variable && value !== null) appendSample(result.id, result.timestampMs / 1000, value as number);
 }
 
-/** A dashboard variable's last read value, or null before its first good read. */
+/** The scaling that applies to a variable: none for bits and non-numeric types (D16). */
+export const variableScaling = (variable: Variable) =>
+  effectiveScaling(variable.scaling, isBitTable(variable.table) ? "bit" : variable.dataType);
+
+/** A dashboard variable's last read value, scaled, or null before its first good read. */
 export function variableValue(variable: Variable): number | null {
   const values = readings[readKey(variable)]?.values;
-  return values ? decodeVariable(variable, values) : null;
+  const raw = values ? decodeVariable(variable, values) : null;
+  return raw === null ? null : toEngineering(raw, variableScaling(variable));
 }
 
 /** True without a good last read: not read yet, master disconnected, or the last read failed. */

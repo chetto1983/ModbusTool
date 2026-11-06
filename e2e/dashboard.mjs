@@ -22,12 +22,28 @@ async function addPanel(browser, kind, fields, writeTo = null) {
   await click(browser, button("", "Add panel"));
   await click(browser, button(dialog, kind));
   await browser.$(button(dialog, "Save")).waitForExist({ timeout: 3000 });
-  if (writeTo !== null) {
-    const address = await browser.$(`(${dialog}//label[starts-with(normalize-space(),"Address")]//input)[1]`);
-    await address.clearValue();
-    await address.setValue(String(writeTo));
-  }
+  if (writeTo !== null) await setFirst(browser, "Address", writeTo);
   await saveDialog(browser, fields);
+}
+
+/** Sets the first field of the open editor whose label starts with `label`. */
+async function setFirst(browser, label, value) {
+  const input = await browser.$(`(${dialog}//label[starts-with(normalize-space(),"${label}")]//input)[1]`);
+  await input.clearValue();
+  await input.setValue(String(value));
+}
+
+/** Turns on the first scaling of the open editor (a command's target) and sets its two points. */
+async function scaleFirst(browser, [rawMin, rawMax, engMin, engMax]) {
+  await click(browser, `(${dialog}//label[starts-with(normalize-space(),"Scale:")]//input)[1]`);
+  for (const [label, value] of Object.entries({
+    "Raw min": rawMin,
+    "Raw max": rawMax,
+    "Engineering min": engMin,
+    "Engineering max": engMax,
+  })) {
+    await setFirst(browser, label, value);
+  }
 }
 
 const place = (browser, title) =>
@@ -82,12 +98,25 @@ export async function dashboardScenario(browser, target) {
   await addPanel(browser, "Switch", { Title: "Valve 7" }, 7);
   await addPanel(browser, "Selector", { Title: "Mode" }, 8);
   await addPanel(browser, "Number input", { Title: "Speed", Min: 0, Max: 5000 }, 9);
+  // Scaling (spec D16-D17): register 2 holds 333, 0..1000 raw is 0..100 %.
+  await click(browser, button("", "Add panel"));
+  await click(browser, button(dialog, "Value"));
+  await scaleFirst(browser, [0, 1000, 0, 100]);
+  await saveDialog(browser, { Title: "Level", Address: 2, "Unit of measure": "%", Decimals: 1 });
+  // A setpoint typed in % is written raw (0..27648, the S7 analogue range) to register 11.
+  await click(browser, button("", "Add panel"));
+  await click(browser, button(dialog, "Number input"));
+  await setFirst(browser, "Address", 11);
+  await scaleFirst(browser, [0, 27648, 0, 100]);
+  await saveDialog(browser, { Title: "Level SP" });
 
   await check("Dashboard: panels are placed side by side without overlaps", async () => {
     const places = await Promise.all(
-      ["Pressure", "Running", "Set 4242", "Valve 7", "Mode", "Speed"].map((t) => place(browser, t)),
+      ["Pressure", "Running", "Set 4242", "Valve 7", "Mode", "Speed", "Level", "Level SP"].map((t) =>
+        place(browser, t),
+      ),
     );
-    expectEqual(new Set(places.map(String)).size, 6, "distinct places");
+    expectEqual(new Set(places.map(String)).size, 8, "distinct places");
     if (places.some((p) => p === null)) throw new Error(`missing panel: ${JSON.stringify(places)}`);
   });
 
@@ -183,6 +212,34 @@ export async function dashboardScenario(browser, target) {
       async () =>
         expectEqual(await browser.$(`${panelBody("Speed")}//span[contains(@class,'read')]`).getText(), "1234", "read"),
       "setpoint read",
+    );
+  });
+
+  await check("Dashboard: a scaled variable shows its engineering value", () =>
+    eventually(
+      async () =>
+        expectEqual(
+          await browser.$(`${panelBody("Level")}//span[contains(@class,'number')]`).getText(),
+          "33.3",
+          "level",
+        ),
+      "scaled value",
+    ),
+  );
+
+  await check("Dashboard: a scaled setpoint is written raw and read back in engineering units", async () => {
+    const input = await browser.$(`${panelBody("Level SP")}//input`);
+    await input.clearValue();
+    await input.setValue("50");
+    await click(browser, `${panelBody("Level SP")}//button[normalize-space()='Set']`);
+    await eventually(
+      () => expectEqual(reference("read", "tcp", target, "holding", 11, 1).values, [13824], "register 11"),
+      "raw write",
+    );
+    await eventually(
+      async () =>
+        expectEqual(await browser.$(`${panelBody("Level SP")}//span[contains(@class,'read')]`).getText(), "50", "read"),
+      "scaled read",
     );
   });
 

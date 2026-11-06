@@ -16,6 +16,7 @@ import { writeTo } from "./masterActions.svelte";
 import { labelKey, newId } from "./project";
 import { app, notify, pruneHistory } from "./state.svelte";
 import { encode } from "./datatypes";
+import { effectiveScaling, toRaw } from "./scaling";
 
 export const dashboardUi = $state({
   selected: null as string | null,
@@ -98,9 +99,20 @@ export function variableLabel(variable: Variable): string {
   return variable.name.trim() || label || (variable.unit === 1 ? address : `${variable.unit} · ${address}`);
 }
 
-/** The registers a button writes, or the error that makes its value unwritable. */
+/**
+ * The registers a command writes for `text`, an engineering value when the target scales (D17), or
+ * the error that makes it unwritable.
+ */
 export function targetRegisters(target: WriteTarget, text: string): number[] {
-  return target.table === "coils" ? encode(text, "bit") : encode(text, target.dataType, target.byteOrder);
+  if (target.table === "coils") return encode(text, "bit");
+  const scaling = effectiveScaling(target.scaling, target.dataType);
+  const engineering = Number(text);
+  // Text that is not a number is left to encode, which says why it is not writable.
+  const raw =
+    scaling && text.trim() !== "" && Number.isFinite(engineering)
+      ? String(toRaw(engineering, scaling, target.dataType))
+      : text;
+  return encode(raw, target.dataType, target.byteOrder);
 }
 
 /** The registers a setpoint writes, or the error: out of the panel's range or not encodable. */

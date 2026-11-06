@@ -5,6 +5,7 @@
   import { m } from "../../paraglide/messages.js";
   import type { Interpolation } from "../dashboards";
   import { currentLocale } from "../i18n.svelte";
+  import { toEngineering, type Scaling } from "../scaling";
   import { app, history } from "../state.svelte";
 
   // Lines of signals over the last `windowS` seconds, from the shared signal history.
@@ -14,7 +15,8 @@
     empty,
     interpolation = "step",
   }: {
-    series: { key: string; label: string }[];
+    /** History keys; samples are shown through `scaling` when given. */
+    series: { key: string; label: string; scaling?: Scaling | null }[];
     windowS: number;
     empty: string;
     interpolation?: Interpolation;
@@ -39,7 +41,11 @@
     if (series.length === 0) return [[]];
     // Series sample at different instants; join aligns them on a shared time axis.
     return uPlot.join(
-      series.map((s) => [history[s.key]?.times ?? [], history[s.key]?.values ?? []] as uPlot.AlignedData),
+      series.map((s) => {
+        const samples = history[s.key];
+        const values = samples?.values.map((v) => toEngineering(v, s.scaling ?? null)) ?? [];
+        return [samples?.times ?? [], values] as uPlot.AlignedData;
+      }),
     );
   }
 

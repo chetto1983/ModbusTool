@@ -3,6 +3,7 @@
 
 import type { Table } from "./api";
 import type { ByteOrder, DataType } from "./datatypes";
+import type { Scaling } from "./scaling";
 
 /** A value on a device, read by the dashboard (D13). Type and byte order apply to registers. */
 export interface Variable {
@@ -13,6 +14,8 @@ export interface Variable {
   address: number;
   dataType: DataType;
   byteOrder: ByteOrder;
+  /** Raw to engineering value (D16); null shows the raw value. */
+  scaling: Scaling | null;
 }
 
 /** Where a command panel writes, through the master. */
@@ -22,6 +25,8 @@ export interface WriteTarget {
   address: number;
   dataType: DataType;
   byteOrder: ByteOrder;
+  /** Values to write are engineering values, written raw (D17). */
+  scaling: Scaling | null;
 }
 
 /** Position on the dashboard grid, in grid cells. */
@@ -53,9 +58,6 @@ export interface ValuePanel extends PanelBase {
   kind: "value";
   variable: Variable;
   unit: string;
-  /** Shown value = read value × scale + offset. */
-  scale: number;
-  offset: number;
   decimals: number;
   gauge: boolean;
   min: number;
@@ -150,6 +152,7 @@ const defaultTarget = (table: WriteTarget["table"]): WriteTarget => ({
   address: 0,
   dataType: "uint16",
   byteOrder: "ABCD",
+  scaling: null,
 });
 
 export function newDashboard(id: string, name: string): Dashboard {
@@ -163,18 +166,12 @@ export const newVariable = (over: Partial<Variable> = {}): Variable => ({
   address: 0,
   dataType: "uint16",
   byteOrder: "ABCD",
+  scaling: null,
   ...over,
 });
 
 /** The variable at a write target's own location: what a command panel shows at first. */
-export const targetVariable = ({ unit, table, address, dataType, byteOrder }: WriteTarget): Variable => ({
-  name: "",
-  unit,
-  table,
-  address,
-  dataType,
-  byteOrder,
-});
+export const targetVariable = (target: WriteTarget): Variable => ({ ...target, name: "" });
 
 /** A command's state after its target changed: it follows the target while it reads that location. */
 export function followTarget(state: Variable | null, before: WriteTarget, after: WriteTarget): Variable | null {
@@ -218,8 +215,6 @@ export function newPanel(id: string, kind: PanelKind, title: string, panels: Pan
         kind,
         variable: newVariable(),
         unit: "",
-        scale: 1,
-        offset: 0,
         decimals: 1,
         gauge: false,
         min: 0,

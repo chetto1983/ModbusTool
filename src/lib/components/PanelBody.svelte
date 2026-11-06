@@ -4,8 +4,9 @@
   import TrendChart from "./TrendChart.svelte";
   import ValueView from "./ValueView.svelte";
   import { setpointRegisters, variableLabel, writeTarget } from "../dashboardActions.svelte";
-  import type { Panel, SelectPanel, Variable } from "../dashboards";
-  import { master, readKey, variableStale, variableValue } from "../state.svelte";
+  import type { Panel, SelectOption, SelectPanel, Variable } from "../dashboards";
+  import { sameEngineering } from "../scaling";
+  import { master, readKey, variableScaling, variableStale, variableValue } from "../state.svelte";
 
   let { panel }: { panel: Panel } = $props();
 
@@ -31,7 +32,10 @@
   const chosen = (select: SelectPanel) => {
     if (select.state === null) return lastChosen;
     const read = valueOf(select.state);
-    return select.options.find((o) => o.value.trim() !== "" && Number(o.value) === read)?.value ?? "";
+    if (read === null) return "";
+    const scaling = variableScaling(select.state);
+    const matches = (o: SelectOption) => o.value.trim() !== "" && sameEngineering(Number(o.value), read, scaling);
+    return select.options.find(matches)?.value ?? "";
   };
 
   async function choose(value: string) {
@@ -71,7 +75,11 @@
 
 {#if panel.kind === "trend"}
   <TrendChart
-    series={panel.variables.map((variable) => ({ key: readKey(variable), label: variableLabel(variable) }))}
+    series={panel.variables.map((variable) => ({
+      key: readKey(variable),
+      label: variableLabel(variable),
+      scaling: variableScaling(variable),
+    }))}
     windowS={panel.windowS}
     interpolation={panel.interpolation}
     empty={m.panel_no_variable()}

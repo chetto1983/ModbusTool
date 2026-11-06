@@ -83,6 +83,7 @@ const target = (over = {}) => ({
   address: 40,
   dataType: "uint16" as const,
   byteOrder: "ABCD" as const,
+  scaling: null,
   ...over,
 });
 
@@ -96,6 +97,16 @@ describe("writes", () => {
       [3, { kind: "writeMultipleRegisters", address: 40, values: [0xe979, 0x42f6] }],
       [3, { kind: "writeSingleCoil", address: 40, value: true }],
     ]);
+  });
+
+  it("writes engineering values raw through the target's scaling, never for coils or hex", async () => {
+    const scaling = { rawMin: 0, rawMax: 27648, engMin: 0, engMax: 100, clamp: true };
+    expect(d.targetRegisters(target({ scaling }), "50")).toEqual([13824]);
+    expect(d.targetRegisters(target({ scaling }), "150")).toEqual([27648]);
+    expect(d.targetRegisters(target({ scaling, dataType: "hex" }), "1F")).toEqual([0x1f]);
+    expect(d.targetRegisters(target({ scaling, table: "coils" }), "1")).toEqual([1]);
+    expect(() => d.targetRegisters(target({ scaling }), "half")).toThrow(/half/);
+    expect(() => d.targetRegisters(target({ scaling: { ...scaling, clamp: false } }), "-1")).toThrow();
   });
 
   it("reports a value that does not encode and a failed write, without throwing", async () => {

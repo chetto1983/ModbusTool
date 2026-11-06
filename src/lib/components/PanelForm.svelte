@@ -1,6 +1,7 @@
 <script lang="ts">
   import { untrack } from "svelte";
   import { m } from "../../paraglide/messages.js";
+  import ScalingFields from "./ScalingFields.svelte";
   import VariableFields from "./VariableFields.svelte";
   import { targetRegisters } from "../dashboardActions.svelte";
   import {
@@ -109,13 +110,11 @@
   <VariableFields bind:variable={panel.variable} legend={m.panel_variable()} />
   <div class="grid-3">
     <label class="field">{m.panel_unit()}<input bind:value={panel.unit} /></label>
-    <label class="field">{m.panel_scale()}<input type="number" step="any" required bind:value={panel.scale} /></label>
-    <label class="field">{m.panel_offset()}<input type="number" step="any" required bind:value={panel.offset} /></label>
-  </div>
-  <div class="grid-3">
     <label class="field">
       {m.panel_decimals()}<input type="number" min="0" max="10" required bind:value={panel.decimals} />
     </label>
+  </div>
+  <div class="grid-2">
     <label class="field">{m.panel_warn()}<input type="number" step="any" bind:value={panel.warn} /></label>
     <label class="field">{m.panel_alarm()}<input type="number" step="any" bind:value={panel.alarm} /></label>
   </div>
@@ -159,6 +158,9 @@
         </select>
       </label>
     </div>
+  {/if}
+  {#if panel.target.table === "holdingRegisters"}
+    <ScalingFields bind:scaling={panel.target.scaling} type={panel.target.dataType} invertible />
   {/if}
   {#if panel.kind === "button"}
     {@const button = panel}

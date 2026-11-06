@@ -54,7 +54,7 @@ lo storico non cresce senza limite; gridstack e Svelte non si contendono il DOM.
 
 ## Scalatura (spec D16–D18)
 
-- [ ] **T10 Scalatura**: `Scaling` su variabile e target, funzioni pure di andata e ritorno
+- [x] **T10 Scalatura**: `Scaling` su variabile e target, funzioni pure di andata e ritorno
   (test di proprietà: andata e ritorno restituiscono il grezzo), applicata a letture, storico e
   scritture; conversione di scala/offset del pannello valore; editor; E2E contro pymodbus (un
   registro grezzo letto scalato, un setpoint ingegneristico scritto grezzo); verifica; CHANGELOG.

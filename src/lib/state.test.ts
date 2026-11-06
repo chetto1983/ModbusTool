@@ -149,6 +149,22 @@ describe("state", () => {
     expect(master.runtime).toEqual({});
   });
 
+  it("shows a variable scaled, and a bit or a hex value as read", () => {
+    const scaling = { rawMin: 0, rawMax: 27648, engMin: 0, engMax: 100, clamp: false };
+    const level = newVariable({ address: 1, scaling });
+    const coil = newVariable({ table: "coils", address: 1, scaling });
+    const code = newVariable({ address: 2, dataType: "hex", scaling });
+    for (const v of [level, coil, code]) readings[readKey(v)] = { values: null, error: null };
+    applyPollResults([
+      { ...result([13824]), id: readKey(level) },
+      { ...result([1]), id: readKey(coil) },
+      { ...result([0x1f]), id: readKey(code) },
+    ]);
+    expect(variableValue(level)).toBe(50);
+    expect(variableValue(coil)).toBe(1);
+    expect(variableValue(code)).toBe(0x1f);
+  });
+
   it("keeps history only for variables a trend panel shows, once per location", () => {
     const flow = newVariable({ address: 7 });
     const dashboard = newDashboard("d", "D");

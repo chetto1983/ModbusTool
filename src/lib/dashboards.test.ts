@@ -10,6 +10,7 @@ import {
   type Dashboard,
 } from "./dashboards";
 import { parseDashboards as parseWithPolls } from "./dashboardsFile";
+import { defaultScaling } from "./scaling";
 import { defaultProject, parseProject, ProjectError, serializeProject, type PollConfig } from "./project";
 
 const parseDashboards = (v: unknown) => parseWithPolls(v, []);
@@ -94,6 +95,9 @@ describe("dashboards", () => {
       ["select", (p) => (p.options = "On=1")],
       ["select", (p) => (p.state = 0)],
       ["switch", (p) => (p.state = { ...newVariable(), byteOrder: "ZYXW" })],
+      ["value", (p) => (p.variable = { ...newVariable(), scaling: { ...defaultScaling(), rawMax: 0 } })],
+      ["number", (p) => (p.target = { ...(p.target as object), scaling: { ...defaultScaling(), engMax: 0 } })],
+      ["button", (p) => (p.target = { ...(p.target as object), scaling: { rawMin: 0 } })],
       ["number", (p) => (p.min = "0")],
       ["number", (p) => (p.max = Number.POSITIVE_INFINITY)],
       ["number", (p) => (p.target = {})],
@@ -117,6 +121,12 @@ describe("dashboards", () => {
     }, "value");
     expect(parseDashboards(valid)).toEqual(valid);
     const setpoint = withPanel((p) => Object.assign(p, { min: -10, max: 10.5, state: null }), "number");
+    // A read-only variable may scale to a single value; a write target may not (it is inverted).
+    const flat = withPanel(
+      (p) => (p.variable = { ...newVariable(), scaling: { ...defaultScaling(), engMax: 0 } }),
+      "lamp",
+    );
+    expect(parseDashboards(flat)).toEqual(flat);
     expect(parseDashboards(setpoint)).toEqual(setpoint);
   });
 
@@ -133,6 +143,7 @@ describe("dashboards", () => {
       address: 0,
       dataType: "uint16" as const,
       byteOrder: "ABCD" as const,
+      scaling: null,
     };
     const after = { ...before, address: 7 };
     const same = { ...newVariable({ table: "coils" }), name: "Valve" };
@@ -205,9 +216,16 @@ describe("dashboards saved by 3.2.0, read through the master's polls", () => {
     },
   ];
 
+  const valueWith = (scale: unknown, offset: unknown) => [
+    {
+      ...saved[0],
+      panels: [{ ...saved[0].panels[1], scale, offset }],
+    },
+  ];
+
   it("turns every signal into the variable its poll read, and keeps the steps of the trends", () => {
     const [dashboard] = parseWithPolls(JSON.parse(JSON.stringify(saved)), polls);
-    const pumps = { name: "", unit: 2, table: "holdingRegisters", dataType: "int32", byteOrder: "CDAB" };
+    const pumps = { name: "", unit: 2, table: "holdingRegisters", dataType: "int32", byteOrder: "CDAB", scaling: null };
     expect(dashboard.periodMs).toBe(1000);
     expect(dashboard.panels).toEqual([
       {
@@ -226,8 +244,8 @@ describe("dashboards saved by 3.2.0, read through the master's polls", () => {
         kind: "switch",
         place,
         title: "S",
-        target,
-        state: { name: "", unit: 2, table: "coils", address: 9, dataType: "uint16", byteOrder: "ABCD" },
+        target: { ...target, scaling: null },
+        state: { ...target, name: "", scaling: null },
       },
     ]);
   });
@@ -236,6 +254,16 @@ describe("dashboards saved by 3.2.0, read through the master's polls", () => {
     const project = { ...defaultProject(), dashboards: saved };
     project.master.polls = polls;
     expect(parseProject(JSON.stringify(project)).dashboards[0].panels).toHaveLength(4);
+  });
+
+  it("turns a value panel's scale and offset into its variable's scaling", () => {
+    const [scaled] = parseWithPolls(valueWith(2, 10), polls)[0].panels;
+    expect(scaled).not.toHaveProperty("scale");
+    expect(scaled).toMatchObject({
+      variable: { scaling: { rawMin: 0, rawMax: 1, engMin: 10, engMax: 12, clamp: false } },
+    });
+    expect(parseWithPolls(valueWith(1, 0), polls)[0].panels[0]).toMatchObject({ variable: { scaling: null } });
+    expect(() => parseWithPolls(valueWith("2", 0), polls)).toThrow(/value panel settings/);
   });
 
   it("rejects signals that are not a list instead of dropping them", () => {

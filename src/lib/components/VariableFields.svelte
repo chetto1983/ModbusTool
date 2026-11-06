@@ -4,6 +4,7 @@
   import type { Variable } from "../dashboards";
   import { BYTE_ORDERS, DATA_TYPES } from "../datatypes";
   import { isBitTable } from "../state.svelte";
+  import ScalingFields from "./ScalingFields.svelte";
 
   // Where a panel element reads its value (spec D13), in a fieldset named by `legend`.
   let { variable = $bindable(), legend, actions }: { variable: Variable; legend: string; actions?: Snippet } = $props();
@@ -47,6 +48,7 @@
         </select>
       </label>
     </div>
+    <ScalingFields bind:scaling={variable.scaling} type={variable.dataType} />
   {/if}
 </fieldset>
 

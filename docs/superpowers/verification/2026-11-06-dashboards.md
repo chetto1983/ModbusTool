@@ -41,12 +41,26 @@ Data: 2026-11-06. Spec: `docs/superpowers/specs/2026-11-06-dashboards-design.md`
   segnali non in lista rifiutati), una lettura per locazione al periodo minimo, avvio, arresto e
   riavvio alla riconnessione.
 
+## Scalatura (D16–D18), misurata il 2026-11-06
+
+- **E2E** 86/86 contro pymodbus:
+  - il registro 2 (333 grezzo) con scalatura 0…1000 → 0…100 si mostra come 33.3 %;
+  - un setpoint di 50 % con scalatura 0…27648 → 0…100 scrive 13824 nel registro 11, riletto dal
+    riferimento, e torna a mostrarsi come 50.
+- **Unit test**: 102, tra cui test di proprietà (fast-check). Per i float, andata e ritorno
+  restituiscono il grezzo; per gli interi, il valore riletto sta entro mezzo passo grezzo da quello
+  digitato. Sono coperti anche la limitazione con intervallo decrescente, nessuna scalatura per
+  bit, hex, binari e ASCII, e la conversione di scala/offset del pannello valore.
+- **Screenshot** dell'editor: la scalatura del target appare sotto tipo e ordine dei byte, e lo
+  stato la eredita quando legge l'indirizzo scritto.
+
 ## Cosa NON dimostra
 
 - WebView2 su Windows: trascinamento, selettore e input numerico vanno provati a mano.
 - Il ridimensionamento dei pannelli (nessun controllo E2E).
 - Il pannello trend e le barre contro il riferimento: coperti da unit test e dal trend del master,
   non da un controllo E2E dedicato.
+- La scalatura nei pannelli trend e barre con dati reali: coperta da unit test, non dall'E2E.
 - Molte variabili: ogni variabile è una richiesta Modbus a sé, senza raggruppare i registri
   contigui. Il carico sul dispositivo con decine di variabili non è misurato.
 - Prestazioni con molti pannelli e poll veloci (obiettivo della spec: 20 pannelli a 200 ms).

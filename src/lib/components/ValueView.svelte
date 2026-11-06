@@ -3,27 +3,26 @@
   import { currentLocale } from "../i18n.svelte";
   import type { ValuePanel } from "../dashboards";
 
-  // A read value, scaled, with its unit and optionally a 240° gauge; the warning and alarm
+  // A read value (already scaled by its variable), with its unit and optionally a 240° gauge; the warning and alarm
   // thresholds colour it with the Aura status tokens.
   let { panel, value, stale }: { panel: ValuePanel; value: number | null; stale: boolean } = $props();
 
-  const shown = $derived(value === null ? null : value * panel.scale + panel.offset);
   const level = $derived(
-    shown === null
+    value === null
       ? ""
-      : panel.alarm !== null && shown >= panel.alarm
+      : panel.alarm !== null && value >= panel.alarm
         ? "danger"
-        : panel.warn !== null && shown >= panel.warn
+        : panel.warn !== null && value >= panel.warn
           ? "warning"
           : "",
   );
   const text = $derived(
-    shown === null
+    value === null
       ? "—"
       : new Intl.NumberFormat(currentLocale(), {
           minimumFractionDigits: panel.decimals,
           maximumFractionDigits: panel.decimals,
-        }).format(shown),
+        }).format(value),
   );
 
   // Gauge geometry: an arc of radius 40 around (50, 50), from 150° to 390° clockwise.
@@ -36,9 +35,9 @@
   const arc = (sweep: number) =>
     `M ${point(START)} A 40 40 0 ${sweep > 180 ? 1 : 0} 1 ${point(START + Math.max(sweep, 0.01))}`;
   const fraction = $derived(
-    shown === null || panel.max <= panel.min
+    value === null || panel.max <= panel.min
       ? 0
-      : Math.min(1, Math.max(0, (shown - panel.min) / (panel.max - panel.min))),
+      : Math.min(1, Math.max(0, (value - panel.min) / (panel.max - panel.min))),
   );
 </script>
 
