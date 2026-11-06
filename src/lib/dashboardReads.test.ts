@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({ pollStart: vi.fn(), pollStop: vi.fn() }));
 vi.mock("./api", () => ({ api: { pollStart: mocks.pollStart, pollStop: mocks.pollStop } }));
 
 import { followReads, panelVariables, readPlan } from "./dashboardReads.svelte";
-import { newDashboard, newPanel, newVariable, type Dashboard, type Panel } from "./dashboards";
+import { newDashboard, newPanel, newTableRow, newVariable, type Dashboard, type Panel } from "./dashboards";
 import { defaultProject } from "./project";
 import { app, master, readings, readKey, readLayout } from "./state.svelte";
 
@@ -42,12 +42,14 @@ describe("dashboard reads", () => {
     const kinds = {
       trend: panel("trend", (p) => p.kind === "trend" && (p.variables = [flow, flow])),
       value: panel("value", (p) => p.kind === "value" && (p.variable = flow)),
+      table: panel("table", (p) => p.kind === "table" && (p.rows = [newTableRow(flow), newTableRow()])),
       button: panel("button"),
       switch: panel("switch"),
       number: panel("number", (p) => p.kind === "number" && (p.state = null)),
     };
     expect(panelVariables(kinds.trend)).toEqual([flow, flow]);
     expect(panelVariables(kinds.value)).toEqual([flow]);
+    expect(panelVariables(kinds.table)).toEqual([flow, newVariable()]);
     expect(panelVariables(kinds.button)).toEqual([]);
     expect(panelVariables(kinds.switch)).toHaveLength(1);
     expect(panelVariables(kinds.number)).toEqual([]);

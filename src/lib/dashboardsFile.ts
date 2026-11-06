@@ -38,6 +38,8 @@ const isVariable = (v: unknown) =>
   isColour(v.colour);
 const isVariables = (v: unknown) => Array.isArray(v) && v.every(isVariable);
 const isState = (v: unknown) => v === null || isVariable(v);
+const isRow = (v: unknown) =>
+  isObject(v) && isVariable(v.variable) && typeof v.units === "string" && isInt(v.decimals, 0, 10);
 
 const isTarget = (v: unknown) =>
   isObject(v) && (v.table === "coils" || v.table === "holdingRegisters") && isLocation(v) && isScaling(v.scaling, true);
@@ -64,6 +66,7 @@ const PANEL_FIELDS: Record<PanelKind, (p: Record<string, unknown>) => boolean> =
     typeof p.gauge === "boolean" &&
     isNullableNumber(p.warn) &&
     isNullableNumber(p.alarm),
+  table: (p) => Array.isArray(p.rows) && p.rows.every(isRow),
   bars: (p) => isVariables(p.variables),
   lamp: (p) => isVariable(p.variable),
   button: (p) => isTarget(p.target) && typeof p.value === "string" && typeof p.confirm === "boolean",

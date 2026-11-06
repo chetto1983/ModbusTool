@@ -20,6 +20,8 @@ export function panelVariables(panel: Panel): Variable[] {
     case "trend":
     case "bars":
       return panel.variables;
+    case "table":
+      return panel.rows.map((row) => row.variable);
     case "value":
     case "lamp":
       return [panel.variable];

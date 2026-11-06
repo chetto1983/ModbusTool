@@ -18,6 +18,7 @@
     savePanel,
   } from "../dashboardActions.svelte";
   import { PANEL_KINDS, type Panel, type PanelKind } from "../dashboards";
+  import { importMap } from "../mapActions.svelte";
   import { app } from "../state.svelte";
 
   const dashboard = $derived(currentDashboard());
@@ -32,6 +33,8 @@
   // The kind picker of "Add panel": a list of buttons, since WebKit fires no change event when a
   // <select> used as a menu is chosen again with the same option.
   let picking = $state(false);
+  // The unit id of the device whose register map is imported; null while not asked.
+  let mapUnit = $state<number | null>(null);
 
   function startNew() {
     naming = { id: null, name: m.dashboard_default_name({ number: app.project.dashboards.length + 1 }) };
@@ -80,6 +83,7 @@
       >
     {/if}
     <button class="btn small" onclick={startNew}>{m.dashboard_new()}</button>
+    <button class="btn small" onclick={() => (mapUnit = 1)}>{m.map_import()}</button>
     <span class="spacer"></span>
     {#if dashboard}
       {#if dashboardUi.editing}
@@ -166,6 +170,26 @@
     {#snippet actions()}
       <span class="spacer"></span>
       <button type="button" class="btn" onclick={() => (picking = false)}>{m.common_cancel()}</button>
+    {/snippet}
+  </Modal>
+{/if}
+
+{#if mapUnit !== null}
+  <Modal
+    title={m.map_import()}
+    onsubmit={() => {
+      const unit = mapUnit ?? 1;
+      mapUnit = null;
+      void importMap(unit);
+    }}
+    onclose={() => (mapUnit = null)}
+  >
+    <p class="muted">{m.map_import_help()}</p>
+    <label class="field">{m.map_unit()}<input type="number" min="0" max="255" required bind:value={mapUnit} /></label>
+    {#snippet actions()}
+      <span class="spacer"></span>
+      <button type="button" class="btn" onclick={() => (mapUnit = null)}>{m.common_cancel()}</button>
+      <button type="submit" class="btn primary">{m.map_choose_file()}</button>
     {/snippet}
   </Modal>
 {/if}

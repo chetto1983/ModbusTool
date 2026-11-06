@@ -44,16 +44,18 @@ describe("dashboards", () => {
 
   it("puts new panels in the first free spot, row by row, without overlaps", () => {
     const dashboard = dashboardWithEveryPanel();
-    // trend 6x4 at the top left, then value 3x2 and bars... fill the rest of the 12 columns.
+    // trend 6x4 at the top left, value 3x2 beside it, the 6x5 table under the value, then the
+    // smaller panels in the first gaps, row by row.
     expect(dashboard.panels.map((p) => [p.place.x, p.place.y])).toEqual([
       [0, 0],
       [6, 0],
       [6, 2],
-      [9, 0],
-      [10, 2],
       [0, 4],
-      [2, 4],
-      [0, 6],
+      [9, 0],
+      [4, 4],
+      [4, 6],
+      [6, 7],
+      [9, 7],
     ]);
     const places = dashboard.panels.map((p) => p.place);
     for (const a of places)
@@ -86,6 +88,10 @@ describe("dashboards", () => {
       ["value", (p) => (p.variable = null)],
       ["value", (p) => (p.variable = { ...newVariable(), address: 70_000 })],
       ["bars", (p) => (p.variables = "all")],
+      ["table", (p) => (p.rows = "all")],
+      ["table", (p) => (p.rows = [{ variable: newVariable(), units: 1, decimals: 1 }])],
+      ["table", (p) => (p.rows = [{ variable: newVariable(), units: "", decimals: 11 }])],
+      ["table", (p) => (p.rows = [{ variable: { ...newVariable(), table: "registers" }, units: "", decimals: 1 }])],
       ["lamp", (p) => (p.variable = {})],
       ["button", (p) => (p.target = { ...(p.target as object), table: "inputRegisters" })],
       ["button", (p) => (p.target = { ...(p.target as object), dataType: "float16" })],

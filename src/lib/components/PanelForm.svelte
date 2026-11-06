@@ -4,9 +4,11 @@
   import ScalingFields from "./ScalingFields.svelte";
   import VariableFields from "./VariableFields.svelte";
   import { targetRegisters } from "../dashboardActions.svelte";
+  import { exportMap } from "../mapActions.svelte";
   import {
     INTERPOLATIONS,
     followTarget,
+    newTableRow,
     newVariable,
     targetVariable,
     type Interpolation,
@@ -106,6 +108,36 @@
   </label>
 {:else if panel.kind === "bars"}
   {@render variableList(panel.variables)}
+{:else if panel.kind === "table"}
+  {@const table = panel}
+  {#each table.rows as row, i (i)}
+    <VariableFields bind:variable={row.variable} legend={m.panel_variable_number({ number: i + 1 })}>
+      {#snippet actions()}
+        <button
+          type="button"
+          class="btn small ghost icon"
+          aria-label={m.panel_remove_variable()}
+          disabled={table.rows.length === 1}
+          onclick={() => table.rows.splice(i, 1)}>✕</button
+        >
+      {/snippet}
+    </VariableFields>
+    <div class="grid-2">
+      <label class="field">{m.panel_unit()}<input bind:value={row.units} /></label>
+      <label class="field">
+        {m.panel_decimals()}<input type="number" min="0" max="10" required bind:value={row.decimals} />
+      </label>
+    </div>
+  {/each}
+  <div class="row">
+    <button
+      type="button"
+      class="btn small"
+      onclick={() => table.rows.push(newTableRow({ ...(table.rows.at(-1)?.variable ?? newVariable()), name: "" }))}
+      >{m.panel_add_variable()}</button
+    >
+    <button type="button" class="btn small" onclick={() => exportMap(table)}>{m.map_export()}</button>
+  </div>
 {:else if panel.kind === "value"}
   <VariableFields bind:variable={panel.variable} legend={m.panel_variable()} />
   <div class="grid-3">

@@ -15,6 +15,12 @@ export const python = process.platform === "win32" ? "python" : "python3";
  * the run says so, rather than counting them as passed.
  */
 export const serial = process.platform !== "win32";
+/**
+ * Native file dialogs are answered on Linux by typing into the GTK chooser with xdotool. WebDriver
+ * cannot reach them, and Windows has no such tool here: there those checks are not run, and the
+ * run says so.
+ */
+export const nativeDialogs = process.platform === "linux";
 /** Failure screenshots and the run's files; E2E_OUT names a folder CI uploads when a run fails. */
 export const tmp = process.env.E2E_OUT
   ? (mkdirSync(process.env.E2E_OUT, { recursive: true }), process.env.E2E_OUT)
@@ -133,4 +139,46 @@ export async function editCell(browser, index, value) {
   // The current text is selected on focus, so typing replaces it, as for a user.
   await input.addValue(String(value));
   await browser.keys("Enter");
+}
+
+/** The id of the visible window titled `title`; throws while there is none. */
+function windowTitled(title) {
+  return execFileSync("xdotool", ["search", "--onlyvisible", "--name", `^${title}$`], { encoding: "utf8" })
+    .trim()
+    .split("\n")
+    .pop();
+}
+
+/**
+ * Answers the GTK file dialog titled `title` ("Open File", "Save File") with `path`. Xvfb has no
+ * window manager, so the dialog is focused, not activated. Keys typed before the dialog is ready
+ * are lost (measured), so the answer is typed again until the dialog has closed. The location
+ * takes the path after Ctrl+L in the open dialog, in the selected name field in the save dialog.
+ */
+export async function answerFileDialog(title, path) {
+  await eventually(
+    async () => {
+      const id = windowTitled(title);
+      execFileSync("xdotool", ["windowfocus", "--sync", id]);
+      execFileSync("xdotool", ["key", title.startsWith("Save") ? "ctrl+a" : "ctrl+l"]);
+      execFileSync("xdotool", ["key", "ctrl+a"]);
+      execFileSync("xdotool", ["type", "--delay", "20", path]);
+      execFileSync("xdotool", ["key", "Return"]);
+      await eventually(
+        () => {
+          let open = true;
+          try {
+            windowTitled(title);
+          } catch {
+            open = false;
+          }
+          if (open) throw new Error(`"${title}" still open`);
+        },
+        `"${title}" closed`,
+        2000,
+      );
+    },
+    `"${title}" answered`,
+    20_000,
+  );
 }

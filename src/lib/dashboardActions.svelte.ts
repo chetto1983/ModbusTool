@@ -28,6 +28,7 @@ export const dashboardUi = $state({
 export const PANEL_TITLES: Record<PanelKind, () => string> = {
   trend: m.panel_trend,
   value: m.panel_value,
+  table: m.panel_table,
   bars: m.panel_bars,
   lamp: m.panel_lamp,
   button: m.panel_button,

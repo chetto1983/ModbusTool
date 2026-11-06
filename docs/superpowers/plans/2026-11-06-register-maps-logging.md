@@ -32,12 +32,15 @@ scelta; le righe non dipendono da timer; i progetti esistenti si aprono ancora.
 
 ## Task
 
-- [ ] **T1 Pannello tabella (modello):** tipo, `newPanel`, validazione e lettura dei progetti, test.
-- [ ] **T2 CSV della mappa:** `parseRegisterMap` (errori con riga e campo), `registerMapCsv`;
+- [x] **T1 Pannello tabella (modello):** tipo, `newPanel`, validazione e lettura dei progetti, test.
+- [x] **T2 CSV della mappa:** `parseRegisterMap` (errori con riga e campo), `registerMapCsv`;
   test d'esempio e di proprietà (andata e ritorno).
-- [ ] **T3 Mappa nell'app:** `TableView`, editor delle righe, Importa mappa (unit id, nuova
+- [x] **T3 Mappa nell'app:** `TableView`, editor delle righe, Importa mappa (unit id, nuova
   dashboard), Esporta dal pannello; i18n; E2E su Linux: import col dialogo GTK, valori scalati letti
   da pymodbus, export uguale all'originale.
+  T1–T3 in un solo commit: il pannello tabella senza interfaccia non si prova nell'E2E.
+  Misurato durante T3: i tasti inviati prima che il dialogo GTK sia pronto si perdono; l'E2E
+  ripete la risposta finché il dialogo non si chiude.
 - [ ] **T4 Registrazione (logica):** intestazione, righe, nomi, cadenza e giorno; registratore con
   fs simulato; test.
 - [ ] **T5 Registrazione nell'app:** Registra/Ferma con scelta della cartella, indicatore, errori;
