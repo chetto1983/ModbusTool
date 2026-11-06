@@ -72,16 +72,23 @@ async function whenStarted(browser) {
         ready: document.readyState,
         agent: navigator.userAgent,
         body: document.body?.innerHTML.slice(0, 800),
+        // Whether the webview fetched the bundle and the stylesheet at all, and with what result.
+        resources: performance
+          .getEntriesByType("resource")
+          .map((r) => `${r.name} ${r.responseStatus ?? "?"} ${Math.round(r.duration)}ms`),
+        sheets: document.styleSheets.length,
       }))
       .catch((err) => ({ error: String(err) }));
-    // Importing the app's module again surfaces the error that stopped it, if it threw.
+    // Importing the app's module again surfaces the error that stopped it, if it threw. If the app
+    // mounts after it, the first load of the bundle never ran.
     const load = await browser
       .execute(async () => {
         const src = document.querySelector("script[type=module]")?.getAttribute("src");
         if (!src) return "no module script";
         try {
           await import(src);
-          return `module ${src} loaded`;
+          await new Promise((done) => requestAnimationFrame(done));
+          return `module ${src} loaded; theme after it: ${document.documentElement.dataset.theme ?? "none"}`;
         } catch (err) {
           return `module ${src}: ${err?.stack ?? err}`;
         }
