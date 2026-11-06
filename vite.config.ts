@@ -5,7 +5,16 @@ import { svelte } from "@sveltejs/vite-plugin-svelte";
 // Tauri expects a fixed port and must see Rust compile errors in the terminal.
 export default defineConfig({
   plugins: [
-    paraglideVitePlugin({ project: "./project.inlang", outdir: "./src/paraglide", emitTsDeclarations: true }),
+    paraglideVitePlugin({
+      project: "./project.inlang",
+      outdir: "./src/paraglide",
+      emitTsDeclarations: true,
+      // Not the plugin's default "virtual-modules": on Windows its virtual messages import
+      // runtime.js by a backslash path (path.resolve in virtual-messages.js resolveId) while the
+      // app imports it by Vite's forward-slash path, so the bundle held two runtimes and the
+      // language never changed (Windows build, 2026-11-06). Physical modules resolve one runtime.
+      outputStructure: "message-modules",
+    }),
     svelte(),
   ],
   clearScreen: false,

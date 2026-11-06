@@ -95,6 +95,8 @@ jobs:
       # MSI only: SignPath deep-signs an MSI (the app inside too) but not an NSIS installer
       # (docs/superpowers/specs/2026-11-05-signing-design.md).
       - run: npx tauri build --bundles msi
+      - name: One Paraglide runtime in the frontend bundle
+        run: node scripts/check-single-runtime.mjs
       - name: Unsigned MSI
         id: upload
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -125,6 +127,8 @@ jobs:
         timeout-minutes: 30
       - run: npm ci
       - run: npx tauri build --bundles deb,appimage
+      - name: One Paraglide runtime in the frontend bundle
+        run: node scripts/check-single-runtime.mjs
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: linux

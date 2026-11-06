@@ -8,6 +8,8 @@ publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full hi
 
 ### Fixed
 
+- Windows: changing the language had no effect (the choice was saved but the texts stayed in
+  English, also after a restart): the build held two copies of the translation runtime.
 - Windows: every call to the backend first failed on the Content Security Policy (the IPC channel
   `http://ipc.localhost` was not allowed) and was retried through a slower fallback.
 
