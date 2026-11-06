@@ -6,6 +6,7 @@ frame-by-frame traffic monitor, and dashboards with trends, gauges, lamps and co
 
 **[⬇ Download the latest release](https://github.com/chetto1983/ModbusTool/releases/latest)**:
 Windows `.msi`, Linux `.deb` and `.AppImage` (see [Install](#install)). It updates itself.
+Project page: <https://chetto1983.github.io/ModbusTool>.
 
 ![A dashboard reading a live slave: trend, gauge, lamp and bars](docs/screenshots/dashboard.gif)
 
