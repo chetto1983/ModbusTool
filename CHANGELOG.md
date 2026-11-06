@@ -4,6 +4,22 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
+## Unreleased
+
+Import a device's register map as a dashboard, and record a dashboard's values to file.
+
+### Added
+
+- Register maps: a CSV with the name, table, address and type of each register (and optionally
+  byte order, units, decimals and scaling) becomes a dashboard with a table panel that reads them
+  all. A table exports the same format. A file with one invalid row is refused whole, with its
+  line. Addresses are protocol addresses from 0; the 40001 notation is refused with the reason.
+- Recording: Record writes the dashboard's values, scaled, to a CSV file a day in
+  `Documents/ModbusTool/recordings` (or `~/ModbusTool/recordings` where there is no Documents
+  folder): a local time column, then one column per variable with its units. A row is written for
+  each reading, so the recording goes on while the window is hidden; without readings no rows are
+  written, and the gap shows in the time column.
+
 ## v3.4.0 — 2026-11-06
 
 A colour for every dashboard variable, from the theme or picked freely, and the end-to-end tests

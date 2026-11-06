@@ -47,4 +47,4 @@ scelta; le righe non dipendono da timer; i progetti esistenti si aprono ancora.
   E2E su Linux e Windows: righe nel file confrontate con pymodbus; misure: finestra minimizzata, mappa di 200
   righe (un minuto, non un'ora: spec, Misure).
   T4–T5 in un solo commit: la logica senza interfaccia non si prova nell'E2E.
-- [ ] **T6 Documenti:** README, CHANGELOG, file di verifica.
+- [x] **T6 Documenti:** README, CHANGELOG, file di verifica.

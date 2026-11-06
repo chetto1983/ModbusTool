@@ -35,6 +35,26 @@ Project page: <https://chetto1983.github.io/ModbusTool>.
   master is connected; neighbouring registers are read in one request.
 - Scaling as SCADA tags do it (raw range to engineering range, both ways), and a colour per
   variable from the theme or a colour picker.
+- **Register maps:** import a device's register table from CSV as a dashboard with a table panel,
+  and export it back (format below).
+- **Recording:** write a dashboard's values to a CSV file a day, one column per variable, in
+  `Documents/ModbusTool/recordings` (or `~/ModbusTool/recordings` where there is no Documents
+  folder). At 1 s with 200 variables that is about 90 MB a day.
+
+**Register map format.** A CSV with a header row; columns are found by name, in any order:
+
+| Column | Required | Values |
+|---|---|---|
+| `name` | yes | Shown in the table and the recording |
+| `table` | yes | `coils`, `discrete inputs`, `holding registers`, `input registers` (or `coil`, `discrete`, `holding`, `input`) |
+| `address` | yes | Protocol address from 0 (not the 40001 notation) |
+| `type` | for registers | `UInt16` … `Float64`, `Hex`, `Binary`, `ASCII` |
+| `byte_order` | no | `ABCD` (default), `CDAB`, `BADC`, `DCBA` |
+| `units`, `decimals` | no | Text after the value; 0 to 10 decimals (default 1) |
+| `raw_min`, `raw_max`, `eng_min`, `eng_max`, `clamp` | no | Scaling: all four limits or none |
+
+A file with one invalid row is refused whole, with its line. Exporting a table writes a complete
+example.
 
 **Both**
 - Data types: UInt16, Int16, Hex, Binary, UInt32, Int32, Float32, UInt64, Int64, Float64, ASCII,
