@@ -171,6 +171,17 @@ jobs:
       - name: E2E (Linux)
         if: runner.os == 'Linux'
         run: xvfb-run -a node e2e/run.mjs
+        env:
+          E2E_OUT: ${{ runner.temp }}/e2e
       - name: E2E (Windows)
         if: runner.os == 'Windows'
         run: node e2e/run.mjs
+        env:
+          E2E_OUT: ${{ runner.temp }}/e2e
+      # Failure screenshots and what the webview showed, to read a failure without guessing.
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: e2e-${{ runner.os }}
+          path: ${{ runner.temp }}/e2e
+          if-no-files-found: ignore

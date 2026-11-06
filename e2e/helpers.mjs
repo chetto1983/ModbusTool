@@ -2,7 +2,7 @@
 // WebDriver UI helpers (see run.mjs).
 
 import { execFileSync } from "node:child_process";
-import { mkdtempSync } from "node:fs";
+import { mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -15,7 +15,10 @@ export const python = process.platform === "win32" ? "python" : "python3";
  * the run says so, rather than counting them as passed.
  */
 export const serial = process.platform !== "win32";
-export const tmp = mkdtempSync(join(tmpdir(), "modbustool-e2e-"));
+/** Failure screenshots and the run's files; E2E_OUT names a folder CI uploads when a run fails. */
+export const tmp = process.env.E2E_OUT
+  ? (mkdirSync(process.env.E2E_OUT, { recursive: true }), process.env.E2E_OUT)
+  : mkdtempSync(join(tmpdir(), "modbustool-e2e-"));
 export const results = [];
 let currentBrowser = null;
 

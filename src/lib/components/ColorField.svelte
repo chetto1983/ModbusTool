@@ -34,9 +34,9 @@
   $effect(() => {
     if (!isOpen) return;
     const box = host.getBoundingClientRect();
-    const frame = host.closest("dialog")?.getBoundingClientRect() ?? { top: 0, bottom: window.innerHeight };
-    const roomBelow = frame.bottom - box.bottom >= PICKER_PX;
-    position = !roomBelow && box.top - frame.top >= PICKER_PX ? ABOVE : BELOW;
+    const frame = host.closest("dialog")?.getBoundingClientRect() ?? { y: 0, height: window.innerHeight };
+    const roomBelow = frame.y + frame.height - (box.y + box.height) >= PICKER_PX;
+    position = !roomBelow && box.y - frame.y >= PICKER_PX ? ABOVE : BELOW;
   });
 
   $effect(() => {

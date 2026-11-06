@@ -55,15 +55,29 @@ async function screenshot(browser, name) {
 
 // ---------- scenario ----------
 
+/**
+ * The app has started once its theme is set. A cold start on a fresh CI runner takes longer than
+ * the 5 s default; when it never starts, what the webview shows is kept for the CI artifact.
+ */
+async function whenStarted(browser) {
+  try {
+    await browser.waitUntil(async () => Boolean(await browser.execute(() => document.documentElement.dataset.theme)), {
+      timeout: 30_000,
+    });
+  } catch (e) {
+    await browser.saveScreenshot(join(tmp, "not-started.png")).catch(() => {});
+    const state = await browser
+      .execute(() => ({ url: location.href, ready: document.readyState, body: document.body?.innerHTML.slice(0, 800) }))
+      .catch((err) => ({ error: String(err) }));
+    console.error("App not started:", JSON.stringify(state));
+    throw e;
+  }
+}
+
 async function masterScenario(browser, ports, serialRef) {
   const conn = panel("Connection");
   console.log("Master against pymodbus");
   // The theme persists across runs; start from the dark one so screenshots are comparable.
-  // The app has started once its theme is set. A cold start on a fresh CI runner (WebKit's or
-  // WebView2's first launch) takes longer than the 5 s default.
-  await browser.waitUntil(async () => Boolean(await browser.execute(() => document.documentElement.dataset.theme)), {
-    timeout: 30_000,
-  });
   if ((await browser.execute(() => document.documentElement.dataset.theme)) === "light") {
     await click(browser, "//nav//button[contains(@class,'theme')]");
   }
@@ -319,6 +333,7 @@ async function main() {
   });
   track(browser);
   try {
+    await whenStarted(browser);
     await masterScenario(browser, ports, join(tmp, "refB"));
     await slaveScenario(browser, ports, join(tmp, "slaveA"), join(tmp, "slaveB"));
     await trafficScenario(browser);
