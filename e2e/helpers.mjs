@@ -114,8 +114,14 @@ export async function editPoll(browser, fields) {
   await saveDialog(browser, fields);
 }
 
+/**
+ * The value column. textContent, not getText: WebDriver's text is empty for a cell its scrolled grid
+ * keeps out of view, which happens in the short window of the Windows runner.
+ */
 export async function gridValues(browser) {
-  return browser.$$("//div[@role='row' and contains(@class,'line')]/span[@role='cell'][4]").map((c) => c.getText());
+  return browser
+    .$$("//div[@role='row' and contains(@class,'line')]/span[@role='cell'][4]")
+    .map(async (c) => (await c.getProperty("textContent")).trim());
 }
 
 export async function editCell(browser, index, value) {
