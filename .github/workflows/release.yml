@@ -104,6 +104,8 @@ jobs:
           name: windows-unsigned
           path: src-tauri/target/release/bundle/msi/*.msi
           if-no-files-found: error
+          # Only passed to the publish job; the release keeps the packages.
+          retention-days: 1
 
   build-linux:
     needs: notes
@@ -136,6 +138,7 @@ jobs:
             src-tauri/target/release/bundle/deb/*.deb
             src-tauri/target/release/bundle/appimage/*.AppImage
           if-no-files-found: error
+          retention-days: 1
 
   sign-windows:
     needs: [notes, build-windows]
@@ -164,6 +167,8 @@ jobs:
           name: windows-signed
           path: signed/*.msi
           if-no-files-found: error
+          # Only passed to the publish job; the release keeps the packages.
+          retention-days: 1
 
   publish:
     needs: [notes, build-windows, build-linux, sign-windows]

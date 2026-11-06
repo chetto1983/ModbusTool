@@ -36,3 +36,4 @@ jobs:
           name: ModbusTool-debug-msi
           path: src-tauri/target/debug/bundle/msi/*.msi
           if-no-files-found: error
+          retention-days: 7

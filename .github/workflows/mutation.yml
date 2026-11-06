@@ -95,6 +95,7 @@ jobs:
         with:
           name: cargo-mutants
           path: src-tauri/mutants.out
+          retention-days: 7
 
   stryker:
     runs-on: ubuntu-24.04
@@ -148,3 +149,4 @@ jobs:
         with:
           name: stryker
           path: reports/mutation
+          retention-days: 7
