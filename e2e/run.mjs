@@ -72,11 +72,14 @@ async function whenStarted(browser) {
         ready: document.readyState,
         agent: navigator.userAgent,
         body: document.body?.innerHTML.slice(0, 800),
-        // Whether the webview fetched the bundle and the stylesheet at all, and with what result.
-        resources: performance
-          .getEntriesByType("resource")
-          .map((r) => `${r.name} ${r.responseStatus ?? "?"} ${Math.round(r.duration)}ms`),
-        sheets: document.styleSheets.length,
+        // A module script waits for the stylesheets before it: was the one before it loaded?
+        stylesheet: (() => {
+          try {
+            return `${document.styleSheets[0]?.cssRules.length} rules`;
+          } catch (err) {
+            return String(err);
+          }
+        })(),
       }))
       .catch((err) => ({ error: String(err) }));
     // Importing the app's module again surfaces the error that stopped it, if it threw. If the app
@@ -94,6 +97,25 @@ async function whenStarted(browser) {
         }
       })
       .catch((err) => `import check failed: ${err}`);
+    // Whether the app's protocol answers requests for the page's own files now.
+    const fetched = await browser
+      .execute(async () => {
+        const urls = [...document.querySelectorAll("script[src], link[href]")].map((tag) => tag.src || tag.href);
+        return Promise.all(
+          urls.map(async (url) => {
+            const answer = await Promise.race([
+              fetch(url).then(
+                (r) => `${r.status} ${r.headers.get("content-type")}`,
+                (err) => String(err),
+              ),
+              new Promise((done) => setTimeout(() => done("no answer in 5 s"), 5000)),
+            ]);
+            return `${url}: ${answer}`;
+          }),
+        );
+      })
+      .catch((err) => `fetch check failed: ${err}`);
+    console.error("Fetch:", fetched);
     console.error("Module:", load);
     console.error("App not started:", JSON.stringify(state));
     throw e;

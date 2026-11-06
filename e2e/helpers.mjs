@@ -84,10 +84,18 @@ export async function setField(browser, scope, label, value) {
   }
 }
 
-export async function click(browser, xpath) {
-  const el = await browser.$(xpath);
+/**
+ * Scrolls the element into view first, as a user would: on the Windows runner the desktop is
+ * 1024×768, the window is clamped to it, and rows of a scrolled grid are outside the viewport.
+ */
+async function clickElement(el) {
   await el.waitForClickable({ timeout: 5000 });
+  await el.scrollIntoView({ block: "center" });
   await el.click();
+}
+
+export async function click(browser, xpath) {
+  await clickElement(await browser.$(xpath));
 }
 
 export const button = (scope, text) => `${scope}//button[normalize-space()="${text}"]`;
@@ -112,8 +120,7 @@ export async function gridValues(browser) {
 
 export async function editCell(browser, index, value) {
   const cell = await browser.$(`(//div[contains(@class,'line')]//button[contains(@class,'cell')])[${index + 1}]`);
-  await cell.waitForClickable({ timeout: 5000 });
-  await cell.click();
+  await clickElement(cell);
   const input = await browser.$("input.edit");
   await input.waitForExist({ timeout: 3000 });
   // setValue would run WebDriver "Element Clear", which blurs the input and cancels the edit.
