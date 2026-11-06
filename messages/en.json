@@ -37,6 +37,7 @@
   "updates_automatic": "Check at start and every 6 hours",
   "updates_check_now": "Check now",
   "updates_checking": "Checking…",
+  "unexpected_error": "Unexpected error: {error}",
   "common_add": "+ Add",
   "common_delete": "Delete",
   "common_clear": "Clear",

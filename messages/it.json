@@ -37,6 +37,7 @@
   "updates_automatic": "Controlla all'avvio e ogni 6 ore",
   "updates_check_now": "Controlla ora",
   "updates_checking": "Controllo…",
+  "unexpected_error": "Errore inatteso: {error}",
   "common_add": "+ Aggiungi",
   "common_delete": "Elimina",
   "common_clear": "Pulisci",
