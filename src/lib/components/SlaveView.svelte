@@ -1,5 +1,6 @@
 <script lang="ts">
   import LinkForm from "./LinkForm.svelte";
+  import LinkPanel from "./LinkPanel.svelte";
   import RegisterGrid from "./RegisterGrid.svelte";
   import SimulationEditor from "./SimulationEditor.svelte";
   import { api, type Table } from "../api";
@@ -77,37 +78,30 @@
 
 <div class="slave">
   <aside class="side">
-    <section class="panel" style="--i: 0">
-      <header class="panel-head">
-        <h2 class="panel-title">Listener</h2>
-        <span class="spacer"></span>
-        <span class="led" class:on={slave.running}></span>
-      </header>
-      <div class="panel-body stack">
-        <LinkForm bind:link={config.link} listening disabled={slave.running || slave.busy} />
-        <div class="grid-2">
-          <label class="field">
-            Unit ids
-            <input bind:value={unitsText} onchange={commitUnits} placeholder="1, 2, 10-12" />
-          </label>
-          <label class="field">
-            Delay ms
-            <input type="number" min="0" max="10000" bind:value={config.delayMs} disabled={slave.running} />
-          </label>
-        </div>
-        {#if unitsError}<div class="error-line">{unitsError}</div>{/if}
-        {#if slave.running}
-          <div class="row">
-            <span class="data muted endpoint">{slave.endpoint}</span>
-            <span class="spacer"></span>
-            <button class="btn danger" disabled={slave.busy} onclick={stopSlave}>Stop</button>
-          </div>
-        {:else}
-          <button class="btn primary" disabled={slave.busy} onclick={startSlave}>Start listening</button>
-        {/if}
-        {#if slave.error}<div class="error-line">{slave.error}</div>{/if}
+    <LinkPanel title="Listener" active={slave.running}>
+      <LinkForm bind:link={config.link} listening disabled={slave.running || slave.busy} />
+      <div class="grid-2">
+        <label class="field">
+          Unit ids
+          <input bind:value={unitsText} onchange={commitUnits} placeholder="1, 2, 10-12" />
+        </label>
+        <label class="field">
+          Delay ms
+          <input type="number" min="0" max="10000" bind:value={config.delayMs} disabled={slave.running} />
+        </label>
       </div>
-    </section>
+      {#if unitsError}<div class="error-line">{unitsError}</div>{/if}
+      {#if slave.running}
+        <div class="row">
+          <span class="data muted endpoint">{slave.endpoint}</span>
+          <span class="spacer"></span>
+          <button class="btn danger" disabled={slave.busy} onclick={stopSlave}>Stop</button>
+        </div>
+      {:else}
+        <button class="btn primary" disabled={slave.busy} onclick={startSlave}>Start listening</button>
+      {/if}
+      {#if slave.error}<div class="error-line">{slave.error}</div>{/if}
+    </LinkPanel>
     <SimulationEditor {unit} {table} address={start} />
   </aside>
 
@@ -176,10 +170,6 @@
     gap: 14px;
     min-height: 0;
     overflow: auto;
-  }
-  .stack {
-    display: grid;
-    gap: 12px;
   }
   .endpoint {
     overflow: hidden;

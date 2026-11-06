@@ -4,6 +4,17 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
+## Unreleased
+
+### Fixed
+
+- Master: the poll editor no longer spills out of the Polls panel when the sidebar is short;
+  the sidebar scrolls instead.
+
+### Changed
+
+- The Connection (master) and Listener (slave) panels fold away by clicking their title.
+
 ## v3.0.0 — 2026-11-05
 
 A rewrite of the C# WinForms tool as one Tauri desktop app for both roles, on Windows and Linux.

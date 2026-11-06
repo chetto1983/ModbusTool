@@ -134,10 +134,9 @@
 </section>
 
 <style>
+  /* Never shrunk by the sidebar: the editor would spill out of the panel. The sidebar scrolls. */
   .polls {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
+    flex: none;
   }
   .list {
     list-style: none;

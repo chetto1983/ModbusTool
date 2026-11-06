@@ -1,5 +1,6 @@
 <script lang="ts">
   import LinkForm from "./LinkForm.svelte";
+  import LinkPanel from "./LinkPanel.svelte";
   import PollList from "./PollList.svelte";
   import RegisterGrid from "./RegisterGrid.svelte";
   import TrendChart from "./TrendChart.svelte";
@@ -20,38 +21,31 @@
 
 <div class="master">
   <aside class="side">
-    <section class="panel" style="--i: 0">
-      <header class="panel-head">
-        <h2 class="panel-title">Connection</h2>
-        <span class="spacer"></span>
-        <span class="led" class:on={master.connected}></span>
-      </header>
-      <div class="panel-body stack">
-        <LinkForm bind:link={config.link} disabled={master.connected || master.busy} />
-        <div class="grid-2">
-          <label class="field">
-            Timeout ms
-            <input type="number" min="50" step="50" bind:value={config.timeoutMs} disabled={master.connected} />
-          </label>
-          <label class="field">
-            Retries
-            <input type="number" min="0" max="10" bind:value={config.retries} disabled={master.connected} />
-          </label>
-        </div>
-        {#if master.connected}
-          <div class="row">
-            <span class="data muted endpoint">{master.endpoint}</span>
-            <span class="spacer"></span>
-            <button class="btn danger" onclick={disconnect}>Disconnect</button>
-          </div>
-        {:else}
-          <button class="btn primary" disabled={master.busy} onclick={connect}>
-            {master.busy ? "Connecting…" : "Connect"}
-          </button>
-        {/if}
-        {#if master.error}<div class="error-line">{master.error}</div>{/if}
+    <LinkPanel title="Connection" active={master.connected}>
+      <LinkForm bind:link={config.link} disabled={master.connected || master.busy} />
+      <div class="grid-2">
+        <label class="field">
+          Timeout ms
+          <input type="number" min="50" step="50" bind:value={config.timeoutMs} disabled={master.connected} />
+        </label>
+        <label class="field">
+          Retries
+          <input type="number" min="0" max="10" bind:value={config.retries} disabled={master.connected} />
+        </label>
       </div>
-    </section>
+      {#if master.connected}
+        <div class="row">
+          <span class="data muted endpoint">{master.endpoint}</span>
+          <span class="spacer"></span>
+          <button class="btn danger" onclick={disconnect}>Disconnect</button>
+        </div>
+      {:else}
+        <button class="btn primary" disabled={master.busy} onclick={connect}>
+          {master.busy ? "Connecting…" : "Connect"}
+        </button>
+      {/if}
+      {#if master.error}<div class="error-line">{master.error}</div>{/if}
+    </LinkPanel>
     <PollList />
   </aside>
 
@@ -125,10 +119,6 @@
     gap: 14px;
     min-height: 0;
     overflow: auto;
-  }
-  .stack {
-    display: grid;
-    gap: 12px;
   }
   .endpoint {
     overflow: hidden;
