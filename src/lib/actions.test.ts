@@ -28,6 +28,14 @@ import { fileName, openProject, saveProject } from "./projectActions.svelte";
 import { defaultProject, serializeProject } from "./project";
 import { app, master, slave } from "./state.svelte";
 
+async function addPoll() {
+  const poll = m.newPoll();
+  await m.savePoll(poll);
+  return app.project.master.polls.find((p) => p.id === poll.id)!;
+}
+
+const series = (pollId: string) => ({ key: `${pollId}:0`, label: "x", pollId, offset: 0, times: [], values: [] });
+
 beforeEach(() => {
   for (const fn of Object.values(mocks.api)) fn.mockReset().mockResolvedValue(undefined);
   for (const fn of [mocks.open, mocks.save, mocks.readTextFile, mocks.writeTextFile]) fn.mockReset();
@@ -52,16 +60,23 @@ describe("master actions", () => {
   });
 
   it("disconnect stops every poll runtime", async () => {
-    const poll = m.addPoll();
+    const poll = await addPoll();
     await m.startPoll(poll);
     await m.disconnect();
     expect(master.runtime[poll.id].running).toBe(false);
     expect(master.connected).toBe(false);
   });
 
-  it("adds, starts, redefines and removes polls", async () => {
-    const poll = m.addPoll();
-    expect(master.selectedPoll).toBe(poll.id);
+  it("a new poll joins the project only when saved", async () => {
+    const draft = m.newPoll();
+    expect(app.project.master.polls).toEqual([]);
+    await m.savePoll(draft);
+    expect(app.project.master.polls.map((p) => p.id)).toEqual([draft.id]);
+    expect(master.selectedPoll).toBe(draft.id);
+  });
+
+  it("starts, applies edits and removes polls", async () => {
+    const poll = await addPoll();
     await m.startPoll(poll);
     expect(mocks.api.pollStart).toHaveBeenCalledWith({
       id: poll.id,
@@ -69,20 +84,40 @@ describe("master actions", () => {
       operation: { kind: "readHoldingRegisters", address: 0, quantity: 10 },
       intervalMs: 1000,
     });
-    master.trend.push({ key: `${poll.id}:0`, label: "x", pollId: poll.id, offset: 0, times: [], values: [] });
-    await m.redefinePoll(poll);
+    master.trend.push(series(poll.id));
+
+    // A rename neither restarts the poll nor drops its trend.
+    await m.savePoll({ ...poll, name: "Pump" });
+    expect(mocks.api.pollStart).toHaveBeenCalledTimes(1);
+    expect(master.trend).toHaveLength(1);
+
+    // The type changes what the values mean, not what is read.
+    await m.savePoll({ ...app.project.master.polls[0], dataType: "float32" });
+    expect(mocks.api.pollStart).toHaveBeenCalledTimes(1);
     expect(master.trend).toEqual([]);
+
+    // A new range restarts once with the new settings; the trend is kept.
+    master.trend.push(series(poll.id));
+    await m.savePoll({ ...app.project.master.polls[0], quantity: 2 });
     expect(mocks.api.pollStart).toHaveBeenCalledTimes(2);
+    expect(mocks.api.pollStart).toHaveBeenLastCalledWith(
+      expect.objectContaining({ operation: { kind: "readHoldingRegisters", address: 0, quantity: 2 } }),
+    );
+    expect(master.trend).toHaveLength(1);
+    expect(app.project.master.polls[0]).toMatchObject({ name: "Pump", dataType: "float32", quantity: 2 });
+
+    // A stopped poll is not started by an edit.
     await m.stopPoll(poll.id);
-    await m.restartIfRunning(poll);
+    await m.savePoll({ ...app.project.master.polls[0], address: 9 });
     expect(mocks.api.pollStart).toHaveBeenCalledTimes(2);
+
     await m.removePoll(poll.id);
     expect(app.project.master.polls).toEqual([]);
     expect(master.selectedPoll).toBeNull();
   });
 
   it("reads once and counts errors and timeouts", async () => {
-    const poll = m.addPoll();
+    const poll = await addPoll();
     mocks.api.masterExecute.mockResolvedValueOnce({ values: [5], elapsedMs: 3 });
     await m.readOnce(poll);
     expect(master.runtime[poll.id].values).toEqual([5]);
@@ -95,7 +130,7 @@ describe("master actions", () => {
   });
 
   it("maps grid writes to FC05, FC06 and FC16", async () => {
-    const poll = m.addPoll();
+    const poll = await addPoll();
     mocks.api.masterExecute.mockResolvedValue({ values: [], elapsedMs: 1 });
     await m.writeValues(poll, 7, [1]);
     await m.writeValues(poll, 7, [1, 2]);
@@ -110,14 +145,14 @@ describe("master actions", () => {
   });
 
   it("notifies when a write fails", async () => {
-    const poll = m.addPoll();
+    const poll = await addPoll();
     mocks.api.masterExecute.mockRejectedValueOnce("Exception 0x02: Illegal data address");
     await expect(m.writeValues(poll, 1, [1])).rejects.toBe("Exception 0x02: Illegal data address");
     expect(app.notice?.text).toBe("Write failed: Exception 0x02: Illegal data address");
   });
 
-  it("stores labels per unit and table", () => {
-    const poll = m.addPoll();
+  it("stores labels per unit and table", async () => {
+    const poll = await addPoll();
     m.setLabel(poll, 4, "  Pump  ");
     expect(m.labelFor(poll, 4)).toBe("Pump");
     expect(app.project.labels["master:1:holdingRegisters:4"]).toBe("Pump");
@@ -177,6 +212,18 @@ describe("slave actions", () => {
     mocks.api.slaveRead.mockRejectedValueOnce("unit 1 is not configured");
     await s.exportCsv(1, "inputRegisters", 5, 2);
     expect(app.notice?.text).toBe("Export failed: unit 1 is not configured");
+  });
+
+  it("a generator joins the project only when saved, and is replaced by its edited copy", () => {
+    const rule = s.newRule(1, "holdingRegisters", 4);
+    expect(app.project.slave.simulations).toEqual([]);
+    s.saveRule(rule);
+    s.saveRule({ ...rule, kind: "random", max: 50 });
+    expect(app.project.slave.simulations).toEqual([{ ...rule, kind: "random", max: 50 }]);
+    s.simulationErrors[rule.id] = "old error";
+    s.removeRule(rule.id);
+    expect(app.project.slave.simulations).toEqual([]);
+    expect(s.simulationErrors[rule.id]).toBeUndefined();
   });
 
   it("simulation loop writes once per period and records errors", async () => {

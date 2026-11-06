@@ -1,5 +1,6 @@
 // Unit id lists and write batching for the slave.
 
+import { m } from "../paraglide/messages.js";
 import type { AddressValue } from "./csv";
 
 /** Parses "1, 2, 10-12" into sorted unique unit ids 1..247 (Modbus serial addresses). */
@@ -11,11 +12,11 @@ export function parseUnits(text: string): number[] {
     .filter(Boolean)) {
     const [from, to = from] = part.split("-").map((n) => Number(n.trim()));
     if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to > 247 || from > to) {
-      throw new Error(`"${part}" is not a unit or range in 1..247`);
+      throw new Error(m.units_invalid({ part }));
     }
     for (let u = from; u <= to; u++) units.add(u);
   }
-  if (units.size === 0) throw new Error("At least one unit is required");
+  if (units.size === 0) throw new Error(m.units_empty());
   return [...units].toSorted((a, b) => a - b);
 }
 

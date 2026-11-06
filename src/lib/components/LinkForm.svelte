@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "../../paraglide/messages.js";
   import { api, type LinkConfig, type NetworkKind, type SerialConfig, type SerialKind } from "../api";
 
   let {
@@ -7,12 +8,12 @@
     listening = false,
   }: { link: LinkConfig; disabled?: boolean; listening?: boolean } = $props();
 
-  const KINDS: { id: LinkConfig["kind"]; label: string }[] = [
-    { id: "tcp", label: "Modbus TCP" },
-    { id: "udp", label: "Modbus UDP" },
-    { id: "rtuOverTcp", label: "RTU over TCP" },
-    { id: "rtu", label: "RTU · serial" },
-    { id: "ascii", label: "ASCII · serial" },
+  const KINDS: { id: LinkConfig["kind"]; label: () => string }[] = [
+    { id: "tcp", label: () => "Modbus TCP" },
+    { id: "udp", label: () => "Modbus UDP" },
+    { id: "rtuOverTcp", label: () => "RTU over TCP" },
+    { id: "rtu", label: m.link_rtu_serial },
+    { id: "ascii", label: m.link_ascii_serial },
   ];
   const BAUD_RATES = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400];
 
@@ -47,10 +48,10 @@
 
 <div class="link">
   <label class="field">
-    Protocol
+    {m.link_protocol()}
     <select value={link.kind} {disabled} onchange={(e) => changeKind(e.currentTarget.value as LinkConfig["kind"])}>
       {#each KINDS as kind (kind.id)}
-        <option value={kind.id}>{kind.label}</option>
+        <option value={kind.id}>{kind.label()}</option>
       {/each}
     </select>
   </label>
@@ -58,17 +59,17 @@
   {#if "host" in link}
     <div class="host">
       <label class="field">
-        {listening ? "Bind address" : "Host"}
+        {listening ? m.link_bind_address() : m.link_host()}
         <input bind:value={link.host} {disabled} spellcheck="false" />
       </label>
       <label class="field">
-        Port
+        {m.link_port()}
         <input type="number" min="1" max="65535" bind:value={link.port} {disabled} />
       </label>
     </div>
   {:else}
     <label class="field">
-      Serial port
+      {m.link_serial_port()}
       <div class="row">
         <input
           list="serial-ports"
@@ -77,7 +78,7 @@
           spellcheck="false"
           placeholder="COM1, /dev/ttyUSB0"
         />
-        <button class="btn small ghost" type="button" onclick={refreshPorts} {disabled} title="Rescan serial ports"
+        <button class="btn small ghost" type="button" onclick={refreshPorts} {disabled} title={m.link_rescan()}
           >↻</button
         >
       </div>
@@ -87,28 +88,28 @@
     </label>
     <div class="grid-2">
       <label class="field">
-        Baud
+        {m.link_baud()}
         <select bind:value={link.serial.baudRate} {disabled}>
           {#each BAUD_RATES as rate (rate)}<option value={rate}>{rate}</option>{/each}
         </select>
       </label>
       <label class="field">
-        Parity
+        {m.link_parity()}
         <select bind:value={link.serial.parity} {disabled}>
-          <option value="none">None</option>
-          <option value="even">Even</option>
-          <option value="odd">Odd</option>
+          <option value="none">{m.link_parity_none()}</option>
+          <option value="even">{m.link_parity_even()}</option>
+          <option value="odd">{m.link_parity_odd()}</option>
         </select>
       </label>
       <label class="field">
-        Data bits
+        {m.link_data_bits()}
         <select bind:value={link.serial.dataBits} {disabled}>
           <option value={7}>7</option>
           <option value={8}>8</option>
         </select>
       </label>
       <label class="field">
-        Stop bits
+        {m.link_stop_bits()}
         <select bind:value={link.serial.stopBits} {disabled}>
           <option value={1}>1</option>
           <option value={2}>2</option>

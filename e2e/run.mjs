@@ -89,6 +89,20 @@ async function click(browser, xpath) {
 }
 
 const button = (scope, text) => `${scope}//button[normalize-space()="${text}"]`;
+const labelled = (label) => `//button[@aria-label="${label}"]`;
+const dialog = "//dialog[@open]";
+
+/** Sets the fields of the open editor modal and saves it. */
+async function saveDialog(browser, fields) {
+  for (const [label, value] of Object.entries(fields)) await setField(browser, dialog, label, value);
+  await click(browser, button(dialog, "Save"));
+  await browser.$(dialog).waitForExist({ timeout: 3000, reverse: true });
+}
+
+async function editPoll(browser, fields) {
+  await click(browser, labelled("Edit Poll 1"));
+  await saveDialog(browser, fields);
+}
 
 async function gridValues(browser) {
   return browser.$$("//div[@role='row' and contains(@class,'line')]/span[@role='cell'][4]").map((c) => c.getText());
@@ -122,13 +136,16 @@ async function masterScenario(browser, ports, serialRef) {
   if ((await browser.execute(() => document.documentElement.dataset.theme)) === "light") {
     await click(browser, "//nav//button[contains(@class,'theme')]");
   }
+  // First start asks about update checks: no, the run must not reach GitHub.
+  const consent = await browser.$(button(dialog, "No, I will check myself"));
+  if (await consent.isExisting()) await consent.click();
   await setField(browser, conn, "Port", ports.tcp);
   await click(browser, button(conn, "Connect"));
   await browser.$(button(conn, "Disconnect")).waitForExist({ timeout: 5000 });
 
   await click(browser, button(panel("Polls"), "+ Add"));
-  await setField(browser, panel("Polls"), "Every ms", 200);
-  await click(browser, button(panel("Polls"), "▶ Start"));
+  await saveDialog(browser, { "Every ms": 200 });
+  await click(browser, labelled("Start Poll 1"));
 
   await check("TCP poll FC03 shows the reference values", () =>
     eventually(
@@ -148,11 +165,9 @@ async function masterScenario(browser, ports, serialRef) {
 
   await check("TCP float32 CDAB display of a written value", async () => {
     reference("write", "tcp", `127.0.0.1:${ports.tcp}`, "holding", 0, "0xE979,0x42F6".split(",").map(Number).join(","));
-    await setField(browser, panel("Polls"), "Type", "Float32");
-    await setField(browser, panel("Polls"), "Order", "CDAB");
+    await editPoll(browser, { Type: "Float32", Order: "CDAB" });
     await eventually(async () => expectEqual((await gridValues(browser))[0], "123.456", "float"), "float");
-    await setField(browser, panel("Polls"), "Type", "UInt16");
-    await setField(browser, panel("Polls"), "Order", "ABCD");
+    await editPoll(browser, { Type: "UInt16", Order: "ABCD" });
   });
 
   await click(browser, "//button[@aria-label='Plot 4']");
@@ -160,7 +175,7 @@ async function masterScenario(browser, ports, serialRef) {
   await screenshot(browser, "master-dark");
 
   await check("TCP coils FC01 toggle writes FC05", async () => {
-    await setField(browser, panel("Polls"), "Function", "FC01 · Coils");
+    await editPoll(browser, { Function: "FC01 · Coils" });
     await eventually(
       async () => expectEqual((await gridValues(browser)).slice(0, 4), ["ON", "OFF", "ON", "OFF"], "coils"),
       "coils",
@@ -177,8 +192,8 @@ async function masterScenario(browser, ports, serialRef) {
     );
   });
 
-  await click(browser, button(panel("Polls"), "■ Stop"));
-  await setField(browser, panel("Polls"), "Function", "FC04 · Input registers");
+  await click(browser, labelled("Stop Poll 1"));
+  await editPoll(browser, { Function: "FC04 · Input registers" });
 
   const others = [
     ["UDP", "Modbus UDP", { Port: ports.udp }],
@@ -237,8 +252,7 @@ async function slaveScenario(browser, ports, slaveSerial, clientSerial) {
 
   await check("Simulation: sine generator changes the register seen by the reference", async () => {
     await click(browser, button(panel("Simulation"), "+ Add"));
-    await setField(browser, panel("Simulation"), "Address", 50);
-    await setField(browser, panel("Simulation"), "Period ms", 100);
+    await saveDialog(browser, { Address: 50, "Period ms": 100 });
     await click(browser, `${panel("Simulation")}//input[@aria-label='Enabled']`);
     const samples = [];
     for (let i = 0; i < 5; i++) {
@@ -304,6 +318,27 @@ async function trafficScenario(browser) {
   await screenshot(browser, "master-light");
 }
 
+const trafficLines = (browser) => browser.$$("//div[contains(@class,'body')]/div[contains(@class,'line')]").length;
+
+async function languageScenario(browser) {
+  console.log("Interface language");
+  const language = "//nav//select";
+  await click(browser, "//nav//button[.//span[normalize-space()='Traffic']]");
+  await check("Italian applies at once and keeps the session (no reload)", async () => {
+    const before = await trafficLines(browser);
+    await (await browser.$(language)).selectByVisibleText("Italiano");
+    await browser.$(panel("Monitor del traffico")).waitForExist({ timeout: 3000 });
+    expectEqual(await browser.$("//header//h1").getText(), "Traffico", "title");
+    expectEqual(await browser.execute(() => document.documentElement.lang), "it", "lang");
+    const after = await trafficLines(browser);
+    if (after < before) throw new Error(`traffic lost on switch: ${before} -> ${after}`);
+    await click(browser, "//nav//button[.//span[normalize-space()='Master']]");
+    await browser.$(panel("Connessione")).waitForExist({ timeout: 3000 });
+  });
+  await (await browser.$(language)).selectByVisibleText("English");
+  await browser.$(panel("Connection")).waitForExist({ timeout: 3000 });
+}
+
 async function main() {
   const ports = { tcp: 15020, udp: 15022, rtuOverTcp: 15021, slaveTcp: 15030, slaveUdp: 15031, slaveRtuOverTcp: 15032 };
   const pty = (a, b) =>
@@ -332,6 +367,7 @@ async function main() {
     await masterScenario(browser, ports, join(tmp, "refB"));
     await slaveScenario(browser, ports, join(tmp, "slaveA"), join(tmp, "slaveB"));
     await trafficScenario(browser);
+    await languageScenario(browser);
   } finally {
     await browser.deleteSession().catch(() => {});
     children.forEach((c) => c.kill());

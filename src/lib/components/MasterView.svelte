@@ -1,9 +1,11 @@
 <script lang="ts">
+  import { m } from "../../paraglide/messages.js";
   import LinkForm from "./LinkForm.svelte";
+  import LinkPanel from "./LinkPanel.svelte";
   import PollList from "./PollList.svelte";
   import RegisterGrid from "./RegisterGrid.svelte";
   import TrendChart from "./TrendChart.svelte";
-  import { app, master, toggleTrend } from "../state.svelte";
+  import { app, master, toggleTrend, TREND_WINDOWS_S } from "../state.svelte";
   import { connect, disconnect, isWritable, labelFor, readOnce, setLabel, writeValues } from "../masterActions.svelte";
 
   const config = $derived(app.project.master.config);
@@ -11,47 +13,40 @@
   const runtime = $derived(poll ? master.runtime[poll.id] : undefined);
   const bits = $derived(poll?.kind === "readCoils" || poll?.kind === "readDiscreteInputs");
 
-  function age(ms: number | null | undefined): string {
-    if (!ms) return "never";
+  function updated(ms: number | null | undefined): string {
+    if (!ms) return m.master_updated_never();
     const seconds = Math.max(0, (Date.now() - ms) / 1000);
-    return seconds < 1 ? "just now" : `${seconds.toFixed(0)} s ago`;
+    return seconds < 1 ? m.master_updated_now() : m.master_updated_ago({ seconds: seconds.toFixed(0) });
   }
 </script>
 
 <div class="master">
   <aside class="side">
-    <section class="panel" style="--i: 0">
-      <header class="panel-head">
-        <h2 class="panel-title">Connection</h2>
-        <span class="spacer"></span>
-        <span class="led" class:on={master.connected}></span>
-      </header>
-      <div class="panel-body stack">
-        <LinkForm bind:link={config.link} disabled={master.connected || master.busy} />
-        <div class="grid-2">
-          <label class="field">
-            Timeout ms
-            <input type="number" min="50" step="50" bind:value={config.timeoutMs} disabled={master.connected} />
-          </label>
-          <label class="field">
-            Retries
-            <input type="number" min="0" max="10" bind:value={config.retries} disabled={master.connected} />
-          </label>
-        </div>
-        {#if master.connected}
-          <div class="row">
-            <span class="data muted endpoint">{master.endpoint}</span>
-            <span class="spacer"></span>
-            <button class="btn danger" onclick={disconnect}>Disconnect</button>
-          </div>
-        {:else}
-          <button class="btn primary" disabled={master.busy} onclick={connect}>
-            {master.busy ? "Connecting…" : "Connect"}
-          </button>
-        {/if}
-        {#if master.error}<div class="error-line">{master.error}</div>{/if}
+    <LinkPanel title={m.master_connection()} active={master.connected}>
+      <LinkForm bind:link={config.link} disabled={master.connected || master.busy} />
+      <div class="grid-2">
+        <label class="field">
+          {m.master_timeout()}
+          <input type="number" min="50" step="50" bind:value={config.timeoutMs} disabled={master.connected} />
+        </label>
+        <label class="field">
+          {m.master_retries()}
+          <input type="number" min="0" max="10" bind:value={config.retries} disabled={master.connected} />
+        </label>
       </div>
-    </section>
+      {#if master.connected}
+        <div class="row">
+          <span class="data muted endpoint">{master.endpoint}</span>
+          <span class="spacer"></span>
+          <button class="btn danger" onclick={disconnect}>{m.master_disconnect()}</button>
+        </div>
+      {:else}
+        <button class="btn primary" disabled={master.busy} onclick={connect}>
+          {master.busy ? m.master_connecting() : m.master_connect()}
+        </button>
+      {/if}
+      {#if master.error}<div class="error-line">{master.error}</div>{/if}
+    </LinkPanel>
     <PollList />
   </aside>
 
@@ -59,18 +54,22 @@
     {#if poll}
       <header class="panel-head">
         <h2 class="panel-title">{poll.name}</h2>
-        <span class="data muted">unit {poll.unit} · {poll.address}–{poll.address + poll.quantity - 1}</span>
+        <span class="data muted"
+          >{m.master_range({ unit: poll.unit, first: poll.address, last: poll.address + poll.quantity - 1 })}</span
+        >
         <span class="spacer"></span>
-        <button class="btn small" disabled={!master.connected} onclick={() => readOnce(poll)}>Read once</button>
+        <button class="btn small" disabled={!master.connected} onclick={() => readOnce(poll)}
+          >{m.master_read_once()}</button
+        >
       </header>
       <div class="stats data">
-        <span><b>{runtime?.stats.requests ?? 0}</b> req</span>
-        <span class="ok"><b>{runtime?.stats.ok ?? 0}</b> ok</span>
-        <span class="bad"><b>{runtime?.stats.errors ?? 0}</b> err</span>
-        <span class="bad"><b>{runtime?.stats.timeouts ?? 0}</b> timeout</span>
+        <span><b>{runtime?.stats.requests ?? 0}</b> {m.master_requests()}</span>
+        <span class="ok"><b>{runtime?.stats.ok ?? 0}</b> {m.master_ok()}</span>
+        <span class="bad"><b>{runtime?.stats.errors ?? 0}</b> {m.master_errors()}</span>
+        <span class="bad"><b>{runtime?.stats.timeouts ?? 0}</b> {m.master_timeouts()}</span>
         <span><b>{runtime?.stats.lastMs?.toFixed(1) ?? "—"}</b> ms</span>
         <span class="spacer"></span>
-        <span class="muted">updated {age(runtime?.updatedMs)}</span>
+        <span class="muted">{updated(runtime?.updatedMs)}</span>
       </div>
       {#if runtime?.error}<div class="error-line flush">{runtime.error}</div>{/if}
       <div class="grid-host">
@@ -92,17 +91,24 @@
     {:else}
       <div class="placeholder">
         <svg viewBox="0 0 120 40" aria-hidden="true"><path d="M2 30 H22 V10 H42 V30 H62 V10 H82 V30 H118" /></svg>
-        <p>Connect to a device, then add a poll to watch its registers.</p>
+        <p>{m.master_placeholder()}</p>
       </div>
     {/if}
   </section>
 
   <section class="panel trend" style="--i: 3">
     <header class="panel-head">
-      <h2 class="panel-title">Trend</h2>
+      <h2 class="panel-title">{m.trend_title()}</h2>
       <span class="spacer"></span>
+      <div class="segmented" role="group" aria-label={m.trend_window()}>
+        {#each TREND_WINDOWS_S as seconds (seconds)}
+          <button class:active={master.trendWindowS === seconds} onclick={() => (master.trendWindowS = seconds)}>
+            {seconds < 60 ? m.trend_seconds({ count: seconds }) : m.trend_minutes({ count: seconds / 60 })}
+          </button>
+        {/each}
+      </div>
       {#if master.trend.length}
-        <button class="btn small ghost" onclick={() => (master.trend = [])}>Clear</button>
+        <button class="btn small ghost" onclick={() => (master.trend = [])}>{m.common_clear()}</button>
       {/if}
     </header>
     <div class="trend-host"><TrendChart /></div>
@@ -125,10 +131,6 @@
     gap: 14px;
     min-height: 0;
     overflow: auto;
-  }
-  .stack {
-    display: grid;
-    gap: 12px;
   }
   .endpoint {
     overflow: hidden;

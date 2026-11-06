@@ -8,20 +8,26 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
+    "i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",
+    "check": "npm run -s i18n && svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "tauri": "tauri",
     "lint": "oxlint --max-warnings=0 .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "deadcode": "knip",
+    "deadcode": "npm run -s i18n && knip",
     "dup": "jscpd",
     "file-size": "bash scripts/check-file-size.sh",
     "mutation": "stryker run",
-    "e2e": "node e2e/run.mjs"
+    "e2e": "node e2e/run.mjs",
+    "check:i18n": "inlang check --project ./project.inlang"
   },
   "devDependencies": {
+    "@inlang/cli": "^3.4.0",
+    "@inlang/paraglide-js": "^3.2.0",
+    "@inlang/plugin-m-function-matcher": "^2.3.0",
+    "@inlang/plugin-message-format": "^4.5.0",
     "@stryker-mutator/core": "^10.1.1",
     "@stryker-mutator/vitest-runner": "^10.1.1",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
@@ -47,6 +53,8 @@
     "@tauri-apps/api": "^2.12.4",
     "@tauri-apps/plugin-dialog": "^2.8.4",
     "@tauri-apps/plugin-fs": "^2.7.1",
+    "@tauri-apps/plugin-process": "^2.4.0",
+    "@tauri-apps/plugin-updater": "^2.14.1",
     "uplot": "^1.6.32"
   }
 }

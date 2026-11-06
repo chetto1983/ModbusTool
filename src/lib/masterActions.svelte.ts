@@ -1,5 +1,6 @@
 // Master operations driven by the UI: connection, polls, one-shot reads and writes.
 
+import { m } from "../paraglide/messages.js";
 import { api, type Operation, type ReadKind, type Table } from "./api";
 import { labelKey, newId, type PollConfig } from "./project";
 import { app, emptyRuntime, master, notify } from "./state.svelte";
@@ -35,10 +36,11 @@ export async function disconnect(): Promise<void> {
   for (const runtime of Object.values(master.runtime)) runtime.running = false;
 }
 
-export function addPoll(): PollConfig {
-  const poll: PollConfig = {
+/** A new poll to edit; it joins the project only when saved. */
+export function newPoll(): PollConfig {
+  return {
     id: newId(),
-    name: `Poll ${app.project.master.polls.length + 1}`,
+    name: m.polls_default_name({ number: app.project.master.polls.length + 1 }),
     unit: 1,
     kind: "readHoldingRegisters",
     address: 0,
@@ -47,9 +49,29 @@ export function addPoll(): PollConfig {
     dataType: "uint16",
     byteOrder: "ABCD",
   };
-  app.project.master.polls.push(poll);
-  master.selectedPoll = poll.id;
-  return poll;
+}
+
+const READ_FIELDS = ["kind", "unit", "address", "quantity", "intervalMs"] as const;
+const MEANING_FIELDS = ["kind", "unit", "address", "dataType", "byteOrder"] as const;
+const changed = (a: PollConfig, b: PollConfig, fields: readonly (keyof PollConfig)[]) =>
+  fields.some((field) => a[field] !== b[field]);
+
+/**
+ * Applies an edited copy of a poll, or adds a new one. A running poll restarts once, only if
+ * what it reads changed; its trend is dropped when its values change meaning.
+ */
+export async function savePoll(draft: PollConfig): Promise<void> {
+  const polls = app.project.master.polls;
+  const index = polls.findIndex((p) => p.id === draft.id);
+  if (index < 0) {
+    polls.push(draft);
+    master.selectedPoll = draft.id;
+    return;
+  }
+  const before = polls[index];
+  polls[index] = draft;
+  if (changed(before, draft, MEANING_FIELDS)) clearTrend(draft.id);
+  if (changed(before, draft, READ_FIELDS) && master.runtime[draft.id]?.running) await startPoll(draft);
 }
 
 export async function removePoll(id: string): Promise<void> {
@@ -74,20 +96,8 @@ export async function stopPoll(id: string): Promise<void> {
   if (master.runtime[id]) master.runtime[id].running = false;
 }
 
-/** Applies edited settings to a running poll. */
-export async function restartIfRunning(poll: PollConfig): Promise<void> {
-  if (master.runtime[poll.id]?.running) await startPoll(poll);
-}
-
-/** Trend points recorded before a change of function, unit, address or type mean something else. */
-export function clearTrend(pollId: string): void {
+function clearTrend(pollId: string): void {
   master.trend = master.trend.filter((s) => s.pollId !== pollId);
-}
-
-/** For edits that change what the poll's values mean. */
-export async function redefinePoll(poll: PollConfig): Promise<void> {
-  clearTrend(poll.id);
-  await restartIfRunning(poll);
 }
 
 export async function readOnce(poll: PollConfig): Promise<void> {
@@ -116,7 +126,7 @@ export async function writeValues(poll: PollConfig, address: number, registers: 
   try {
     await api.masterExecute(poll.unit, operation);
   } catch (e) {
-    notify("error", `Write failed: ${message(e)}`);
+    notify("error", m.master_write_failed({ error: message(e) }));
     throw e;
   }
   if (!master.runtime[poll.id]?.running) await readOnce(poll);

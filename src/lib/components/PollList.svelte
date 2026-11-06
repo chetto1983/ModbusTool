@@ -1,164 +1,110 @@
 <script lang="ts">
+  import { m } from "../../paraglide/messages.js";
+  import Modal from "./Modal.svelte";
+  import PollForm from "./PollForm.svelte";
   import { app, master } from "../state.svelte";
-  import {
-    addPoll,
-    clearTrend,
-    READ_KINDS,
-    redefinePoll,
-    removePoll,
-    restartIfRunning,
-    startPoll,
-    stopPoll,
-  } from "../masterActions.svelte";
-  import { BYTE_ORDERS, DATA_TYPES } from "../datatypes";
+  import { newPoll, READ_KINDS, removePoll, savePoll, startPoll, stopPoll } from "../masterActions.svelte";
+  import type { PollConfig } from "../project";
 
   const polls = $derived(app.project.master.polls);
-  const selected = $derived(polls.find((p) => p.id === master.selectedPoll) ?? null);
-  const maxQuantity = $derived(
-    selected?.kind === "readCoils" || selected?.kind === "readDiscreteInputs"
-      ? 2000
-      : app.project.master.config.link.kind === "tcp" || app.project.master.config.link.kind === "udp"
-        ? 123
-        : 125,
-  );
+
+  // The poll being edited: a copy, applied by savePoll.
+  let draft = $state<PollConfig | null>(null);
+  const isNew = $derived(draft !== null && !polls.some((p) => p.id === draft?.id));
+
+  const running = (id: string) => master.runtime[id]?.running ?? false;
 
   function status(id: string): "on" | "err" | "" {
-    const runtime = master.runtime[id];
-    if (!runtime?.running) return "";
-    return runtime.error ? "err" : "on";
+    if (!running(id)) return "";
+    return master.runtime[id].error ? "err" : "on";
+  }
+
+  async function save() {
+    if (!draft) return;
+    await savePoll(draft);
+    draft = null;
+  }
+
+  async function remove() {
+    if (!draft) return;
+    await removePoll(draft.id);
+    draft = null;
   }
 </script>
 
 <section class="panel polls" style="--i: 1">
   <header class="panel-head">
-    <h2 class="panel-title">Polls</h2>
+    <h2 class="panel-title">{m.polls_title()}</h2>
     <span class="spacer"></span>
-    <button class="btn small" onclick={addPoll}>+ Add</button>
+    <button class="btn small" onclick={() => (draft = newPoll())}>{m.common_add()}</button>
   </header>
 
   <ul class="list">
     {#each polls as poll (poll.id)}
-      <li>
-        <button
-          class="item"
-          class:active={poll.id === master.selectedPoll}
-          onclick={() => (master.selectedPoll = poll.id)}
-        >
+      <li class="item" class:active={poll.id === master.selectedPoll}>
+        <button class="select" onclick={() => (master.selectedPoll = poll.id)}>
           <span class="led {status(poll.id)}"></span>
           <span class="name">{poll.name}</span>
           <span class="meta data">
             {READ_KINDS.find((k) => k.id === poll.kind)?.code} · U{poll.unit} · {poll.address}+{poll.quantity}
           </span>
         </button>
+        {#if running(poll.id)}
+          <button
+            class="btn small ghost icon"
+            aria-label={m.polls_stop_named({ name: poll.name })}
+            onclick={() => stopPoll(poll.id)}>■</button
+          >
+        {:else}
+          <button
+            class="btn small ghost icon"
+            aria-label={m.polls_start_named({ name: poll.name })}
+            disabled={!master.connected}
+            onclick={() => startPoll(poll)}>▶</button
+          >
+        {/if}
+        <button
+          class="btn small ghost icon"
+          aria-label={m.polls_edit_named({ name: poll.name })}
+          onclick={() => (draft = $state.snapshot(poll))}>✎</button
+        >
       </li>
     {:else}
-      <li class="empty muted">No polls yet. Add one to read a block of registers periodically.</li>
+      <li class="empty muted">{m.polls_empty()}</li>
     {/each}
   </ul>
-
-  {#if selected}
-    <div class="editor panel-body">
-      <label class="field">
-        Name
-        <input bind:value={selected.name} />
-      </label>
-      <label class="field">
-        Function
-        <select bind:value={selected.kind} onchange={() => redefinePoll(selected)}>
-          {#each READ_KINDS as kind (kind.id)}
-            <option value={kind.id}>{kind.code} · {kind.label}</option>
-          {/each}
-        </select>
-      </label>
-      <div class="grid-3">
-        <label class="field">
-          Unit
-          <input type="number" min="0" max="255" bind:value={selected.unit} onchange={() => redefinePoll(selected)} />
-        </label>
-        <label class="field">
-          Address
-          <input
-            type="number"
-            min="0"
-            max="65535"
-            bind:value={selected.address}
-            onchange={() => redefinePoll(selected)}
-          />
-        </label>
-        <label class="field">
-          Quantity
-          <input
-            type="number"
-            min="1"
-            max={maxQuantity}
-            bind:value={selected.quantity}
-            onchange={() => restartIfRunning(selected)}
-          />
-        </label>
-      </div>
-      <div class="grid-3">
-        <label class="field">
-          Every ms
-          <input
-            type="number"
-            min="10"
-            step="100"
-            bind:value={selected.intervalMs}
-            onchange={() => restartIfRunning(selected)}
-          />
-        </label>
-        <label class="field">
-          Type
-          <select bind:value={selected.dataType} onchange={() => clearTrend(selected.id)}>
-            {#each DATA_TYPES as type (type.id)}<option value={type.id}>{type.label}</option>{/each}
-          </select>
-        </label>
-        <label class="field">
-          Order
-          <select bind:value={selected.byteOrder} onchange={() => clearTrend(selected.id)}>
-            {#each BYTE_ORDERS as order (order)}<option value={order}>{order}</option>{/each}
-          </select>
-        </label>
-      </div>
-      <div class="row">
-        {#if master.runtime[selected.id]?.running}
-          <button class="btn danger" onclick={() => stopPoll(selected.id)}>■ Stop</button>
-        {:else}
-          <button class="btn primary" disabled={!master.connected} onclick={() => startPoll(selected)}>▶ Start</button>
-        {/if}
-        <span class="spacer"></span>
-        <button class="btn ghost small" onclick={() => removePoll(selected.id)}>Delete</button>
-      </div>
-    </div>
-  {/if}
 </section>
+
+{#if draft}
+  <Modal title={isNew ? m.polls_new() : m.polls_edit()} onsubmit={save} onclose={() => (draft = null)}>
+    <PollForm bind:poll={draft} />
+    {#snippet actions()}
+      {#if !isNew}<button type="button" class="btn ghost" onclick={remove}>{m.common_delete()}</button>{/if}
+      <span class="spacer"></span>
+      <button type="button" class="btn" onclick={() => (draft = null)}>{m.common_cancel()}</button>
+      <button type="submit" class="btn primary">{m.common_save()}</button>
+    {/snippet}
+  </Modal>
+{/if}
 
 <style>
   .polls {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
+    flex: none;
   }
   .list {
     list-style: none;
     margin: 0;
     padding: 6px;
-    overflow: auto;
-    max-height: 220px;
+    display: grid;
+    gap: 2px;
   }
   .item {
-    all: unset;
-    box-sizing: border-box;
-    width: 100%;
-    display: grid;
-    grid-template-columns: 8px 1fr;
-    column-gap: 10px;
-    row-gap: 2px;
+    display: flex;
     align-items: center;
-    padding: 8px 10px;
+    gap: 2px;
+    padding-right: 4px;
     border-radius: var(--radius-sm);
     border: 1px solid transparent;
-    cursor: pointer;
   }
   .item:hover {
     background: var(--color-surface-2);
@@ -167,8 +113,28 @@
     background: var(--color-surface-2);
     border-color: var(--color-border);
   }
+  .select {
+    all: unset;
+    box-sizing: border-box;
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 8px 1fr;
+    column-gap: 10px;
+    row-gap: 2px;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+  .select:focus-visible {
+    box-shadow: 0 0 0 2px var(--color-ring);
+  }
   .name {
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .meta {
     grid-column: 2;
@@ -178,10 +144,5 @@
   .empty {
     padding: 14px 10px;
     font-size: 13px;
-  }
-  .editor {
-    display: grid;
-    gap: 10px;
-    border-top: 1px solid var(--color-border);
   }
 </style>

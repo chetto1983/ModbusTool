@@ -1,9 +1,13 @@
+import { paraglideVitePlugin } from "@inlang/paraglide-js";
 import { defineConfig } from "vitest/config";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 
 // Tauri expects a fixed port and must see Rust compile errors in the terminal.
 export default defineConfig({
-  plugins: [svelte()],
+  plugins: [
+    paraglideVitePlugin({ project: "./project.inlang", outdir: "./src/paraglide", emitTsDeclarations: true }),
+    svelte(),
+  ],
   clearScreen: false,
   server: { port: 1420, strictPort: true },
   build: { target: "es2022" },

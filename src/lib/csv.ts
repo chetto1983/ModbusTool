@@ -1,6 +1,7 @@
 // Register import/export. Import accepts the ModbusTool 2 format ("4100:0x04c8,4101:12,...")
 // and the CSV this version writes ("address,value,label" with a header row).
 
+import { m } from "../paraglide/messages.js";
 import type { TrafficEvent } from "./api";
 
 export interface AddressValue {
@@ -48,7 +49,8 @@ function legacyValue(text: string): number {
 const inRange = (n: number, max: number) => Number.isInteger(n) && n >= 0 && n <= max;
 
 function checked(entry: AddressValue, source: string): AddressValue {
-  if (!inRange(entry.address, 0xffff) || !inRange(entry.value, 0xffff)) throw new CsvError(`Invalid entry "${source}"`);
+  if (!inRange(entry.address, 0xffff) || !inRange(entry.value, 0xffff))
+    throw new CsvError(m.csv_invalid_entry({ entry: source }));
   return entry;
 }
 

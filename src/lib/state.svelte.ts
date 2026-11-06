@@ -3,12 +3,15 @@
 import type { PollResult, TrafficEvent } from "./api";
 import { defaultProject, type PollConfig, type Project } from "./project";
 import { numeric, registerCount } from "./datatypes";
+import { readPreference, writePreference } from "./preferences";
 
 export type View = "master" | "slave" | "traffic";
 export type Theme = "dark" | "light";
 
 export const TRAFFIC_LIMIT = 5000;
-export const TREND_POINTS = 600;
+/** Trend history kept per series; also the widest time window offered. */
+export const TREND_RETENTION_S = 600;
+export const TREND_WINDOWS_S = [10, 30, 60, 300, TREND_RETENTION_S];
 
 export interface PollStats {
   requests: number;
@@ -35,17 +38,9 @@ export interface TrendSeries {
   values: number[];
 }
 
-function storedTheme(): Theme {
-  try {
-    return localStorage.getItem("theme") === "light" ? "light" : "dark";
-  } catch {
-    return "dark";
-  }
-}
-
 export const app = $state({
   view: "master" as View,
-  theme: storedTheme(),
+  theme: (readPreference("theme") === "light" ? "light" : "dark") as Theme,
   project: defaultProject() as Project,
   projectPath: null as string | null,
   notice: null as { kind: "ok" | "error"; text: string } | null,
@@ -59,6 +54,7 @@ export const master = $state({
   selectedPoll: null as string | null,
   runtime: {} as Record<string, PollRuntime>,
   trend: [] as TrendSeries[],
+  trendWindowS: 60,
 });
 
 export const slave = $state({
@@ -76,11 +72,7 @@ export const traffic = $state({
 export function setTheme(theme: Theme): void {
   app.theme = theme;
   document.documentElement.dataset.theme = theme;
-  try {
-    localStorage.setItem("theme", theme);
-  } catch {
-    // Storage can be unavailable; the theme still applies for this session.
-  }
+  writePreference("theme", theme);
 }
 
 export function notify(kind: "ok" | "error", text: string): void {
@@ -146,9 +138,10 @@ function appendTrend(pollId: string, timeMs: number, values: number[]): void {
     const value = bits ? registers[0] : numeric(registers, poll.dataType, poll.byteOrder);
     series.times.push(timeMs / 1000);
     series.values.push(value);
-    if (series.times.length > TREND_POINTS) {
-      series.times.splice(0, series.times.length - TREND_POINTS);
-      series.values.splice(0, series.values.length - TREND_POINTS);
+    const expired = series.times.findIndex((t) => t >= timeMs / 1000 - TREND_RETENTION_S);
+    if (expired > 0) {
+      series.times.splice(0, expired);
+      series.values.splice(0, expired);
     }
   }
 }

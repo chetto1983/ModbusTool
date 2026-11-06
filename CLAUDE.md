@@ -30,6 +30,15 @@ Atkinson Hyperlegible Next for text, Commit Mono for data, both themes (dark def
 - Sentence-case labels, no letter-spaced uppercase.
 - When Aura's tokens change, update `src/app.css` from them; do not fork the palette.
 
+## Interface languages
+
+Every text the user reads comes from `messages/{locale}.json` through Paraglide (`m.key()` from
+`src/paraglide/messages.js`, generated: never edit it). English is the base language; every
+locale has every key (`npm run check:i18n`, run in CI). Modbus names (tables, function codes,
+data types, byte orders) and backend texts stay in English
+(`docs/superpowers/specs/2026-11-06-i18n-design.md`). New language: add it to `locales` in
+`project.inlang/settings.json` and create its `messages/<locale>.json`.
+
 ## Workflow: spec → piano → esecuzione → verifica
 
 - Una spec per decisione in `docs/superpowers/specs/YYYY-MM-DD-<tema>-design.md`.

@@ -4,6 +4,32 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
+## Unreleased
+
+### Added
+
+- Updates: at the first start ModbusTool asks whether to check GitHub for new versions (at start
+  and every 6 hours); *Updates* in the sidebar changes that and checks on demand. A new version
+  is offered with its notes and installed only on *Install and restart*, after stopping the
+  master and the slave. Updates are verified with the project's update key (MSI, .deb, AppImage).
+
+- Interface in English and Italian, chosen in the sidebar and remembered; the first start
+  follows the system language. Other languages need only a messages file.
+
+### Changed
+
+- Trend: values are drawn as steps (a polled value holds until the next sample), so square waves
+  no longer look like triangles; time window 10 s to 10 min; 24-hour time axis. Each series keeps
+  the last 10 minutes instead of the last 600 samples.
+- The Connection (master) and Listener (slave) panels fold away by clicking their title.
+- Polls and simulation generators are edited in a dialog with Save and Cancel; the sidebar keeps
+  a compact list. A running poll restarts once on save, only if what it reads changed.
+
+### Fixed
+
+- Master: the poll editor no longer spills out of the Polls panel when the sidebar is short;
+  the sidebar scrolls instead.
+
 ## v3.0.0 — 2026-11-05
 
 A rewrite of the C# WinForms tool as one Tauri desktop app for both roles, on Windows and Linux.

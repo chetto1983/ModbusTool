@@ -13,7 +13,7 @@ import {
   toggleTrend,
   traffic,
   TRAFFIC_LIMIT,
-  TREND_POINTS,
+  TREND_RETENTION_S,
 } from "./state.svelte";
 
 const poll = (over: Partial<PollConfig> = {}): PollConfig => ({
@@ -39,9 +39,9 @@ const event = (n: number): TrafficEvent => ({
   message: null,
 });
 
-const result = (values: number[] | null, error: string | null = null, timeout = false) => ({
+const result = (values: number[] | null, error: string | null = null, timeout = false, timestampMs = 1000) => ({
   id: "p",
-  timestampMs: 1000,
+  timestampMs,
   values,
   error,
   timeout,
@@ -81,8 +81,11 @@ describe("state", () => {
     app.project.master.polls = [poll({ dataType: "int32" })];
     master.runtime.p = emptyRuntime(true);
     toggleTrend("p", 2, "x");
-    for (let i = 0; i < TREND_POINTS + 3; i++) applyPollResults([result([0, 0, 0xffff, 0xffff])]);
-    expect(master.trend[0].values).toHaveLength(TREND_POINTS);
+    // One sample a second for longer than the retention: only the last TREND_RETENTION_S remain.
+    for (let s = 0; s <= TREND_RETENTION_S + 5; s++)
+      applyPollResults([result([0, 0, 0xffff, 0xffff], null, false, s * 1000)]);
+    expect(master.trend[0].times[0]).toBe(5);
+    expect(master.trend[0].times).toHaveLength(TREND_RETENTION_S + 1);
     expect(master.trend[0].values[0]).toBe(-1);
     toggleTrend("p", 2, "x");
     expect(master.trend).toEqual([]);

@@ -1,10 +1,13 @@
 <script lang="ts">
   import { tick } from "svelte";
+  import { m } from "../../paraglide/messages.js";
   import { save } from "@tauri-apps/plugin-dialog";
   import { writeTextFile } from "@tauri-apps/plugin-fs";
   import { hex, trafficCsv } from "../csv";
   import { notify, traffic, TRAFFIC_LIMIT } from "../state.svelte";
   import type { TrafficEvent } from "../api";
+
+  const ORIGIN_LABELS = { all: m.traffic_all, master: m.traffic_master, slave: m.traffic_slave };
 
   let origin = $state<"all" | "master" | "slave">("all");
   let showInfo = $state(true);
@@ -43,33 +46,37 @@
     if (!path) return;
     try {
       await writeTextFile(path, trafficCsv(visible));
-      notify("ok", `Exported ${visible.length} frames`);
+      notify("ok", m.traffic_exported({ count: visible.length }));
     } catch (e) {
-      notify("error", `Export failed: ${e instanceof Error ? e.message : String(e)}`);
+      notify("error", m.export_failed({ error: e instanceof Error ? e.message : String(e) }));
     }
   }
 </script>
 
 <section class="panel traffic" style="--i: 0">
   <header class="panel-head">
-    <h2 class="panel-title">Traffic monitor</h2>
+    <h2 class="panel-title">{m.traffic_title()}</h2>
     <div class="segmented">
       {#each ["all", "master", "slave"] as const as o (o)}
-        <button class:active={origin === o} onclick={() => (origin = o)}>{o}</button>
+        <button class:active={origin === o} onclick={() => (origin = o)}>{ORIGIN_LABELS[o]()}</button>
       {/each}
     </div>
-    <label class="check"><input type="checkbox" bind:checked={showInfo} /> Status lines</label>
-    <input class="search" placeholder="Filter: unit, function, bytes…" bind:value={search} />
+    <label class="check"><input type="checkbox" bind:checked={showInfo} /> {m.traffic_status_lines()}</label>
+    <input class="search" placeholder={m.traffic_filter()} bind:value={search} />
     <span class="spacer"></span>
-    <span class="data muted count">{visible.length} / {traffic.events.length} (max {TRAFFIC_LIMIT})</span>
+    <span class="data muted count"
+      >{m.traffic_count({ shown: visible.length, total: traffic.events.length, limit: TRAFFIC_LIMIT })}</span
+    >
     <button class="btn small" class:primary={traffic.paused} onclick={() => (traffic.paused = !traffic.paused)}>
-      {traffic.paused ? "▶ Resume" : "❚❚ Pause"}
+      {traffic.paused ? m.traffic_resume() : m.traffic_pause()}
     </button>
-    <button class="btn small" onclick={() => (traffic.events = [])}>Clear</button>
-    <button class="btn small" disabled={visible.length === 0} onclick={exportCsv}>Export CSV</button>
+    <button class="btn small" onclick={() => (traffic.events = [])}>{m.common_clear()}</button>
+    <button class="btn small" disabled={visible.length === 0} onclick={exportCsv}>{m.traffic_export()}</button>
   </header>
   <div class="cols">
-    <span>Time</span><span>Origin</span><span></span><span>Peer</span><span>Description</span><span>Bytes</span>
+    <span>{m.traffic_time()}</span><span>{m.traffic_origin()}</span><span></span><span>{m.traffic_peer()}</span><span
+      >{m.traffic_description()}</span
+    ><span>{m.traffic_bytes()}</span>
   </div>
   <div class="body" bind:this={body} onscroll={onScroll}>
     {#each visible as e, i (i)}
@@ -85,7 +92,7 @@
         <span class="bytes" title={hex(e.bytes)}>{hex(e.bytes)}</span>
       </div>
     {:else}
-      <p class="empty muted">Frames sent and received by the master and the slave appear here.</p>
+      <p class="empty muted">{m.traffic_empty()}</p>
     {/each}
   </div>
 </section>
@@ -100,24 +107,8 @@
   .panel-head {
     flex-wrap: wrap;
   }
-  .segmented {
-    display: inline-flex;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-  }
   .segmented button {
-    all: unset;
-    padding: 6px 12px;
-    font-size: 13px;
-    font-weight: 600;
     text-transform: capitalize;
-    color: var(--color-text-muted);
-    cursor: pointer;
-  }
-  .segmented button.active {
-    background: var(--color-accent);
-    color: var(--color-on-accent);
   }
   .check {
     display: inline-flex;
