@@ -5,5 +5,5 @@
   "minTokens": 100,
   "threshold": 0,
   "reporters": ["console"],
-  "ignore": ["**/*.test.ts", "**/dist/**", "**/node_modules/**"]
+  "ignore": ["**/*.test.ts", "**/dist/**", "**/node_modules/**", "src/paraglide/**"]
 }

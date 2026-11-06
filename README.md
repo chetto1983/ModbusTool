@@ -29,6 +29,7 @@ Rust backend, Svelte frontend, one window for both roles.
 - Traffic monitor, frame by frame, with decoded descriptions, filters and CSV export.
 - Live trend chart of any value.
 - Projects saved as JSON (`Ctrl+S`, `Ctrl+O`). Dark and light theme, same design as Aura.
+- Interface in English and Italian, chosen in the sidebar.
 
 | Slave | Traffic monitor |
 |---|---|
@@ -89,11 +90,15 @@ npx tauri dev            # run the app with hot reload
 npx tauri build          # installers in src-tauri/target/release/bundle
 ```
 
+Translations: the texts are in `messages/{locale}.json`. To add a language, add its code to
+`locales` in `project.inlang/settings.json`, copy `messages/en.json` to `messages/<code>.json` and
+translate it; `npm run check:i18n` reports missing or unused messages.
+
 Checks (the same as CI, see [CONTRIBUTING.md](CONTRIBUTING.md)):
 
 ```sh
 npx lefthook install   # runs the fast checks on commit and push
-npm run check && npm run lint && npm run format:check && npm run deadcode && npm run dup
+npm run check && npm run lint && npm run check:i18n && npm run format:check && npm run deadcode && npm run dup
 npm run coverage && npm run file-size && npm run build
 cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test
 ```

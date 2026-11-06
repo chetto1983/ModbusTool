@@ -3,6 +3,7 @@
 import type { PollResult, TrafficEvent } from "./api";
 import { defaultProject, type PollConfig, type Project } from "./project";
 import { numeric, registerCount } from "./datatypes";
+import { readPreference, writePreference } from "./preferences";
 
 export type View = "master" | "slave" | "traffic";
 export type Theme = "dark" | "light";
@@ -35,17 +36,9 @@ export interface TrendSeries {
   values: number[];
 }
 
-function storedTheme(): Theme {
-  try {
-    return localStorage.getItem("theme") === "light" ? "light" : "dark";
-  } catch {
-    return "dark";
-  }
-}
-
 export const app = $state({
   view: "master" as View,
-  theme: storedTheme(),
+  theme: (readPreference("theme") === "light" ? "light" : "dark") as Theme,
   project: defaultProject() as Project,
   projectPath: null as string | null,
   notice: null as { kind: "ok" | "error"; text: string } | null,
@@ -76,11 +69,7 @@ export const traffic = $state({
 export function setTheme(theme: Theme): void {
   app.theme = theme;
   document.documentElement.dataset.theme = theme;
-  try {
-    localStorage.setItem("theme", theme);
-  } catch {
-    // Storage can be unavailable; the theme still applies for this session.
-  }
+  writePreference("theme", theme);
 }
 
 export function notify(kind: "ok" | "error", text: string): void {

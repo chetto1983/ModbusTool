@@ -1,5 +1,6 @@
 // Master operations driven by the UI: connection, polls, one-shot reads and writes.
 
+import { m } from "../paraglide/messages.js";
 import { api, type Operation, type ReadKind, type Table } from "./api";
 import { labelKey, newId, type PollConfig } from "./project";
 import { app, emptyRuntime, master, notify } from "./state.svelte";
@@ -38,7 +39,7 @@ export async function disconnect(): Promise<void> {
 export function addPoll(): PollConfig {
   const poll: PollConfig = {
     id: newId(),
-    name: `Poll ${app.project.master.polls.length + 1}`,
+    name: m.polls_default_name({ number: app.project.master.polls.length + 1 }),
     unit: 1,
     kind: "readHoldingRegisters",
     address: 0,
@@ -116,7 +117,7 @@ export async function writeValues(poll: PollConfig, address: number, registers: 
   try {
     await api.masterExecute(poll.unit, operation);
   } catch (e) {
-    notify("error", `Write failed: ${message(e)}`);
+    notify("error", m.master_write_failed({ error: message(e) }));
     throw e;
   }
   if (!master.runtime[poll.id]?.running) await readOnce(poll);

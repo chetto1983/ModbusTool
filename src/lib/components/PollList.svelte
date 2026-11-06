@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "../../paraglide/messages.js";
   import { app, master } from "../state.svelte";
   import {
     addPoll,
@@ -31,9 +32,9 @@
 
 <section class="panel polls" style="--i: 1">
   <header class="panel-head">
-    <h2 class="panel-title">Polls</h2>
+    <h2 class="panel-title">{m.polls_title()}</h2>
     <span class="spacer"></span>
-    <button class="btn small" onclick={addPoll}>+ Add</button>
+    <button class="btn small" onclick={addPoll}>{m.common_add()}</button>
   </header>
 
   <ul class="list">
@@ -52,18 +53,18 @@
         </button>
       </li>
     {:else}
-      <li class="empty muted">No polls yet. Add one to read a block of registers periodically.</li>
+      <li class="empty muted">{m.polls_empty()}</li>
     {/each}
   </ul>
 
   {#if selected}
     <div class="editor panel-body">
       <label class="field">
-        Name
+        {m.polls_name()}
         <input bind:value={selected.name} />
       </label>
       <label class="field">
-        Function
+        {m.polls_function()}
         <select bind:value={selected.kind} onchange={() => redefinePoll(selected)}>
           {#each READ_KINDS as kind (kind.id)}
             <option value={kind.id}>{kind.code} · {kind.label}</option>
@@ -72,11 +73,11 @@
       </label>
       <div class="grid-3">
         <label class="field">
-          Unit
+          {m.common_unit()}
           <input type="number" min="0" max="255" bind:value={selected.unit} onchange={() => redefinePoll(selected)} />
         </label>
         <label class="field">
-          Address
+          {m.common_address()}
           <input
             type="number"
             min="0"
@@ -86,7 +87,7 @@
           />
         </label>
         <label class="field">
-          Quantity
+          {m.polls_quantity()}
           <input
             type="number"
             min="1"
@@ -98,7 +99,7 @@
       </div>
       <div class="grid-3">
         <label class="field">
-          Every ms
+          {m.polls_every()}
           <input
             type="number"
             min="10"
@@ -108,13 +109,13 @@
           />
         </label>
         <label class="field">
-          Type
+          {m.common_type()}
           <select bind:value={selected.dataType} onchange={() => clearTrend(selected.id)}>
             {#each DATA_TYPES as type (type.id)}<option value={type.id}>{type.label}</option>{/each}
           </select>
         </label>
         <label class="field">
-          Order
+          {m.common_order()}
           <select bind:value={selected.byteOrder} onchange={() => clearTrend(selected.id)}>
             {#each BYTE_ORDERS as order (order)}<option value={order}>{order}</option>{/each}
           </select>
@@ -122,12 +123,14 @@
       </div>
       <div class="row">
         {#if master.runtime[selected.id]?.running}
-          <button class="btn danger" onclick={() => stopPoll(selected.id)}>■ Stop</button>
+          <button class="btn danger" onclick={() => stopPoll(selected.id)}>{m.polls_stop()}</button>
         {:else}
-          <button class="btn primary" disabled={!master.connected} onclick={() => startPoll(selected)}>▶ Start</button>
+          <button class="btn primary" disabled={!master.connected} onclick={() => startPoll(selected)}
+            >{m.polls_start()}</button
+          >
         {/if}
         <span class="spacer"></span>
-        <button class="btn ghost small" onclick={() => removePoll(selected.id)}>Delete</button>
+        <button class="btn ghost small" onclick={() => removePoll(selected.id)}>{m.common_delete()}</button>
       </div>
     </div>
   {/if}

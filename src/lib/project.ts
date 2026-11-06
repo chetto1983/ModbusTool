@@ -1,5 +1,6 @@
 // Project file: everything needed to restore a session (connections, polls, slave setup, labels).
 
+import { m } from "../paraglide/messages.js";
 import type { MasterConfig, ReadKind, SlaveConfig, Table } from "./api";
 import { BYTE_ORDERS, DATA_TYPES, type ByteOrder, type DataType } from "./datatypes";
 
@@ -73,7 +74,7 @@ const isInt = (v: unknown, min: number, max: number) =>
   Number.isInteger(v) && (v as number) >= min && (v as number) <= max;
 
 function check(condition: boolean, what: string): void {
-  if (!condition) throw new ProjectError(`Invalid project: ${what}`);
+  if (!condition) throw new ProjectError(m.project_invalid({ detail: what }));
 }
 
 function checkPoll(p: unknown): void {
@@ -93,7 +94,7 @@ export function parseProject(json: string): Project {
   try {
     raw = JSON.parse(json);
   } catch {
-    throw new ProjectError("Invalid project: not JSON");
+    throw new ProjectError(m.project_not_json());
   }
   check(isObject(raw), "root must be an object");
   const data = raw as Record<string, unknown>;

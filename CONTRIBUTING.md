@@ -32,7 +32,7 @@ npx tauri build --debug --no-bundle && npm run e2e   # real app against pymodbus
 Every change must pass the same gates CI enforces:
 
 ```bash
-npm run check && npm run lint && npm run format:check && npm run deadcode && npm run dup
+npm run check && npm run lint && npm run check:i18n && npm run format:check && npm run deadcode && npm run dup
 npm run coverage        # vitest, fails below 85%
 npm run file-size       # no source file over 600 lines
 cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings

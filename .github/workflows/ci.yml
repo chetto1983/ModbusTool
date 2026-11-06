@@ -61,6 +61,8 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm run lint
+      - name: Translations complete (messages/, project.inlang)
+        run: npm run check:i18n
       - run: npm run format:check
       - run: npm run deadcode
       - run: npm run dup

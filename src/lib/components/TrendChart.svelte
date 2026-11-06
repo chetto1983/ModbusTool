@@ -2,6 +2,8 @@
   import { untrack } from "svelte";
   import uPlot from "uplot";
   import "uplot/dist/uPlot.min.css";
+  import { m } from "../../paraglide/messages.js";
+  import { currentLocale } from "../i18n.svelte";
   import { app, master } from "../state.svelte";
 
   let host: HTMLDivElement;
@@ -48,7 +50,7 @@
           { ...axis, size: 64 },
         ],
         series: [
-          {},
+          { label: m.trend_time() },
           ...master.trend.map((s, i) => ({
             label: s.label,
             stroke: colors[i % colors.length],
@@ -63,8 +65,8 @@
     );
   }
 
-  // Rebuild when the set of series or the theme changes; otherwise just push new data.
-  const signature = $derived(master.trend.map((s) => s.key).join("|") + app.theme);
+  // Rebuild when the series, the theme or the language change; otherwise just push new data.
+  const signature = $derived(master.trend.map((s) => s.key).join("|") + app.theme + currentLocale());
   $effect(() => {
     void signature;
     untrack(build);
@@ -88,7 +90,7 @@
 
 <div class="trend" bind:this={host}>
   {#if master.trend.length === 0}
-    <div class="empty"><p>Click the ↗ icon next to a value to plot it here.</p></div>
+    <div class="empty"><p>{m.trend_empty()}</p></div>
   {/if}
 </div>
 

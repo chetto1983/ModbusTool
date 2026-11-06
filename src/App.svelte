@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { m } from "./paraglide/messages.js";
+  import { currentLocale, languageName, locales, setLanguage, type Locale } from "./lib/i18n.svelte";
   import MasterView from "./lib/components/MasterView.svelte";
   import SlaveView from "./lib/components/SlaveView.svelte";
   import TrafficView from "./lib/components/TrafficView.svelte";
@@ -8,10 +10,10 @@
   import { app, applyPollResults, master, pushTraffic, setTheme, slave, traffic, type View } from "./lib/state.svelte";
   import { fileName, openProject, saveProject } from "./lib/projectActions.svelte";
 
-  const NAV: { id: View; label: string; glyph: string }[] = [
-    { id: "master", label: "Master", glyph: "M 3 12 H 7 V 5 H 12 V 12 H 17 V 5 H 21" },
-    { id: "slave", label: "Slave", glyph: "M 4 4 H 20 V 10 H 4 Z M 4 14 H 20 V 20 H 4 Z M 7 7 H 9 M 7 17 H 9" },
-    { id: "traffic", label: "Traffic", glyph: "M 3 7 H 17 L 14 4 M 21 17 H 7 L 10 20" },
+  const NAV: { id: View; label: () => string; glyph: string }[] = [
+    { id: "master", label: m.nav_master, glyph: "M 3 12 H 7 V 5 H 12 V 12 H 17 V 5 H 21" },
+    { id: "slave", label: m.nav_slave, glyph: "M 4 4 H 20 V 10 H 4 Z M 4 14 H 20 V 20 H 4 Z M 7 7 H 9 M 7 17 H 9" },
+    { id: "traffic", label: m.nav_traffic, glyph: "M 3 7 H 17 L 14 4 M 21 17 H 7 L 10 20" },
   ];
 
   const status = (id: View) =>
@@ -43,7 +45,7 @@
 </script>
 
 <div class="shell">
-  <nav class="side" aria-label="Sections">
+  <nav class="side" aria-label={m.nav_sections()}>
     <div class="brand">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 16 H6 V8 H10 V16 H14 V8 H18 V16 H22" /></svg>
       <span>ModbusTool</span>
@@ -51,7 +53,7 @@
     {#each NAV as item (item.id)}
       <button class="nav" aria-current={app.view === item.id ? "page" : undefined} onclick={() => (app.view = item.id)}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d={item.glyph} /></svg>
-        <span>{item.label}</span>
+        <span>{item.label()}</span>
         <i
           class="led"
           class:on={status(item.id) && item.id !== "traffic"}
@@ -60,7 +62,23 @@
       </button>
     {/each}
     <span class="spacer"></span>
-    <button class="nav theme" title="Switch theme" onclick={() => setTheme(app.theme === "dark" ? "light" : "dark")}>
+    <label class="nav language">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3 A9 9 0 1 1 12 21 A9 9 0 1 1 12 3 M3 12 H21 M12 3 C8 8 8 16 12 21 M12 3 C16 8 16 16 12 21" />
+      </svg>
+      <select
+        aria-label={m.language()}
+        value={currentLocale()}
+        onchange={(e) => setLanguage(e.currentTarget.value as Locale)}
+      >
+        {#each locales as locale (locale)}<option value={locale}>{languageName(locale)}</option>{/each}
+      </select>
+    </label>
+    <button
+      class="nav theme"
+      title={m.theme_switch()}
+      onclick={() => setTheme(app.theme === "dark" ? "light" : "dark")}
+    >
       <svg viewBox="0 0 24 24" aria-hidden="true">
         {#if app.theme === "dark"}
           <path d="M20 14 A8 8 0 1 1 10 4 A6.5 6.5 0 0 0 20 14 Z" />
@@ -70,18 +88,20 @@
           />
         {/if}
       </svg>
-      <span>{app.theme === "dark" ? "Dark theme" : "Light theme"}</span>
+      <span>{app.theme === "dark" ? m.theme_dark() : m.theme_light()}</span>
     </button>
   </nav>
 
   <div class="main">
     <header class="top">
-      <h1>{NAV.find((n) => n.id === app.view)?.label}</h1>
+      <h1>{NAV.find((n) => n.id === app.view)?.label()}</h1>
       <span class="spacer"></span>
-      <span class="file">{app.projectPath ? fileName(app.projectPath) : "Unsaved project"}</span>
-      <button class="btn small" onclick={openProject} title="Ctrl+O">Open</button>
-      <button class="btn small" onclick={() => saveProject()} title="Ctrl+S">Save</button>
-      <button class="btn small ghost" onclick={() => saveProject(true)} title="Ctrl+Shift+S">Save as</button>
+      <span class="file">{app.projectPath ? fileName(app.projectPath) : m.project_unsaved()}</span>
+      <button class="btn small" onclick={openProject} title="Ctrl+O">{m.project_open()}</button>
+      <button class="btn small" onclick={() => saveProject()} title="Ctrl+S">{m.project_save()}</button>
+      <button class="btn small ghost" onclick={() => saveProject(true)} title="Ctrl+Shift+S"
+        >{m.project_save_as()}</button
+      >
     </header>
     <main class="content">
       {#if app.view === "master"}
@@ -169,6 +189,15 @@
   }
   .nav:focus-visible {
     box-shadow: 0 0 0 2px var(--color-ring);
+  }
+  .language select {
+    flex: 1;
+    height: 32px;
+    border-color: transparent;
+    background-color: transparent;
+    color: inherit;
+    font-weight: 600;
+    cursor: pointer;
   }
   .nav .led:not(.on):not(.warn) {
     display: none;

@@ -2,6 +2,7 @@
 
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
+import { m } from "../paraglide/messages.js";
 import { api, type Table } from "./api";
 import { parseRegisters, registersCsv } from "./csv";
 import { labelKey, newId, type SimulationRule } from "./project";
@@ -67,10 +68,10 @@ export async function importCsv(unit: number, table: Table): Promise<number | nu
     const entries = parseRegisters(await readTextFile(path));
     await Promise.all(runs(entries).map((run) => api.slaveWrite(unit, table, run.address, run.values)));
     for (const e of entries) if (e.label) setSlaveLabel(unit, table, e.address, e.label);
-    notify("ok", `Imported ${entries.length} values`);
+    notify("ok", m.imported_values({ count: entries.length }));
     return entries[0]?.address ?? null;
   } catch (e) {
-    notify("error", `Import failed: ${message(e)}`);
+    notify("error", m.import_failed({ error: message(e) }));
     return null;
   }
 }
@@ -82,9 +83,9 @@ export async function exportCsv(unit: number, table: Table, start: number, count
     const values = await api.slaveRead(unit, table, start, count);
     const rows = values.map((value, i) => ({ address: start + i, value, label: slaveLabel(unit, table, start + i) }));
     await writeTextFile(path, registersCsv(rows));
-    notify("ok", `Exported ${rows.length} values`);
+    notify("ok", m.exported_values({ count: rows.length }));
   } catch (e) {
-    notify("error", `Export failed: ${message(e)}`);
+    notify("error", m.export_failed({ error: message(e) }));
   }
 }
 

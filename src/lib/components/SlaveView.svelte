@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "../../paraglide/messages.js";
   import LinkForm from "./LinkForm.svelte";
   import LinkPanel from "./LinkPanel.svelte";
   import RegisterGrid from "./RegisterGrid.svelte";
@@ -61,7 +62,7 @@
   $effect(() => {
     void [unit, table, start, safeCount];
     refresh();
-    const timer = setInterval(refresh, REFRESH_MS);
+    const timer = setInterval(() => refresh(), REFRESH_MS);
     return () => clearInterval(timer);
   });
 
@@ -78,15 +79,15 @@
 
 <div class="slave">
   <aside class="side">
-    <LinkPanel title="Listener" active={slave.running}>
+    <LinkPanel title={m.slave_listener()} active={slave.running}>
       <LinkForm bind:link={config.link} listening disabled={slave.running || slave.busy} />
       <div class="grid-2">
         <label class="field">
-          Unit ids
+          {m.slave_unit_ids()}
           <input bind:value={unitsText} onchange={commitUnits} placeholder="1, 2, 10-12" />
         </label>
         <label class="field">
-          Delay ms
+          {m.slave_delay()}
           <input type="number" min="0" max="10000" bind:value={config.delayMs} disabled={slave.running} />
         </label>
       </div>
@@ -95,10 +96,10 @@
         <div class="row">
           <span class="data muted endpoint">{slave.endpoint}</span>
           <span class="spacer"></span>
-          <button class="btn danger" disabled={slave.busy} onclick={stopSlave}>Stop</button>
+          <button class="btn danger" disabled={slave.busy} onclick={stopSlave}>{m.slave_stop()}</button>
         </div>
       {:else}
-        <button class="btn primary" disabled={slave.busy} onclick={startSlave}>Start listening</button>
+        <button class="btn primary" disabled={slave.busy} onclick={startSlave}>{m.slave_start()}</button>
       {/if}
       {#if slave.error}<div class="error-line">{slave.error}</div>{/if}
     </LinkPanel>
@@ -111,27 +112,27 @@
         <button class="tab" class:active={table === t.id} onclick={() => (table = t.id)}>{t.label}</button>
       {/each}
       <span class="spacer"></span>
-      <button class="btn small" onclick={importHere}>Import</button>
-      <button class="btn small" onclick={() => exportCsv(unit, table, start, safeCount)}>Export</button>
+      <button class="btn small" onclick={importHere}>{m.common_import()}</button>
+      <button class="btn small" onclick={() => exportCsv(unit, table, start, safeCount)}>{m.common_export()}</button>
     </header>
     <div class="toolbar">
       <label class="field">
-        Unit
+        {m.common_unit()}
         <select bind:value={unit}>
           {#each app.project.slave.units as u (u)}<option value={u}>{u}</option>{/each}
         </select>
       </label>
-      <label class="field">Start<input type="number" min="0" max="65535" bind:value={start} /></label>
-      <label class="field">Count<input type="number" min="1" max="2000" bind:value={count} /></label>
+      <label class="field">{m.slave_first()}<input type="number" min="0" max="65535" bind:value={start} /></label>
+      <label class="field">{m.slave_count()}<input type="number" min="1" max="2000" bind:value={count} /></label>
       {#if !bits}
         <label class="field">
-          Type
+          {m.common_type()}
           <select bind:value={dataType}>
             {#each DATA_TYPES as type (type.id)}<option value={type.id}>{type.label}</option>{/each}
           </select>
         </label>
         <label class="field">
-          Order
+          {m.common_order()}
           <select bind:value={byteOrder}>
             {#each BYTE_ORDERS as order (order)}<option value={order}>{order}</option>{/each}
           </select>

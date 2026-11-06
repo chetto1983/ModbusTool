@@ -27,6 +27,7 @@
     "src-tauri/**",
     "node_modules/**",
     ".stryker-tmp/**",
-    ".claude/**"
+    ".claude/**",
+    "src/paraglide/**"
   ]
 }

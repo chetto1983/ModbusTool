@@ -3,6 +3,8 @@
 // bytes A B C D, "ABCD" sends registers [AB, CD], "CDAB" swaps the words, "BADC" swaps the
 // bytes inside each word, "DCBA" is fully little-endian. 64-bit values extend the same rule.
 
+import { m } from "../paraglide/messages.js";
+
 export type DataType =
   | "bit"
   | "uint16"
@@ -122,9 +124,10 @@ function parseInteger(text: string, min: bigint, max: bigint): bigint {
     value = BigInt(body);
     if (negative) value = -value;
   } catch {
-    throw new EncodeError(`"${text}" is not an integer`);
+    throw new EncodeError(m.encode_not_integer({ text }));
   }
-  if (value < min || value > max) throw new EncodeError(`${text} is outside ${min}..${max}`);
+  if (value < min || value > max)
+    throw new EncodeError(m.encode_out_of_range({ text, min: String(min), max: String(max) }));
   return value;
 }
 
@@ -135,7 +138,7 @@ export function encode(text: string, type: DataType, order: ByteOrder = "ABCD"):
       const t = text.trim().toLowerCase();
       if (["1", "on", "true"].includes(t)) return [1];
       if (["0", "off", "false"].includes(t)) return [0];
-      throw new EncodeError(`"${text}" is not a bit value`);
+      throw new EncodeError(m.encode_not_bit({ text }));
     }
     case "uint16":
       return [Number(parseInteger(text, 0n, 0xffffn))];
@@ -143,16 +146,16 @@ export function encode(text: string, type: DataType, order: ByteOrder = "ABCD"):
       return [Number(BigInt.asUintN(16, parseInteger(text, -0x8000n, 0x7fffn)))];
     case "hex": {
       const t = text.trim().replace(/^0x/i, "");
-      if (!/^[0-9a-f]{1,4}$/i.test(t)) throw new EncodeError(`"${text}" is not a 16-bit hex value`);
+      if (!/^[0-9a-f]{1,4}$/i.test(t)) throw new EncodeError(m.encode_not_hex({ text }));
       return [parseInt(t, 16)];
     }
     case "binary": {
       const t = text.replace(/\s/g, "").replace(/^0b/i, "");
-      if (!/^[01]{1,16}$/.test(t)) throw new EncodeError(`"${text}" is not a 16-bit binary value`);
+      if (!/^[01]{1,16}$/.test(t)) throw new EncodeError(m.encode_not_binary({ text }));
       return [parseInt(t, 2)];
     }
     case "ascii": {
-      if (text.length > 2 || /[^\x20-\x7e]/.test(text)) throw new EncodeError("ASCII register holds 2 printable chars");
+      if (text.length > 2 || /[^\x20-\x7e]/.test(text)) throw new EncodeError(m.encode_ascii());
       const padded = text.padEnd(2, "\0");
       return [(padded.charCodeAt(0) << 8) | padded.charCodeAt(1)];
     }
@@ -174,7 +177,7 @@ export function encode(text: string, type: DataType, order: ByteOrder = "ABCD"):
     case "float32":
     case "float64": {
       const value = Number(text.trim().replace(",", "."));
-      if (text.trim() === "" || Number.isNaN(value)) throw new EncodeError(`"${text}" is not a number`);
+      if (text.trim() === "" || Number.isNaN(value)) throw new EncodeError(m.encode_not_number({ text }));
       if (type === "float32") view.setFloat32(0, value);
       else view.setFloat64(0, value);
       break;

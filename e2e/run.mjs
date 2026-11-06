@@ -304,6 +304,27 @@ async function trafficScenario(browser) {
   await screenshot(browser, "master-light");
 }
 
+const trafficLines = (browser) => browser.$$("//div[contains(@class,'body')]/div[contains(@class,'line')]").length;
+
+async function languageScenario(browser) {
+  console.log("Interface language");
+  const language = "//nav//select";
+  await click(browser, "//nav//button[.//span[normalize-space()='Traffic']]");
+  await check("Italian applies at once and keeps the session (no reload)", async () => {
+    const before = await trafficLines(browser);
+    await (await browser.$(language)).selectByVisibleText("Italiano");
+    await browser.$(panel("Monitor del traffico")).waitForExist({ timeout: 3000 });
+    expectEqual(await browser.$("//header//h1").getText(), "Traffico", "title");
+    expectEqual(await browser.execute(() => document.documentElement.lang), "it", "lang");
+    const after = await trafficLines(browser);
+    if (after < before) throw new Error(`traffic lost on switch: ${before} -> ${after}`);
+    await click(browser, "//nav//button[.//span[normalize-space()='Master']]");
+    await browser.$(panel("Connessione")).waitForExist({ timeout: 3000 });
+  });
+  await (await browser.$(language)).selectByVisibleText("English");
+  await browser.$(panel("Connection")).waitForExist({ timeout: 3000 });
+}
+
 async function main() {
   const ports = { tcp: 15020, udp: 15022, rtuOverTcp: 15021, slaveTcp: 15030, slaveUdp: 15031, slaveRtuOverTcp: 15032 };
   const pty = (a, b) =>
@@ -332,6 +353,7 @@ async function main() {
     await masterScenario(browser, ports, join(tmp, "refB"));
     await slaveScenario(browser, ports, join(tmp, "slaveA"), join(tmp, "slaveB"));
     await trafficScenario(browser);
+    await languageScenario(browser);
   } finally {
     await browser.deleteSession().catch(() => {});
     children.forEach((c) => c.kill());

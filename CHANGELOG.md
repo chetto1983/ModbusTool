@@ -6,14 +6,19 @@ publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full hi
 
 ## Unreleased
 
-### Fixed
+### Added
 
-- Master: the poll editor no longer spills out of the Polls panel when the sidebar is short;
-  the sidebar scrolls instead.
+- Interface in English and Italian, chosen in the sidebar and remembered; the first start
+  follows the system language. Other languages need only a messages file.
 
 ### Changed
 
 - The Connection (master) and Listener (slave) panels fold away by clicking their title.
+
+### Fixed
+
+- Master: the poll editor no longer spills out of the Polls panel when the sidebar is short;
+  the sidebar scrolls instead.
 
 ## v3.0.0 — 2026-11-05
 

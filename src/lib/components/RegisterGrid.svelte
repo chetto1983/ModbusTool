@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "../../paraglide/messages.js";
   import { decode, encode, EncodeError, registerCount, type ByteOrder, type DataType } from "../datatypes";
 
   interface Props {
@@ -77,12 +78,12 @@
   }
 </script>
 
-<div class="grid" role="table" aria-label="Registers">
+<div class="grid" role="table" aria-label={m.grid_registers()}>
   <div class="head" role="row">
-    <span role="columnheader">Address</span>
-    <span role="columnheader">Label</span>
-    <span role="columnheader">{bits ? "Bit" : "Raw"}</span>
-    <span role="columnheader" class="right">Value</span>
+    <span role="columnheader">{m.common_address()}</span>
+    <span role="columnheader">{m.grid_label()}</span>
+    <span role="columnheader">{bits ? m.grid_bit() : m.grid_raw()}</span>
+    <span role="columnheader" class="right">{m.grid_value()}</span>
     <span role="columnheader"></span>
   </div>
   <div class="body">
@@ -109,7 +110,7 @@
               class="switch"
               class:on={row.registers?.[0] === 1}
               disabled={!editable || row.registers === null}
-              aria-label="Toggle {row.address}"
+              aria-label={m.grid_toggle({ address: row.address })}
               onclick={() => onWrite(row.address, [row.registers?.[0] ? 0 : 1])}
             >
               <i></i>{display(row.registers)}
@@ -135,8 +136,8 @@
             <button
               class="trend"
               class:active={trended?.(row.offset)}
-              title="Plot in trend"
-              aria-label="Plot {row.address}"
+              title={m.grid_plot_hint()}
+              aria-label={m.grid_plot({ address: row.address })}
               onclick={() => onTrend(row.offset, labelFor(row.address) || String(row.address))}
             >
               <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 12 L5 6 L9 9 L15 2" /></svg>
