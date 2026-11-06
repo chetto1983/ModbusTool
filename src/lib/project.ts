@@ -1,8 +1,13 @@
-// Project file: everything needed to restore a session (connections, polls, slave setup, labels).
+// Project file: everything needed to restore a session (connections, polls, slave setup, labels,
+// dashboards).
 
 import { m } from "../paraglide/messages.js";
 import type { MasterConfig, ReadKind, SlaveConfig, Table } from "./api";
+import { parseDashboards, type Dashboard } from "./dashboards";
 import { BYTE_ORDERS, DATA_TYPES, type ByteOrder, type DataType } from "./datatypes";
+import { check, isInt, isObject, ProjectError } from "./validation";
+
+export { ProjectError };
 
 export const PROJECT_VERSION = 1;
 
@@ -41,9 +46,8 @@ export interface Project {
   slave: { config: SlaveConfig; units: number[]; simulations: SimulationRule[] };
   /** Register labels, keyed by `labelKey`. */
   labels: Record<string, string>;
+  dashboards: Dashboard[];
 }
-
-export class ProjectError extends Error {}
 
 export function labelKey(scope: "master" | "slave", unit: number, table: Table, address: number): string {
   return `${scope}:${unit}:${table}:${address}`;
@@ -66,15 +70,8 @@ export function defaultProject(): Project {
       simulations: [],
     },
     labels: {},
+    dashboards: [],
   };
-}
-
-const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
-const isInt = (v: unknown, min: number, max: number) =>
-  Number.isInteger(v) && (v as number) >= min && (v as number) <= max;
-
-function check(condition: boolean, what: string): void {
-  if (!condition) throw new ProjectError(m.project_invalid({ detail: what }));
 }
 
 function checkPoll(p: unknown): void {
@@ -114,6 +111,7 @@ export function parseProject(json: string): Project {
     ...defaultProject(),
     ...(data as unknown as Project),
     labels: (data.labels as Record<string, string>) ?? {},
+    dashboards: parseDashboards(data.dashboards),
   };
 }
 

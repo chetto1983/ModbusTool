@@ -5,7 +5,7 @@
   import PollList from "./PollList.svelte";
   import RegisterGrid from "./RegisterGrid.svelte";
   import TrendChart from "./TrendChart.svelte";
-  import { app, master, toggleTrend, TREND_WINDOWS_S } from "../state.svelte";
+  import { app, clearMasterTrend, master, toggleTrend, TREND_WINDOWS_S } from "../state.svelte";
   import { connect, disconnect, isWritable, labelFor, readOnce, setLabel, writeValues } from "../masterActions.svelte";
 
   const config = $derived(app.project.master.config);
@@ -108,7 +108,7 @@
         {/each}
       </div>
       {#if master.trend.length}
-        <button class="btn small ghost" onclick={() => (master.trend = [])}>{m.common_clear()}</button>
+        <button class="btn small ghost" onclick={clearMasterTrend}>{m.common_clear()}</button>
       {/if}
     </header>
     <div class="trend-host"><TrendChart /></div>

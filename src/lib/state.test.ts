@@ -1,8 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrafficEvent } from "./api";
 import { defaultProject, type PollConfig } from "./project";
+import { newDashboard, newPanel } from "./dashboards";
 import {
   app,
+  clearMasterTrend,
+  forgetPollHistory,
+  history,
+  pruneHistory,
+  signalValue,
   applyPollResults,
   emptyRuntime,
   isBitPoll,
@@ -54,6 +60,7 @@ describe("state", () => {
     app.project = defaultProject();
     master.runtime = {};
     master.trend = [];
+    for (const key of Object.keys(history)) delete history[key];
     traffic.events = [];
     traffic.paused = false;
   });
@@ -85,11 +92,12 @@ describe("state", () => {
     // One sample a second for longer than the retention: only the last TREND_RETENTION_S remain.
     for (let s = 0; s <= TREND_RETENTION_S + 5; s++)
       applyPollResults([result([0, 0, 0xffff, 0xffff], null, false, s * 1000)]);
-    expect(master.trend[0].times[0]).toBe(5);
-    expect(master.trend[0].times).toHaveLength(TREND_RETENTION_S + 1);
-    expect(master.trend[0].values[0]).toBe(-1);
+    expect(history["p:2"].times[0]).toBe(5);
+    expect(history["p:2"].times).toHaveLength(TREND_RETENTION_S + 1);
+    expect(history["p:2"].values[0]).toBe(-1);
     toggleTrend("p", 2, "x");
     expect(master.trend).toEqual([]);
+    expect(history["p:2"]).toBeUndefined();
   });
 
   it("trends bit polls as 0/1 and skips incomplete values", () => {
@@ -98,8 +106,8 @@ describe("state", () => {
     toggleTrend("p", 1, "coil");
     toggleTrend("p", 9, "missing");
     applyPollResults([result([0, 1])]);
-    expect(master.trend[0].values).toEqual([1]);
-    expect(master.trend[1].values).toEqual([]);
+    expect(history["p:1"].values).toEqual([1]);
+    expect(history["p:9"]).toBeUndefined();
     expect(isBitPoll(poll())).toBe(false);
   });
 
@@ -107,7 +115,37 @@ describe("state", () => {
     master.runtime.p = emptyRuntime(true);
     toggleTrend("p", 0, "x");
     applyPollResults([result([1])]);
-    expect(master.trend[0].values).toEqual([]);
+    expect(history["p:0"]).toBeUndefined();
+  });
+
+  it("reads signal values and keeps history for dashboard trend panels too", () => {
+    app.project.master.polls = [poll({ dataType: "int16" })];
+    master.runtime.p = emptyRuntime(true);
+    expect(signalValue({ pollId: "p", offset: 0 })).toBeNull();
+    const dashboard = newDashboard("d", "D");
+    const panel = newPanel("t", "trend", "T", 0);
+    if (panel.kind === "trend") panel.signals.push({ pollId: "p", offset: 1 }, { pollId: "p", offset: 1 });
+    dashboard.panels.push(panel);
+    app.project.dashboards = [dashboard];
+    toggleTrend("p", 1, "same signal as the panel");
+    applyPollResults([result([5, 0xfffe])]);
+    expect(signalValue({ pollId: "p", offset: 1 })).toBe(-2);
+    expect(signalValue({ pollId: "p", offset: 9 })).toBeNull();
+    expect(signalValue({ pollId: "gone", offset: 0 })).toBeNull();
+    // One sample per signal, however many places watch it.
+    expect(history["p:1"].values).toEqual([-2]);
+    clearMasterTrend();
+    expect(history["p:1"].values).toEqual([-2]);
+    app.project.dashboards = [];
+    pruneHistory();
+    expect(history["p:1"]).toBeUndefined();
+  });
+
+  it("forgets one poll's history", () => {
+    history["p:0"] = { times: [1], values: [1] };
+    history["q:0"] = { times: [1], values: [2] };
+    forgetPollHistory("p");
+    expect(Object.keys(history)).toEqual(["q:0"]);
   });
 
   it("applies and stores the theme", () => {

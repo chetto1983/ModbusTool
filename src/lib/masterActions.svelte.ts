@@ -3,7 +3,7 @@
 import { m } from "../paraglide/messages.js";
 import { api, type Operation, type ReadKind, type Table } from "./api";
 import { labelKey, newId, type PollConfig } from "./project";
-import { app, emptyRuntime, master, notify } from "./state.svelte";
+import { app, emptyRuntime, forgetPollHistory, master, notify } from "./state.svelte";
 
 export const READ_KINDS: { id: ReadKind; label: string; table: Table; code: string }[] = [
   { id: "readCoils", label: "Coils", table: "coils", code: "FC01" },
@@ -98,6 +98,7 @@ export async function stopPoll(id: string): Promise<void> {
 
 function clearTrend(pollId: string): void {
   master.trend = master.trend.filter((s) => s.pollId !== pollId);
+  forgetPollHistory(pollId);
 }
 
 export async function readOnce(poll: PollConfig): Promise<void> {
