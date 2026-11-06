@@ -134,7 +134,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-latest]
+        # Not windows-latest: on windows-2025 msedgedriver cannot attach to WebView2 even at matching
+        # versions ("DevToolsActivePort file doesn't exist", measured here with 156.0.4314.58 on
+        # 2026-11-06; https://github.com/actions/runner-images/issues/14738, closed upstream).
+        os: [ubuntu-24.04, windows-2022]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
