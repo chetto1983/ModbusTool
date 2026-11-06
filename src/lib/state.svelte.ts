@@ -2,6 +2,7 @@
 
 import type { PollResult, TrafficEvent } from "./api";
 import { defaultProject, type PollConfig, type Project } from "./project";
+import type { Signal } from "./dashboards";
 import { numeric, registerCount } from "./datatypes";
 import { readPreference, writePreference } from "./preferences";
 import { m } from "../paraglide/messages.js";
@@ -30,11 +31,14 @@ export interface PollRuntime {
   stats: PollStats;
 }
 
-export interface TrendSeries {
+/** A signal plotted in the master's trend; its samples are in `history`. */
+export interface TrendSeries extends Signal {
   key: string;
   label: string;
-  pollId: string;
-  offset: number;
+}
+
+/** Samples of one signal: times in seconds, oldest first. */
+export interface Samples {
   times: number[];
   values: number[];
 }
@@ -57,6 +61,9 @@ export const master = $state({
   trend: [] as TrendSeries[],
   trendWindowS: 60,
 });
+
+/** Samples of every watched signal (see watchedSignals), by signalKey, for TREND_RETENTION_S. */
+export const history = $state<Record<string, Samples>>({});
 
 export const slave = $state({
   running: false,
@@ -147,29 +154,71 @@ export function applyPollResults(results: PollResult[]): void {
   }
 }
 
+export const signalKey = (signal: Signal) => `${signal.pollId}:${signal.offset}`;
+
+/** The value of the register at `offset` in a poll's values, decoded with the poll's type. */
+function decodeAt(poll: PollConfig, values: number[], offset: number): number | null {
+  const bits = isBitPoll(poll);
+  const registers = values.slice(offset, offset + (bits ? 1 : registerCount(poll.dataType)));
+  if (registers.length < (bits ? 1 : registerCount(poll.dataType))) return null;
+  return bits ? registers[0] : numeric(registers, poll.dataType, poll.byteOrder);
+}
+
+/** The signal's last read value, or null when its poll has not read it. */
+export function signalValue(signal: Signal): number | null {
+  const poll = pollById(signal.pollId);
+  const values = master.runtime[signal.pollId]?.values;
+  return poll && values ? decodeAt(poll, values, signal.offset) : null;
+}
+
+/** Signals whose history is kept: the master's trend and every trend panel of every dashboard. */
+function watchedSignals(): Signal[] {
+  const panels = app.project.dashboards.flatMap((d) => d.panels);
+  return [...master.trend, ...panels.flatMap((p) => (p.kind === "trend" ? p.signals : []))];
+}
+
 function appendTrend(pollId: string, timeMs: number, values: number[]): void {
   const poll = pollById(pollId);
   if (!poll) return;
-  const bits = isBitPoll(poll);
-  const width = bits ? 1 : registerCount(poll.dataType);
-  for (const series of master.trend) {
-    if (series.pollId !== pollId) continue;
-    const registers = values.slice(series.offset, series.offset + width);
-    if (registers.length < width) continue;
-    const value = bits ? registers[0] : numeric(registers, poll.dataType, poll.byteOrder);
-    series.times.push(timeMs / 1000);
-    series.values.push(value);
-    const expired = series.times.findIndex((t) => t >= timeMs / 1000 - TREND_RETENTION_S);
+  const time = timeMs / 1000;
+  const seen = new Set<string>();
+  for (const signal of watchedSignals()) {
+    const key = signalKey(signal);
+    if (signal.pollId !== pollId || seen.has(key)) continue;
+    seen.add(key);
+    const value = decodeAt(poll, values, signal.offset);
+    if (value === null) continue;
+    const samples = (history[key] ??= { times: [], values: [] });
+    samples.times.push(time);
+    samples.values.push(value);
+    const expired = samples.times.findIndex((t) => t >= time - TREND_RETENTION_S);
     if (expired > 0) {
-      series.times.splice(0, expired);
-      series.values.splice(0, expired);
+      samples.times.splice(0, expired);
+      samples.values.splice(0, expired);
     }
   }
 }
 
+/** Drops the history of signals nothing watches any more. */
+export function pruneHistory(): void {
+  const watched = new Set(watchedSignals().map(signalKey));
+  for (const key of Object.keys(history)) if (!watched.has(key)) delete history[key];
+}
+
+/** Drops a poll's history: after a change of what its values mean, old samples mean something else. */
+export function forgetPollHistory(pollId: string): void {
+  for (const key of Object.keys(history)) if (key.startsWith(`${pollId}:`)) delete history[key];
+}
+
 export function toggleTrend(pollId: string, offset: number, label: string): void {
-  const key = `${pollId}:${offset}`;
+  const key = signalKey({ pollId, offset });
   const index = master.trend.findIndex((s) => s.key === key);
   if (index >= 0) master.trend.splice(index, 1);
-  else master.trend.push({ key, label, pollId, offset, times: [], values: [] });
+  else master.trend.push({ key, label, pollId, offset });
+  pruneHistory();
+}
+
+export function clearMasterTrend(): void {
+  master.trend = [];
+  pruneHistory();
 }

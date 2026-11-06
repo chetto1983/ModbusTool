@@ -26,7 +26,7 @@ import * as m from "./masterActions.svelte";
 import * as s from "./slaveActions.svelte";
 import { fileName, openProject, saveProject } from "./projectActions.svelte";
 import { defaultProject, serializeProject } from "./project";
-import { app, master, slave } from "./state.svelte";
+import { app, history, master, slave } from "./state.svelte";
 
 async function addPoll() {
   const poll = m.newPoll();
@@ -34,7 +34,7 @@ async function addPoll() {
   return app.project.master.polls.find((p) => p.id === poll.id)!;
 }
 
-const series = (pollId: string) => ({ key: `${pollId}:0`, label: "x", pollId, offset: 0, times: [], values: [] });
+const series = (pollId: string) => ({ key: `${pollId}:0`, label: "x", pollId, offset: 0 });
 
 beforeEach(() => {
   for (const fn of Object.values(mocks.api)) fn.mockReset().mockResolvedValue(undefined);
@@ -91,10 +91,12 @@ describe("master actions", () => {
     expect(mocks.api.pollStart).toHaveBeenCalledTimes(1);
     expect(master.trend).toHaveLength(1);
 
-    // The type changes what the values mean, not what is read.
+    // The type changes what the values mean, not what is read: old samples go too.
+    history[`${poll.id}:0`] = { times: [1], values: [1] };
     await m.savePoll({ ...app.project.master.polls[0], dataType: "float32" });
     expect(mocks.api.pollStart).toHaveBeenCalledTimes(1);
     expect(master.trend).toEqual([]);
+    expect(history[`${poll.id}:0`]).toBeUndefined();
 
     // A new range restarts once with the new settings; the trend is kept.
     master.trend.push(series(poll.id));

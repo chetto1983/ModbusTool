@@ -4,7 +4,7 @@
   import "uplot/dist/uPlot.min.css";
   import { m } from "../../paraglide/messages.js";
   import { currentLocale } from "../i18n.svelte";
-  import { app, master } from "../state.svelte";
+  import { app, history, master } from "../state.svelte";
 
   let host: HTMLDivElement;
   let plot: uPlot | null = null;
@@ -24,7 +24,9 @@
   function data(): uPlot.AlignedData {
     if (master.trend.length === 0) return [[]];
     // Series sample at different instants; join aligns them on a shared time axis.
-    return uPlot.join(master.trend.map((s) => [s.times, s.values] as uPlot.AlignedData));
+    return uPlot.join(
+      master.trend.map((s) => [history[s.key]?.times ?? [], history[s.key]?.values ?? []] as uPlot.AlignedData),
+    );
   }
 
   const stepped = uPlot.paths.stepped!({ align: 1 });
@@ -104,7 +106,7 @@
   });
 
   $effect(() => {
-    void master.trend.map((s) => s.values.length);
+    void master.trend.map((s) => history[s.key]?.values.length);
     plot?.setData(data());
   });
 

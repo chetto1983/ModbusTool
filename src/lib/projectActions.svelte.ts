@@ -5,7 +5,7 @@ import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { m } from "../paraglide/messages.js";
 import { api } from "./api";
 import { parseProject, serializeProject } from "./project";
-import { app, master, notify, slave } from "./state.svelte";
+import { app, clearMasterTrend, master, notify, slave } from "./state.svelte";
 
 const filters = () => [{ name: m.project_file_type(), extensions: ["json"] }];
 
@@ -22,7 +22,7 @@ export async function openProject(): Promise<void> {
     await api.slaveSetUnits(app.project.slave.units);
     master.selectedPoll = app.project.master.polls[0]?.id ?? null;
     master.runtime = {};
-    master.trend = [];
+    clearMasterTrend();
     notify("ok", m.project_opened({ file: fileName(path) }));
   } catch (e) {
     notify("error", e instanceof Error ? e.message : String(e));
