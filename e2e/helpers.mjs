@@ -8,6 +8,13 @@ import { join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
 export const root = resolve(import.meta.dirname, "..");
+/** Windows names the interpreter `python`; elsewhere `python3` is the one with pymodbus. */
+export const python = process.platform === "win32" ? "python" : "python3";
+/**
+ * Serial checks need socat's pty pairs, which Windows does not have: there they are not run, and
+ * the run says so, rather than counting them as passed.
+ */
+export const serial = process.platform !== "win32";
 export const tmp = mkdtempSync(join(tmpdir(), "modbustool-e2e-"));
 export const results = [];
 let currentBrowser = null;
@@ -18,7 +25,7 @@ export function track(browser) {
 }
 
 export function reference(...args) {
-  const out = execFileSync("python3", [join(root, "e2e/reference_client.py"), ...args.map(String)], {
+  const out = execFileSync(python, [join(root, "e2e/reference_client.py"), ...args.map(String)], {
     encoding: "utf8",
   });
   return JSON.parse(out.trim().split("\n").pop());

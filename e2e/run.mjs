@@ -1,9 +1,11 @@
-// End-to-end run of the real app (tauri-driver + WebKitWebDriver) against pymodbus as an
-// independent reference implementation. Linux only (tauri-driver has no macOS driver).
+// End-to-end run of the real app (tauri-driver) against pymodbus as an independent reference
+// implementation, on Linux (WebKitWebDriver) and Windows (msedgedriver matching WebView2).
+// tauri-driver has no macOS driver.
 //
 //   npx tauri build --debug --no-bundle && node e2e/run.mjs [screenshot-dir]
 //
-// Needs: tauri-driver, WebKitWebDriver, socat, python3 with pymodbus, an X display.
+// Needs: tauri-driver, the platform's WebDriver, python with pymodbus; on Linux also socat (the
+// serial checks) and an X display. Windows runs every check but the serial ones.
 
 import { remote } from "webdriverio";
 import { spawn } from "node:child_process";
@@ -22,10 +24,12 @@ import {
   gridValues,
   labelled,
   panel,
+  python,
   reference,
   results,
   root,
   saveDialog,
+  serial,
   setField,
   tmp,
   track,
@@ -33,6 +37,7 @@ import {
 import { dashboardScenario } from "./dashboard.mjs";
 import { typesMaster, typesSlave } from "./types.mjs";
 
+const APP = process.platform === "win32" ? "modbus-tool.exe" : "modbus-tool";
 const shots = process.argv[2] ? resolve(process.argv[2]) : null;
 const children = [];
 
@@ -129,7 +134,7 @@ async function masterScenario(browser, ports, serialRef) {
   const others = [
     ["UDP", "Modbus UDP", { Port: ports.udp }],
     ["RTU over TCP", "RTU over TCP", { Port: ports.rtuOverTcp }],
-    ["ASCII serial", "ASCII · serial", { "Serial port": serialRef, "Data bits": "8" }],
+    ...(serial ? [["ASCII serial", "ASCII · serial", { "Serial port": serialRef, "Data bits": "8" }]] : []),
   ];
   for (const [name, protocol, fields] of others) {
     await check(`${name}: read once FC04 matches the reference`, async () => {
@@ -215,7 +220,7 @@ async function slaveScenario(browser, ports, slaveSerial, clientSerial) {
       { Port: ports.slaveRtuOverTcp },
       ["rtuovertcp", `127.0.0.1:${ports.slaveRtuOverTcp}`],
     ],
-    ["RTU serial", "RTU · serial", { "Serial port": slaveSerial }, ["rtu", clientSerial]],
+    ...(serial ? [["RTU serial", "RTU · serial", { "Serial port": slaveSerial }, ["rtu", clientSerial]]] : []),
   ];
   for (const [name, protocol, fields, client] of others) {
     await check(`${name}: reference reads FC03 from the slave`, async () => {
@@ -285,15 +290,19 @@ async function main() {
   const ports = { tcp: 15020, udp: 15022, rtuOverTcp: 15021, slaveTcp: 15030, slaveUdp: 15031, slaveRtuOverTcp: 15032 };
   const pty = (a, b) =>
     background("socat", [`pty,raw,echo=0,link=${join(tmp, a)}`, `pty,raw,echo=0,link=${join(tmp, b)}`]);
-  pty("refA", "refB");
-  pty("slaveA", "slaveB");
-  await sleep(800);
-  background("python3", [
+  if (serial) {
+    pty("refA", "refB");
+    pty("slaveA", "slaveB");
+    await sleep(800);
+  } else {
+    console.log("Not run on this platform (no socat): ASCII serial master, RTU serial slave\n");
+  }
+  background(python, [
     join(root, "e2e/reference_servers.py"),
     ports.tcp,
     ports.udp,
     ports.rtuOverTcp,
-    join(tmp, "refA"),
+    ...(serial ? [join(tmp, "refA")] : []),
   ]);
   background("tauri-driver", []);
   await sleep(2000);
@@ -302,7 +311,7 @@ async function main() {
     hostname: "127.0.0.1",
     port: 4444,
     logLevel: "error",
-    capabilities: { "tauri:options": { application: join(root, "src-tauri/target/debug/modbus-tool") } },
+    capabilities: { "tauri:options": { application: join(root, "src-tauri/target/debug", APP) } },
   });
   track(browser);
   try {
