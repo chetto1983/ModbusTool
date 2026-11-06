@@ -3,7 +3,7 @@
 **Goal:** vista Dashboard con pannelli configurabili su griglia trascinabile, salvata nel progetto.
 
 **Architecture:** `src/lib/dashboards.ts` (tipi, valori predefiniti, validazione del progetto),
-`src/lib/signals.svelte.ts` (valore attuale e storico per segnale, dai risultati dei poll),
+`src/lib/state.svelte.ts` (valore attuale e storico per segnale, dai risultati dei poll),
 `src/lib/dashboardActions.svelte.ts` (creare/modificare/eliminare dashboard e pannelli, scritture),
 componenti `DashboardView`, `DashboardGrid` (gridstack), `PanelFrame`, un componente per tipo di
 pannello, `PanelForm` nel modal esistente.
@@ -21,16 +21,21 @@ lo storico non cresce senza limite; gridstack e Svelte non si contendono il DOM.
 **Decisions taken while writing this plan:**
 - Il campo `dashboards` è opzionale nel progetto: nessun cambio di versione del file.
 - Lo storico per segnale sostituisce quello interno di `master.trend`, che diventa una vista.
+- Lo stato dei segnali vive in `state.svelte.ts` (`history`, `signalValue`), non in un
+  `signals.svelte.ts` separato: è lo stesso storico del trend del master.
 
 ## Task
 
-- [ ] **T1 Modello**: tipi, default, validazione in `parseProject`, test (incluso il progetto senza
+- [x] **T1 Modello**: tipi, default, validazione in `parseProject`, test (incluso il progetto senza
   `dashboards`).
-- [ ] **T2 Segnali**: valore attuale e storico per segnale, aggiornati da `applyPollResults`; il
+- [x] **T2 Segnali**: valore attuale e storico per segnale, aggiornati da `applyPollResults`; il
   trend del master li usa; test.
-- [ ] **T3 Vista e griglia**: voce "Dashboard", elenco/crea/rinomina/elimina, griglia gridstack con
+- [x] **T3 Vista e griglia**: voce "Dashboard", elenco/crea/rinomina/elimina, griglia gridstack con
   modalità modifica e posizioni salvate, cornice del pannello (titolo, menu, schermo intero).
-- [ ] **T4 Pannelli di lettura**: trend, valore/gauge, barre, lampada; editor del pannello.
-- [ ] **T5 Comandi**: pulsante e interruttore con scritture e conferma.
+- [x] **T4 Pannelli di lettura**: trend, valore/gauge, barre, lampada; editor del pannello.
+- [x] **T5 Comandi**: pulsante e interruttore con scritture e conferma.
+  T3–T5 in un solo commit: la vista senza pannelli non si prova nell'E2E e i pannelli di lettura
+  e di comando condividono editor e cornice.
+- [ ] **T5b Selettore e numerico** (D11): modello e validazione, editor, scrittura, test, E2E.
 - [ ] **T6 E2E e verifica**: E2E contro pymodbus (valore letto, pulsante che scrive, layout salvato
   e riaperto); file di verifica; CHANGELOG.
