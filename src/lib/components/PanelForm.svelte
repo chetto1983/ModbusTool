@@ -10,9 +10,9 @@
 
   const options = $derived(signalOptions());
 
-  /** A button's value must encode with its target's type, as the grid requires. */
+  /** A value to write must encode with the target's type, as the grid requires. */
   function checkValue(input: HTMLInputElement) {
-    if (panel.kind !== "button") return;
+    if (!("target" in panel)) return;
     try {
       targetRegisters(panel.target, input.value);
       input.setCustomValidity("");
@@ -48,6 +48,17 @@
   {m.panel_title()}
   <input bind:value={panel.title} required />
 </label>
+
+{#snippet valueInput(label: string, get: () => string, set: (value: string) => void)}
+  <input
+    aria-label={label}
+    placeholder={label}
+    bind:value={get, set}
+    required
+    oninput={(e) => checkValue(e.currentTarget)}
+    onfocus={(e) => checkValue(e.currentTarget)}
+  />
+{/snippet}
 
 {#if options.length === 0 && panel.kind !== "button"}
   <p class="muted">{m.panel_no_polls()}</p>
@@ -86,14 +97,14 @@
   {/if}
 {:else if panel.kind === "lamp"}
   <SignalSelect bind:signal={panel.signal} {options} label={m.panel_signal()} required />
-{:else if panel.kind === "button" || panel.kind === "switch"}
+{:else}
   <div class="grid-3">
     <label class="field">
       {m.panel_write_unit()}<input type="number" min="0" max="255" required bind:value={panel.target.unit} />
     </label>
     <label class="field">
       {m.panel_write_table()}
-      <select bind:value={panel.target.table} disabled={panel.kind === "switch"}>
+      <select bind:value={panel.target.table} disabled={panel.kind === "switch" || panel.kind === "number"}>
         <option value="coils">Coils</option>
         <option value="holdingRegisters">Holding registers</option>
       </select>
@@ -102,34 +113,72 @@
       {m.panel_write_address()}<input type="number" min="0" max="65535" required bind:value={panel.target.address} />
     </label>
   </div>
+  {#if panel.kind !== "switch" && panel.target.table === "holdingRegisters"}
+    <div class="grid-2">
+      <label class="field">
+        {m.common_type()}
+        <select bind:value={panel.target.dataType}>
+          {#each DATA_TYPES as type (type.id)}<option value={type.id}>{type.label}</option>{/each}
+        </select>
+      </label>
+      <label class="field">
+        {m.common_order()}
+        <select bind:value={panel.target.byteOrder}>
+          {#each BYTE_ORDERS as order (order)}<option value={order}>{order}</option>{/each}
+        </select>
+      </label>
+    </div>
+  {/if}
   {#if panel.kind === "button"}
-    {#if panel.target.table === "holdingRegisters"}
-      <div class="grid-2">
-        <label class="field">
-          {m.common_type()}
-          <select bind:value={panel.target.dataType}>
-            {#each DATA_TYPES as type (type.id)}<option value={type.id}>{type.label}</option>{/each}
-          </select>
-        </label>
-        <label class="field">
-          {m.common_order()}
-          <select bind:value={panel.target.byteOrder}>
-            {#each BYTE_ORDERS as order (order)}<option value={order}>{order}</option>{/each}
-          </select>
-        </label>
-      </div>
-    {/if}
+    {@const button = panel}
     <label class="field">
       {m.panel_write_value()}
-      <input
-        bind:value={panel.value}
-        required
-        oninput={(e) => checkValue(e.currentTarget)}
-        onfocus={(e) => checkValue(e.currentTarget)}
-      />
+      {@render valueInput(
+        m.panel_write_value(),
+        () => button.value,
+        (value) => (button.value = value),
+      )}
     </label>
     <label class="check"><input type="checkbox" bind:checked={panel.confirm} /> {m.panel_confirm()}</label>
   {:else}
+    {#if panel.kind === "select"}
+      <fieldset class="options">
+        <legend>{m.panel_options()}</legend>
+        {#each panel.options as option, i (i)}
+          <div class="option">
+            <input
+              aria-label={m.panel_option_label()}
+              placeholder={m.panel_option_label()}
+              bind:value={option.label}
+              required
+            />
+            {@render valueInput(
+              m.panel_write_value(),
+              () => option.value,
+              (value) => (option.value = value),
+            )}
+            <button
+              type="button"
+              class="btn small ghost icon"
+              aria-label={m.panel_remove_option()}
+              disabled={panel.options.length === 1}
+              onclick={() => panel.kind === "select" && panel.options.splice(i, 1)}>✕</button
+            >
+          </div>
+        {/each}
+        <button
+          type="button"
+          class="btn small"
+          onclick={() => panel.kind === "select" && panel.options.push({ label: "", value: "" })}
+          >{m.panel_add_option()}</button
+        >
+      </fieldset>
+    {:else if panel.kind === "number"}
+      <div class="grid-2">
+        <label class="field">{m.panel_min()}<input type="number" step="any" bind:value={panel.min} /></label>
+        <label class="field">{m.panel_max()}<input type="number" step="any" bind:value={panel.max} /></label>
+      </div>
+    {/if}
     <SignalSelect bind:signal={panel.signal} {options} label={m.panel_state()} />
   {/if}
 {/if}
@@ -147,5 +196,19 @@
   .check input {
     width: auto;
     height: auto;
+  }
+  .option {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    align-items: center;
+    gap: 6px;
+  }
+  .options {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
   }
 </style>

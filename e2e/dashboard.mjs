@@ -77,10 +77,20 @@ export async function dashboardScenario(browser, target) {
   await addPanel(browser, "Lamp", { Title: "Running", Value: "Poll 1 · FC03 0" });
   await addPanel(browser, "Button", { Title: "Set 4242", Address: 5, "Value to write": "4242" });
   await addPanel(browser, "Switch", { Title: "Valve 7", Address: 7 });
+  await addPanel(browser, "Selector", { Title: "Mode", Address: 8, "State from": "Poll 1 · FC03 8" });
+  await addPanel(browser, "Number input", {
+    Title: "Speed",
+    Address: 9,
+    Min: 0,
+    Max: 5000,
+    "State from": "Poll 1 · FC03 9",
+  });
 
   await check("Dashboard: panels are placed side by side without overlaps", async () => {
-    const places = await Promise.all(["Pressure", "Running", "Set 4242", "Valve 7"].map((t) => place(browser, t)));
-    expectEqual(new Set(places.map(String)).size, 4, "distinct places");
+    const places = await Promise.all(
+      ["Pressure", "Running", "Set 4242", "Valve 7", "Mode", "Speed"].map((t) => place(browser, t)),
+    );
+    expectEqual(new Set(places.map(String)).size, 6, "distinct places");
     if (places.some((p) => p === null)) throw new Error(`missing panel: ${JSON.stringify(places)}`);
   });
 
@@ -128,6 +138,48 @@ export async function dashboardScenario(browser, target) {
     await eventually(
       () => expectEqual(reference("read", "tcp", target, "coils", 7, 1).values, [1], "coil 7"),
       "switch",
+    );
+  });
+
+  await check("Dashboard: a selector writes the chosen option and shows the value read", async () => {
+    const mode = await browser.$(`${panelBody("Mode")}//select`);
+    const shows = (value) =>
+      eventually(async () => expectEqual(await mode.getValue(), value, "selector shows"), "selector");
+    await shows(""); // 999 matches no option
+    await mode.selectByVisibleText("1");
+    await eventually(
+      () => expectEqual(reference("read", "tcp", target, "holding", 8, 1).values, [1], "register 8"),
+      "select",
+    );
+    await shows("1");
+    // Changed elsewhere, then the same option chosen again: it must write again (WebKit, spec D9).
+    reference("write", "tcp", target, "holding", 8, "0");
+    await shows("0");
+    await mode.selectByVisibleText("1");
+    await eventually(
+      () => expectEqual(reference("read", "tcp", target, "holding", 8, 1).values, [1], "register 8 again"),
+      "select again",
+    );
+  });
+
+  await check("Dashboard: a number input writes a setpoint in range and refuses one out of range", async () => {
+    const input = await browser.$(`${panelBody("Speed")}//input`);
+    const set = async (value) => {
+      await input.clearValue();
+      await input.setValue(value);
+      await click(browser, `${panelBody("Speed")}//button[normalize-space()='Set']`);
+    };
+    await set("6000");
+    expectEqual(await input.getProperty("validationMessage"), "Above the maximum 5000", "out of range");
+    await set("1234");
+    await eventually(
+      () => expectEqual(reference("read", "tcp", target, "holding", 9, 1).values, [1234], "register 9"),
+      "setpoint",
+    );
+    await eventually(
+      async () =>
+        expectEqual(await browser.$(`${panelBody("Speed")}//span[contains(@class,'read')]`).getText(), "1234", "read"),
+      "setpoint read",
     );
   });
 

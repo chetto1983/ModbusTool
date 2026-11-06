@@ -5,6 +5,7 @@ import {
   newDashboard,
   newPanel,
   type Dashboard,
+  type NumberPanel,
   type Panel,
   type PanelKind,
   type Place,
@@ -30,6 +31,8 @@ export const PANEL_TITLES: Record<PanelKind, () => string> = {
   lamp: m.panel_lamp,
   button: m.panel_button,
   switch: m.panel_switch,
+  select: m.panel_select,
+  number: m.panel_number,
 };
 
 /** The dashboard on screen: the one chosen, else the first. */
@@ -117,16 +120,26 @@ export function targetRegisters(target: WriteTarget, text: string): number[] {
   return target.table === "coils" ? encode(text, "bit") : encode(text, target.dataType, target.byteOrder);
 }
 
-/** Writes a panel's value through the master; failures are shown as notices. */
-export async function writeTarget(target: WriteTarget, text: string): Promise<void> {
+/** The registers a setpoint writes, or the error: out of the panel's range or not encodable. */
+export function setpointRegisters(panel: NumberPanel, text: string): number[] {
+  const value = Number(text);
+  if (panel.min !== null && value < panel.min) throw new Error(m.panel_below_min({ min: panel.min }));
+  if (panel.max !== null && value > panel.max) throw new Error(m.panel_above_max({ max: panel.max }));
+  return targetRegisters(panel.target, text);
+}
+
+/** Writes a panel's value through the master; failures are shown as notices. True if written. */
+export async function writeTarget(target: WriteTarget, text: string): Promise<boolean> {
   let registers: number[];
   try {
     registers = targetRegisters(target, text);
   } catch (e) {
     notify("error", m.master_write_failed({ error: e instanceof Error ? e.message : String(e) }));
-    return;
+    return false;
   }
-  await writeTo(target.unit, target.table === "coils", target.address, registers).catch(() => {
+  return writeTo(target.unit, target.table === "coils", target.address, registers).then(
+    () => true,
     // writeTo has shown the notice.
-  });
+    () => false,
+  );
 }

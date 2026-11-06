@@ -39,6 +39,8 @@ describe("dashboards", () => {
       [9, 0],
       [10, 2],
       [0, 4],
+      [2, 4],
+      [0, 6],
     ]);
     const places = dashboard.panels.map((p) => p.place);
     for (const a of places)
@@ -72,6 +74,12 @@ describe("dashboards", () => {
       ["button", (p) => (p.target = { ...(p.target as object), dataType: "float16" })],
       ["button", (p) => (p.confirm = "yes")],
       ["switch", (p) => (p.target = null)],
+      ["select", (p) => (p.options = [{ label: "On" }])],
+      ["select", (p) => (p.options = "On=1")],
+      ["select", (p) => (p.signal = 0)],
+      ["number", (p) => (p.min = "0")],
+      ["number", (p) => (p.max = Number.POSITIVE_INFINITY)],
+      ["number", (p) => (p.target = {})],
     ];
     for (const [kind, change] of bad) {
       expect(() => parseDashboards(withPanel(change, kind as never)), kind).toThrow(ProjectError);
@@ -86,5 +94,7 @@ describe("dashboards", () => {
       p.gauge = true;
     }, "value");
     expect(parseDashboards(valid)).toEqual(valid);
+    const setpoint = withPanel((p) => Object.assign(p, { min: -10, max: 10.5 }), "number");
+    expect(parseDashboards(setpoint)).toEqual(setpoint);
   });
 });

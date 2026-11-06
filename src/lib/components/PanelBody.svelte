@@ -3,8 +3,8 @@
   import Modal from "./Modal.svelte";
   import TrendChart from "./TrendChart.svelte";
   import ValueView from "./ValueView.svelte";
-  import { signalLabel, writeTarget } from "../dashboardActions.svelte";
-  import type { Panel, Signal } from "../dashboards";
+  import { setpointRegisters, signalLabel, writeTarget } from "../dashboardActions.svelte";
+  import type { Panel, SelectPanel, Signal } from "../dashboards";
   import { master, signalKey, signalValue } from "../state.svelte";
 
   let { panel }: { panel: Panel } = $props();
@@ -15,11 +15,40 @@
   let confirming = $state(false);
   let writing = $state(false);
 
-  async function write(text: string) {
-    if (panel.kind !== "button" && panel.kind !== "switch") return;
+  async function write(text: string): Promise<boolean> {
+    if (!("target" in panel)) return false;
     writing = true;
-    await writeTarget(panel.target, text);
+    const written = await writeTarget(panel.target, text);
     writing = false;
+    return written;
+  }
+
+  // A selector shows the option matching the read value; without a state signal, the last one written.
+  let lastChosen = $state("");
+  // Bumped after every write, to rebuild the <select>: WebKit sends no change event when the option
+  // last chosen by the user is chosen again, even after the shown value changed (spec D9).
+  let writes = $state(0);
+  const chosen = (select: SelectPanel) => {
+    if (select.signal === null) return lastChosen;
+    const read = valueOf(select.signal);
+    return select.options.find((o) => o.value.trim() !== "" && Number(o.value) === read)?.value ?? "";
+  };
+
+  async function choose(value: string) {
+    if (await write(value)) lastChosen = value;
+    writes++;
+  }
+
+  let setpoint = $state("");
+
+  function checkSetpoint(input: HTMLInputElement) {
+    if (panel.kind !== "number") return;
+    try {
+      setpointRegisters(panel, input.value);
+      input.setCustomValidity("");
+    } catch (e) {
+      input.setCustomValidity(e instanceof Error ? e.message : String(e));
+    }
   }
 
   function press() {
@@ -90,6 +119,49 @@
       <i></i>{on ? m.switch_on() : m.switch_off()}
     </button>
   </div>
+{:else if panel.kind === "select"}
+  {@const shown = chosen(panel)}
+  <div class="centre" class:stale={stale(panel.signal)}>
+    {#key `${shown}#${writes}`}
+      <select
+        class="command"
+        aria-label={panel.title}
+        value={shown}
+        disabled={!master.connected || writing}
+        title={master.connected ? undefined : m.panel_needs_connection()}
+        onchange={(e) => choose(e.currentTarget.value)}
+      >
+        <option value="" disabled hidden>—</option>
+        {#each panel.options as option, i (i)}<option value={option.value}>{option.label}</option>{/each}
+      </select>
+    {/key}
+  </div>
+{:else if panel.kind === "number"}
+  <form
+    class="centre setpoint"
+    class:stale={stale(panel.signal)}
+    onsubmit={(e) => {
+      e.preventDefault();
+      void write(setpoint);
+    }}
+  >
+    {#if panel.signal}<span class="data number read">{valueOf(panel.signal) ?? "—"}</span>{/if}
+    <div class="row">
+      <input
+        aria-label={m.panel_setpoint()}
+        inputmode="decimal"
+        required
+        bind:value={setpoint}
+        oninput={(e) => checkSetpoint(e.currentTarget)}
+        onfocus={(e) => checkSetpoint(e.currentTarget)}
+      />
+      <button
+        class="btn primary"
+        disabled={!master.connected || writing}
+        title={master.connected ? undefined : m.panel_needs_connection()}>{m.panel_set()}</button
+      >
+    </div>
+  </form>
 {/if}
 
 {#if confirming && panel.kind === "button"}
@@ -141,6 +213,23 @@
   .command {
     min-width: 60%;
     min-height: 44px;
+  }
+  select.command {
+    width: auto;
+    max-width: 100%;
+  }
+  .setpoint {
+    align-content: center;
+    gap: 6px;
+  }
+  .setpoint .row {
+    flex-wrap: nowrap;
+  }
+  .setpoint input {
+    width: 10ch;
+  }
+  .read {
+    font-size: 22px;
   }
   .switch {
     all: unset;
