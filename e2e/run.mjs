@@ -5,7 +5,8 @@
 //   npx tauri build --debug --no-bundle && node e2e/run.mjs [screenshot-dir]
 //
 // Needs: tauri-driver, the platform's WebDriver, python with pymodbus[serial]; on Linux also socat
-// (the serial checks) and an X display. Windows runs every check but the serial ones.
+// (the serial checks), xdotool (the native file dialogs) and an X display. Windows runs every check
+// but the serial ones and those through a native file dialog.
 
 import { remote } from "webdriverio";
 import { spawn } from "node:child_process";
@@ -23,6 +24,7 @@ import {
   expectEqual,
   gridValues,
   labelled,
+  nativeDialogs,
   panel,
   python,
   reference,
@@ -35,6 +37,7 @@ import {
   track,
 } from "./helpers.mjs";
 import { dashboardScenario } from "./dashboard.mjs";
+import { registerMapScenario } from "./registerMap.mjs";
 import { typesMaster, typesSlave } from "./types.mjs";
 
 const APP = process.platform === "win32" ? "modbus-tool.exe" : "modbus-tool";
@@ -193,6 +196,7 @@ async function masterScenario(browser, ports, serialRef) {
   await editPoll(browser, { Function: "FC03 · Holding registers" });
   await typesMaster(browser, `127.0.0.1:${ports.tcp}`, 40);
   await dashboardScenario(browser, `127.0.0.1:${ports.tcp}`);
+  if (nativeDialogs) await registerMapScenario(browser);
   await editPoll(browser, {
     Function: "FC04 · Input registers",
     Address: 0,
@@ -367,6 +371,7 @@ async function main() {
   } else {
     console.log("Not run on this platform (no socat): ASCII serial master, RTU serial slave\n");
   }
+  if (!nativeDialogs) console.log("Not run on this platform (no xdotool): register map import and export\n");
   background(python, [
     join(root, "e2e/reference_servers.py"),
     ports.tcp,

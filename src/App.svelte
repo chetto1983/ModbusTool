@@ -11,6 +11,7 @@
   import { api, onPollResults, onTraffic } from "./lib/api";
   import { startSimulationLoop } from "./lib/slaveActions.svelte";
   import { followReads, readPlan } from "./lib/dashboardReads.svelte";
+  import { recordReadings } from "./lib/recorder.svelte";
   import {
     app,
     applyPollResults,
@@ -60,7 +61,13 @@
     const stopSimulation = startSimulationLoop();
     const stopUpdateChecks = startUpdateChecks();
     const stopWatchingErrors = watchUnexpectedErrors();
-    const listeners = [onTraffic(pushTraffic), onPollResults(applyPollResults)];
+    const listeners = [
+      onTraffic(pushTraffic),
+      onPollResults((results) => {
+        applyPollResults(results);
+        recordReadings(results);
+      }),
+    ];
     window.addEventListener("keydown", shortcuts);
     return () => {
       window.removeEventListener("keydown", shortcuts);

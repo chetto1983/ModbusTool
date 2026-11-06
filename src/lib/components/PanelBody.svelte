@@ -1,6 +1,7 @@
 <script lang="ts">
   import { m } from "../../paraglide/messages.js";
   import Modal from "./Modal.svelte";
+  import TableView from "./TableView.svelte";
   import TrendChart from "./TrendChart.svelte";
   import ValueView from "./ValueView.svelte";
   import { setpointRegisters, variableLabel, writeTarget } from "../dashboardActions.svelte";
@@ -90,6 +91,8 @@
   />
 {:else if panel.kind === "value"}
   <ValueView {panel} value={valueOf(panel.variable)} stale={stale(panel.variable)} />
+{:else if panel.kind === "table"}
+  <TableView {panel} />
 {:else if panel.kind === "bars"}
   <div class="bars">
     {#each bars as bar, i (i)}

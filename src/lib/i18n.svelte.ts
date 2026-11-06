@@ -44,6 +44,13 @@ apply(i18n.locale);
 
 export const currentLocale = (): Locale => i18n.locale;
 
+/** A read value as panels show it: the interface language's separators, fixed decimals. */
+export const formatNumber = (value: number, decimals: number): string =>
+  new Intl.NumberFormat(currentLocale(), {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(value);
+
 export const setLanguage = (locale: Locale): void => void setLocale(locale);
 
 /** The language's own name ("English", "Italiano"), so a new locale needs no code. */

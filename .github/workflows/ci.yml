@@ -165,7 +165,7 @@ jobs:
         uses: ./.github/actions/linux-deps
         timeout-minutes: 30
         with:
-          extra: webkit2gtk-driver xvfb socat
+          extra: webkit2gtk-driver xvfb socat xdotool
       - run: cargo install tauri-driver --locked --version 2.1.0
       # tauri-driver drives Edge WebView2 through msedgedriver, whose version must match the
       # WebView2 on the runner (https://v2.tauri.app/develop/tests/webdriver/ci/).

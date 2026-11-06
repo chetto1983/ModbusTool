@@ -18,9 +18,12 @@
     savePanel,
   } from "../dashboardActions.svelte";
   import { PANEL_KINDS, type Panel, type PanelKind } from "../dashboards";
+  import { importMap } from "../mapActions.svelte";
+  import { recorder, startRecording, stopRecording } from "../recorder.svelte";
   import { app } from "../state.svelte";
 
   const dashboard = $derived(currentDashboard());
+  const recorded = $derived(app.project.dashboards.find((d) => d.id === recorder.dashboardId) ?? null);
   const fullscreen = $derived(dashboard?.panels.find((p) => p.id === dashboardUi.fullscreen) ?? null);
 
   // The panel being edited: a copy, applied by savePanel.
@@ -32,6 +35,8 @@
   // The kind picker of "Add panel": a list of buttons, since WebKit fires no change event when a
   // <select> used as a menu is chosen again with the same option.
   let picking = $state(false);
+  // The unit id of the device whose register map is imported; null while not asked.
+  let mapUnit = $state<number | null>(null);
 
   function startNew() {
     naming = { id: null, name: m.dashboard_default_name({ number: app.project.dashboards.length + 1 }) };
@@ -80,7 +85,22 @@
       >
     {/if}
     <button class="btn small" onclick={startNew}>{m.dashboard_new()}</button>
+    <button class="btn small" onclick={() => (mapUnit = 1)}>{m.map_import()}</button>
     <span class="spacer"></span>
+    {#if recorded}
+      <span class="recording" role="status" title={recorder.file}>
+        <i aria-hidden="true"></i>{m.record_status({
+          dashboard: recorded.name,
+          file: recorder.file || recorder.folder,
+          rows: recorder.rows,
+        })}
+      </span>
+      <button class="btn small" onclick={stopRecording}>{m.record_stop()}</button>
+    {:else if dashboard}
+      <button class="btn small" onclick={() => startRecording(dashboard)} title={m.record_help()}
+        >{m.record_start()}</button
+      >
+    {/if}
     {#if dashboard}
       {#if dashboardUi.editing}
         <label class="period">
@@ -170,6 +190,26 @@
   </Modal>
 {/if}
 
+{#if mapUnit !== null}
+  <Modal
+    title={m.map_import()}
+    onsubmit={() => {
+      const unit = mapUnit ?? 1;
+      mapUnit = null;
+      void importMap(unit);
+    }}
+    onclose={() => (mapUnit = null)}
+  >
+    <p class="muted">{m.map_import_help()}</p>
+    <label class="field">{m.map_unit()}<input type="number" min="0" max="255" required bind:value={mapUnit} /></label>
+    {#snippet actions()}
+      <span class="spacer"></span>
+      <button type="button" class="btn" onclick={() => (mapUnit = null)}>{m.common_cancel()}</button>
+      <button type="submit" class="btn primary">{m.map_choose_file()}</button>
+    {/snippet}
+  </Modal>
+{/if}
+
 {#if naming}
   <Modal
     title={naming.id === null ? m.dashboard_new() : m.dashboard_rename()}
@@ -229,6 +269,24 @@
   }
   .period input {
     width: 9ch;
+  }
+  .recording {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    user-select: text;
+  }
+  .recording i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-danger);
   }
   .kinds {
     display: grid;

@@ -74,6 +74,19 @@ export interface BarsPanel extends PanelBase {
   variables: Variable[];
 }
 
+/** A row of a table panel: a variable with the units and decimals it is shown with (spec R6). */
+export interface TableRow {
+  variable: Variable;
+  units: string;
+  decimals: number;
+}
+
+/** Many variables as a list, such as a device's register map (spec R5). */
+export interface TablePanel extends PanelBase {
+  kind: "table";
+  rows: TableRow[];
+}
+
 export interface LampPanel extends PanelBase {
   kind: "lamp";
   /** Lit when the read value is not zero. */
@@ -120,7 +133,7 @@ export interface NumberPanel extends PanelBase {
 }
 
 export type Panel =
-  TrendPanel | ValuePanel | BarsPanel | LampPanel | ButtonPanel | SwitchPanel | SelectPanel | NumberPanel;
+  TrendPanel | ValuePanel | TablePanel | BarsPanel | LampPanel | ButtonPanel | SwitchPanel | SelectPanel | NumberPanel;
 export type PanelKind = Panel["kind"];
 
 export interface Dashboard {
@@ -133,13 +146,24 @@ export interface Dashboard {
 
 export const DEFAULT_PERIOD_MS = 1000;
 
-export const PANEL_KINDS: PanelKind[] = ["trend", "value", "bars", "lamp", "button", "switch", "select", "number"];
+export const PANEL_KINDS: PanelKind[] = [
+  "trend",
+  "value",
+  "table",
+  "bars",
+  "lamp",
+  "button",
+  "switch",
+  "select",
+  "number",
+];
 
 export const GRID_COLUMNS = 12;
 
 const SIZES: Record<PanelKind, Pick<Place, "w" | "h">> = {
   trend: { w: 6, h: 4 },
   value: { w: 3, h: 2 },
+  table: { w: 6, h: 5 },
   bars: { w: 4, h: 4 },
   lamp: { w: 2, h: 2 },
   button: { w: 2, h: 2 },
@@ -172,6 +196,8 @@ export const newVariable = (over: Partial<Variable> = {}): Variable => ({
   colour: null,
   ...over,
 });
+
+export const newTableRow = (variable: Variable = newVariable()): TableRow => ({ variable, units: "", decimals: 1 });
 
 /** The variable at a write target's own location: what a command panel shows at first. */
 export const targetVariable = (target: WriteTarget): Variable => ({ ...target, name: "", colour: null });
@@ -225,6 +251,8 @@ export function newPanel(id: string, kind: PanelKind, title: string, panels: Pan
         warn: null,
         alarm: null,
       };
+    case "table":
+      return { ...base, kind, rows: [newTableRow()] };
     case "bars":
       return { ...base, kind, variables: [newVariable()] };
     case "lamp":

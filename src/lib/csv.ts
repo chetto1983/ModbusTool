@@ -12,11 +12,13 @@ export interface AddressValue {
 
 export class CsvError extends Error {}
 
-function field(text: string): string {
+/** A CSV field, quoted when it holds a comma, a quote or a line break. */
+export function field(text: string): string {
   return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
-function parseLine(line: string): string[] {
+/** The fields of one CSV line, with quoted fields unquoted. */
+export function parseLine(line: string): string[] {
   const fields: string[] = [];
   let current = "";
   let quoted = false;

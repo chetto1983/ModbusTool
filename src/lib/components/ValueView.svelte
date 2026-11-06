@@ -1,6 +1,6 @@
 <script lang="ts">
   import { m } from "../../paraglide/messages.js";
-  import { currentLocale } from "../i18n.svelte";
+  import { formatNumber } from "../i18n.svelte";
   import type { ComponentProps } from "svelte";
   import Gauge from "svelte-gauge";
   import type { ValuePanel } from "../dashboards";
@@ -18,11 +18,7 @@
           ? "warning"
           : "",
   );
-  const format = (n: number) =>
-    new Intl.NumberFormat(currentLocale(), {
-      minimumFractionDigits: panel.decimals,
-      maximumFractionDigits: panel.decimals,
-    }).format(n);
+  const format = (n: number) => formatNumber(n, panel.decimals);
   const text = $derived(value === null ? "—" : format(value));
 
   // The gauge (svelte-gauge): a 240° dial open at the bottom (its angles start at the bottom and run
