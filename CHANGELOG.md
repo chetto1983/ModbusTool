@@ -27,6 +27,7 @@ publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full hi
 
 ### Fixed
 
+- Float64 values are shown exactly; the largest ones showed as Infinity.
 - Master: the poll editor no longer spills out of the Polls panel when the sidebar is short;
   the sidebar scrolls instead.
 

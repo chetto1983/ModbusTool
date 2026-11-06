@@ -6,118 +6,39 @@
 // Needs: tauri-driver, WebKitWebDriver, socat, python3 with pymodbus, an X display.
 
 import { remote } from "webdriverio";
-import { execFileSync, spawn } from "node:child_process";
-import { mkdirSync, mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { spawn } from "node:child_process";
+import { mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+import {
+  button,
+  check,
+  click,
+  dialog,
+  editCell,
+  editPoll,
+  eventually,
+  expectEqual,
+  gridValues,
+  labelled,
+  panel,
+  reference,
+  results,
+  root,
+  saveDialog,
+  setField,
+  tmp,
+  track,
+} from "./helpers.mjs";
+import { typesMaster, typesSlave } from "./types.mjs";
 
-const root = resolve(import.meta.dirname, "..");
 const shots = process.argv[2] ? resolve(process.argv[2]) : null;
-const tmp = mkdtempSync(join(tmpdir(), "modbustool-e2e-"));
 const children = [];
-const results = [];
-let currentBrowser = null;
 
 function background(command, args) {
   const child = spawn(command, args, { stdio: "ignore" });
   children.push(child);
   return child;
-}
-
-function reference(...args) {
-  const out = execFileSync("python3", [join(root, "e2e/reference_client.py"), ...args.map(String)], {
-    encoding: "utf8",
-  });
-  return JSON.parse(out.trim().split("\n").pop());
-}
-
-async function check(name, fn) {
-  try {
-    await fn();
-    results.push({ name, ok: true });
-    console.log(`  ✓ ${name}`);
-  } catch (e) {
-    results.push({ name, ok: false, error: e.message });
-    console.log(`  ✗ ${name}\n      ${e.message}`);
-    await currentBrowser?.saveScreenshot(join(tmp, `failure-${results.length}.png`)).catch(() => {});
-    console.log(`      screenshot: ${join(tmp, `failure-${results.length}.png`)}`);
-  }
-}
-
-function expectEqual(actual, expected, what) {
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-    throw new Error(`${what}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
-  }
-}
-
-async function eventually(fn, what, timeoutMs = 5000) {
-  const end = Date.now() + timeoutMs;
-  let last;
-  while (Date.now() < end) {
-    try {
-      return await fn();
-    } catch (e) {
-      last = e;
-      await sleep(150);
-    }
-  }
-  throw new Error(`${what}: ${last?.message}`);
-}
-
-// ---------- UI helpers ----------
-
-const panel = (title) => `//section[.//h2[normalize-space()="${title}"]]`;
-const fieldIn = (scope, label) =>
-  `${scope}//label[contains(@class,"field")][starts-with(normalize-space(), "${label}")]//*[self::input or self::select]`;
-
-async function setField(browser, scope, label, value) {
-  const el = await browser.$(fieldIn(scope, label));
-  if ((await el.getTagName()) === "select") {
-    await el.selectByVisibleText(value);
-  } else {
-    await el.clearValue();
-    await el.setValue(String(value));
-    await browser.keys("Tab");
-  }
-}
-
-async function click(browser, xpath) {
-  const el = await browser.$(xpath);
-  await el.waitForClickable({ timeout: 5000 });
-  await el.click();
-}
-
-const button = (scope, text) => `${scope}//button[normalize-space()="${text}"]`;
-const labelled = (label) => `//button[@aria-label="${label}"]`;
-const dialog = "//dialog[@open]";
-
-/** Sets the fields of the open editor modal and saves it. */
-async function saveDialog(browser, fields) {
-  for (const [label, value] of Object.entries(fields)) await setField(browser, dialog, label, value);
-  await click(browser, button(dialog, "Save"));
-  await browser.$(dialog).waitForExist({ timeout: 3000, reverse: true });
-}
-
-async function editPoll(browser, fields) {
-  await click(browser, labelled("Edit Poll 1"));
-  await saveDialog(browser, fields);
-}
-
-async function gridValues(browser) {
-  return browser.$$("//div[@role='row' and contains(@class,'line')]/span[@role='cell'][4]").map((c) => c.getText());
-}
-
-async function editCell(browser, index, value) {
-  const cell = await browser.$(`(//div[contains(@class,'line')]//button[contains(@class,'cell')])[${index + 1}]`);
-  await cell.waitForClickable({ timeout: 5000 });
-  await cell.click();
-  const input = await browser.$("input.edit");
-  await input.waitForExist({ timeout: 3000 });
-  // setValue would run WebDriver "Element Clear", which blurs the input and cancels the edit.
-  // The current text is selected on focus, so typing replaces it, as for a user.
-  await input.addValue(String(value));
-  await browser.keys("Enter");
 }
 
 async function screenshot(browser, name) {
@@ -193,7 +114,15 @@ async function masterScenario(browser, ports, serialRef) {
   });
 
   await click(browser, labelled("Stop Poll 1"));
-  await editPoll(browser, { Function: "FC04 · Input registers" });
+  await editPoll(browser, { Function: "FC03 · Holding registers" });
+  await typesMaster(browser, `127.0.0.1:${ports.tcp}`, 40);
+  await editPoll(browser, {
+    Function: "FC04 · Input registers",
+    Address: 0,
+    Quantity: 10,
+    Type: "UInt16",
+    Order: "ABCD",
+  });
 
   const others = [
     ["UDP", "Modbus UDP", { Port: ports.udp }],
@@ -249,6 +178,17 @@ async function slaveScenario(browser, ports, slaveSerial, clientSerial) {
     expectEqual(reference("write", "tcp", target, "coils", 3, "1,0,1"), { ok: true }, "write");
     expectEqual(reference("read", "tcp", target, "coils", 3, 3).values, [1, 0, 1], "read");
   });
+
+  await typesSlave(browser, target, 300);
+  const toolbar = "//div[contains(@class,'toolbar')]";
+  for (const [label, value] of [
+    ["Type", "UInt16"],
+    ["Order", "ABCD"],
+    ["Start", 10],
+    ["Count", 100],
+  ]) {
+    await setField(browser, toolbar, label, value);
+  }
 
   await check("Simulation: sine generator changes the register seen by the reference", async () => {
     await click(browser, button(panel("Simulation"), "+ Add"));
@@ -362,7 +302,7 @@ async function main() {
     logLevel: "error",
     capabilities: { "tauri:options": { application: join(root, "src-tauri/target/debug/modbus-tool") } },
   });
-  currentBrowser = browser;
+  track(browser);
   try {
     await masterScenario(browser, ports, join(tmp, "refB"));
     await slaveScenario(browser, ports, join(tmp, "slaveA"), join(tmp, "slaveB"));

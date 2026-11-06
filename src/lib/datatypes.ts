@@ -59,9 +59,18 @@ function fromBytes(view: DataView, order: ByteOrder): number[] {
   return swapsWords(order) ? words.toReversed() : words;
 }
 
-function formatFloat(value: number, significant: number): string {
+/** float32 with the 7 significant digits it carries: its exact double expansion is noise. */
+function formatFloat32(value: number): string {
   if (!Number.isFinite(value)) return String(value);
-  return String(Number(value.toPrecision(significant)));
+  return String(Number(value.toPrecision(7)));
+}
+
+/**
+ * float64 exactly: JavaScript's shortest text that parses back to the same double. Fewer digits
+ * would lose information, and 15 rounded the largest finite double up to Infinity.
+ */
+function formatFloat64(value: number): string {
+  return Object.is(value, -0) ? "-0" : String(value);
 }
 
 function asciiChar(code: number): string {
@@ -95,13 +104,13 @@ export function decode(registers: number[], type: DataType, order: ByteOrder = "
     case "int32":
       return String(view.getInt32(0));
     case "float32":
-      return formatFloat(view.getFloat32(0), 7);
+      return formatFloat32(view.getFloat32(0));
     case "uint64":
       return view.getBigUint64(0).toString();
     case "int64":
       return view.getBigInt64(0).toString();
     case "float64":
-      return formatFloat(view.getFloat64(0), 15);
+      return formatFloat64(view.getFloat64(0));
   }
 }
 
