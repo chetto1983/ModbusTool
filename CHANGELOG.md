@@ -4,7 +4,10 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
-## Unreleased
+## v3.1.0 — 2026-11-06
+
+Interface in Italian, editors in a dialog, a trend that shows polled values as they are, and the
+first version that can update itself. Install it by hand once: 3.0.0 has no updater.
 
 ### Added
 
@@ -12,7 +15,6 @@ publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full hi
   and every 6 hours); *Updates* in the sidebar changes that and checks on demand. A new version
   is offered with its notes and installed only on *Install and restart*, after stopping the
   master and the slave. Updates are verified with the project's update key (MSI, .deb, AppImage).
-
 - Interface in English and Italian, chosen in the sidebar and remembered; the first start
   follows the system language. Other languages need only a messages file.
 
