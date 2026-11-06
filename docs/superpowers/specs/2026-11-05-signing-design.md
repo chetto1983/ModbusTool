@@ -2,6 +2,13 @@
 
 Data: 2026-11-05. Stato: approvata dall'utente (SignPath, solo MSI su Windows).
 
+**Emendamento 2026-11-06:** l'utente rinuncia a fare domanda a SignPath. Misura: l'MSI non
+firmato si installa sul suo PC Windows ed ESET non lo blocca. Cosa questa misura NON dimostra:
+SmartScreen su file scaricati e Smart App Control (Windows 11) restano possibili su altri PC. Il
+job di firma resta nel workflow, saltato senza configurazione (S3); il README dice che
+l'installer non è firmato. L'integrità degli aggiornamenti è data dalla chiave dell'updater
+(`2026-11-06-updater-design.md`), indipendente da SignPath.
+
 ## Obiettivo
 
 Firmare l'installer Windows delle release, così Windows mostra un editore e Smart App Control

@@ -40,10 +40,9 @@ Rust backend, Svelte frontend, one window for both roles.
 Download the installer for your system from the
 [latest release](https://github.com/chetto1983/ModbusTool/releases/latest).
 
-**Windows** — `ModbusTool_<version>_x64_en-US.msi`. Until code signing is active (see
-[Code signing policy](#code-signing-policy)) the installer is not signed: when SmartScreen stops
-it, choose *More info → Run anyway*. WebView2 is needed; Windows 10 and 11 usually have it,
-otherwise the installer downloads it.
+**Windows** — `ModbusTool_<version>_x64_en-US.msi`. The installer is not code-signed (see
+[Code signing](#code-signing)): when SmartScreen stops it, choose *More info → Run anyway*.
+WebView2 is needed; Windows 10 and 11 usually have it, otherwise the installer downloads it.
 
 **Linux** — on Debian/Ubuntu `sudo apt install ./ModbusTool_<version>_amd64.deb`, elsewhere
 `chmod +x ModbusTool_<version>_amd64.AppImage` and run it. For serial ports add your user to the
@@ -68,18 +67,18 @@ Measured with tests, see `docs/superpowers/specs/2026-11-05-tauri-rewrite-design
 - FC22 (mask write) and FC23 (read/write multiple) are not supported yet.
 - Serial parity mark/space and 1.5 stop bits are not available.
 
-## Code signing policy
+## Code signing
 
-Windows releases are to be signed through the SignPath Foundation's free program for open-source
-projects: *Free code signing provided by [SignPath.io](https://signpath.io), certificate by
-[SignPath Foundation](https://signpath.org)*. **Status:** application pending; until it is accepted,
-releases are published unsigned. How signing is set up: [docs/signing.md](docs/signing.md).
+The Windows installer is **not** code-signed (Authenticode). Windows can therefore warn about it:
+SmartScreen asks for confirmation on a downloaded installer, and where Smart App Control is on
+(clean installs of Windows 11) it blocks unsigned apps. Releases are built only by this
+repository's [Release workflow](.github/workflows/release.yml) on GitHub-hosted runners, from the
+tagged source.
 
-- Only the installer built by this repository's [Release workflow](.github/workflows/release.yml)
-  on GitHub-hosted runners, from the tagged source, is signed.
-- **Authors** (committers): [@chetto1983](https://github.com/chetto1983).
-- **Reviewers**: changes from anyone else are reviewed by an author before they are merged.
-- **Approvers**: every signing request is approved by [@chetto1983](https://github.com/chetto1983).
+Updates installed from the app are verified with the project's update key before they are
+installed (see *Updates* under [Install](#install)), so an update cannot be tampered with in
+transit. The workflow can sign the MSI through SignPath if that is ever set up:
+[docs/signing.md](docs/signing.md).
 
 **Privacy:** this program will not transfer any information to other networked systems unless
 specifically requested by the user or the person installing or operating it. ModbusTool connects
