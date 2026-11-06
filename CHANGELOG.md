@@ -4,6 +4,13 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
+## Unreleased
+
+### Fixed
+
+- Windows: every call to the backend first failed on the Content Security Policy (the IPC channel
+  `http://ipc.localhost` was not allowed) and was retried through a slower fallback.
+
 ## v3.1.1 — 2026-11-06
 
 Readable drop-down lists on Windows, and unexpected errors shown instead of passing silently. The
