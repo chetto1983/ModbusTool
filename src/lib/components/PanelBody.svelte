@@ -1,0 +1,223 @@
+<script lang="ts">
+  import { m } from "../../paraglide/messages.js";
+  import Modal from "./Modal.svelte";
+  import TrendChart from "./TrendChart.svelte";
+  import ValueView from "./ValueView.svelte";
+  import { signalLabel, writeTarget } from "../dashboardActions.svelte";
+  import type { Panel, Signal } from "../dashboards";
+  import { master, signalKey, signalValue } from "../state.svelte";
+
+  let { panel }: { panel: Panel } = $props();
+
+  const stale = (signal: Signal | null) => signal !== null && !master.runtime[signal.pollId]?.running;
+  const valueOf = (signal: Signal | null) => (signal ? signalValue(signal) : null);
+
+  let confirming = $state(false);
+  let writing = $state(false);
+
+  async function write(text: string) {
+    if (panel.kind !== "button" && panel.kind !== "switch") return;
+    writing = true;
+    await writeTarget(panel.target, text);
+    writing = false;
+  }
+
+  function press() {
+    if (panel.kind === "button" && panel.confirm) confirming = true;
+    else if (panel.kind === "button") void write(panel.value);
+  }
+
+  const bars = $derived.by(() => {
+    if (panel.kind !== "bars") return [];
+    const values = panel.signals.map(signalValue);
+    const largest = Math.max(1e-9, ...values.map((v) => Math.abs(v ?? 0)));
+    return panel.signals.map((signal, i) => ({
+      key: signalKey(signal),
+      label: signalLabel(signal),
+      value: values[i],
+      stale: stale(signal),
+      share: Math.abs(values[i] ?? 0) / largest,
+    }));
+  });
+</script>
+
+{#if panel.kind === "trend"}
+  <TrendChart
+    series={panel.signals.map((signal) => ({ key: signalKey(signal), label: signalLabel(signal) }))}
+    windowS={panel.windowS}
+    empty={m.panel_no_signal()}
+  />
+{:else if panel.kind === "value"}
+  <ValueView {panel} value={valueOf(panel.signal)} stale={stale(panel.signal)} />
+{:else if panel.kind === "bars"}
+  <div class="bars">
+    {#each bars as bar (bar.key)}
+      <div class="bar" class:stale={bar.stale}>
+        <span class="label" title={bar.label}>{bar.label}</span>
+        <span class="track"><i style:width="{bar.share * 100}%"></i></span>
+        <span class="data number">{bar.value ?? "—"}</span>
+      </div>
+    {:else}
+      <p class="muted">{m.panel_no_signal()}</p>
+    {/each}
+  </div>
+{:else if panel.kind === "lamp"}
+  <div class="centre" class:stale={stale(panel.signal)}>
+    <span class="lamp" class:on={(valueOf(panel.signal) ?? 0) !== 0}></span>
+  </div>
+{:else if panel.kind === "button"}
+  <div class="centre">
+    <button
+      class="btn primary command"
+      disabled={!master.connected || writing}
+      title={master.connected ? undefined : m.panel_needs_connection()}
+      onclick={press}>{panel.title}</button
+    >
+  </div>
+{:else if panel.kind === "switch"}
+  {@const on = (valueOf(panel.signal) ?? 0) !== 0}
+  <div class="centre" class:stale={stale(panel.signal)}>
+    <button
+      class="switch"
+      class:on
+      role="switch"
+      aria-checked={on}
+      aria-label={panel.title}
+      disabled={!master.connected || writing}
+      title={master.connected ? undefined : m.panel_needs_connection()}
+      onclick={() => write(on ? "0" : "1")}
+    >
+      <i></i>{on ? m.switch_on() : m.switch_off()}
+    </button>
+  </div>
+{/if}
+
+{#if confirming && panel.kind === "button"}
+  <Modal
+    title={panel.title}
+    onsubmit={() => {
+      confirming = false;
+      void write(panel.kind === "button" ? panel.value : "");
+    }}
+    onclose={() => (confirming = false)}
+  >
+    <p>
+      {m.panel_write_confirm({
+        value: panel.value,
+        table: panel.target.table,
+        address: panel.target.address,
+        unit: panel.target.unit,
+      })}
+    </p>
+    {#snippet actions()}
+      <span class="spacer"></span>
+      <button type="button" class="btn" onclick={() => (confirming = false)}>{m.common_cancel()}</button>
+      <button type="submit" class="btn primary">{m.panel_write()}</button>
+    {/snippet}
+  </Modal>
+{/if}
+
+<style>
+  .centre {
+    display: grid;
+    place-items: center;
+    height: 100%;
+  }
+  .stale {
+    opacity: 0.45;
+  }
+  .lamp {
+    width: min(64px, 70%);
+    aspect-ratio: 1;
+    border: 2px solid var(--color-border-strong);
+    border-radius: 50%;
+    background: var(--color-surface-3);
+  }
+  .lamp.on {
+    border-color: var(--color-success);
+    background: var(--color-success);
+    box-shadow: 0 0 0 6px color-mix(in oklab, var(--color-success) 22%, transparent);
+  }
+  .command {
+    min-width: 60%;
+    min-height: 44px;
+  }
+  .switch {
+    all: unset;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .switch:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  .switch:focus-visible {
+    box-shadow: 0 0 0 2px var(--color-ring);
+  }
+  .switch i {
+    width: 34px;
+    height: 18px;
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-3);
+    position: relative;
+  }
+  .switch i::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--color-text-muted);
+    transition: transform var(--motion-fast);
+  }
+  .switch.on i {
+    background: var(--color-success);
+  }
+  .switch.on i::after {
+    transform: translateX(16px);
+    background: var(--color-on-accent);
+  }
+  .bars {
+    display: grid;
+    gap: 6px;
+    align-content: start;
+    height: 100%;
+    overflow: auto;
+  }
+  .bar {
+    display: grid;
+    grid-template-columns: minmax(60px, 35%) 1fr auto;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .label {
+    overflow: hidden;
+    color: var(--color-text-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .track {
+    height: 10px;
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-3);
+    overflow: hidden;
+  }
+  .track i {
+    display: block;
+    height: 100%;
+    background: var(--color-accent);
+  }
+  .number {
+    min-width: 5ch;
+    text-align: right;
+  }
+</style>

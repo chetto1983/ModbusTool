@@ -116,9 +116,21 @@ export function newDashboard(id: string, name: string): Dashboard {
   return { id, name, panels: [] };
 }
 
-/** A new panel of `kind`, placed below the others (gridstack moves it up if there is room). */
-export function newPanel(id: string, kind: PanelKind, title: string, below: number): Panel {
-  const base = { id, title, place: { x: 0, y: below, ...SIZES[kind] } };
+const overlaps = (a: Place, b: Place) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+/** The first free spot for a panel of this size, row by row from the top left, as Grafana does. */
+export function freePlace(panels: Panel[], size: Pick<Place, "w" | "h">): Place {
+  for (let y = 0; ; y++) {
+    for (let x = 0; x + size.w <= GRID_COLUMNS; x++) {
+      const place = { x, y, ...size };
+      if (!panels.some((p) => overlaps(p.place, place))) return place;
+    }
+  }
+}
+
+/** A new panel of `kind` in the first free spot of the dashboard. */
+export function newPanel(id: string, kind: PanelKind, title: string, panels: Panel[]): Panel {
+  const base = { id, title, place: freePlace(panels, SIZES[kind]) };
   switch (kind) {
     case "trend":
       return { ...base, kind, signals: [], windowS: 60 };
@@ -147,10 +159,6 @@ export function newPanel(id: string, kind: PanelKind, title: string, below: numb
       return { ...base, kind, target: defaultTarget("coils"), signal: null };
   }
 }
-
-/** The first grid row free below every panel. */
-export const bottom = (dashboard: Dashboard): number =>
-  Math.max(0, ...dashboard.panels.map((p) => p.place.y + p.place.h));
 
 // ---------- project file validation ----------
 

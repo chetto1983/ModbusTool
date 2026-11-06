@@ -7,7 +7,7 @@ import { numeric, registerCount } from "./datatypes";
 import { readPreference, writePreference } from "./preferences";
 import { m } from "../paraglide/messages.js";
 
-export type View = "master" | "slave" | "traffic";
+export type View = "master" | "slave" | "dashboard" | "traffic";
 export type Theme = "dark" | "light";
 
 export const TRAFFIC_LIMIT = 5000;

@@ -111,7 +111,9 @@
         <button class="btn small ghost" onclick={clearMasterTrend}>{m.common_clear()}</button>
       {/if}
     </header>
-    <div class="trend-host"><TrendChart /></div>
+    <div class="trend-host">
+      <TrendChart series={master.trend} windowS={master.trendWindowS} empty={m.trend_empty()} />
+    </div>
   </section>
 </div>
 

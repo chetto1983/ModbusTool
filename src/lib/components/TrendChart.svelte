@@ -4,7 +4,11 @@
   import "uplot/dist/uPlot.min.css";
   import { m } from "../../paraglide/messages.js";
   import { currentLocale } from "../i18n.svelte";
-  import { app, history, master } from "../state.svelte";
+  import { app, history } from "../state.svelte";
+
+  // Stepped lines of signals over the last `windowS` seconds, from the shared signal history.
+  let { series, windowS, empty }: { series: { key: string; label: string }[]; windowS: number; empty: string } =
+    $props();
 
   let host: HTMLDivElement;
   let plot: uPlot | null = null;
@@ -22,10 +26,10 @@
   const plotHeight = () => Math.max(80, host.clientHeight - LEGEND_HEIGHT);
 
   function data(): uPlot.AlignedData {
-    if (master.trend.length === 0) return [[]];
+    if (series.length === 0) return [[]];
     // Series sample at different instants; join aligns them on a shared time axis.
     return uPlot.join(
-      master.trend.map((s) => [history[s.key]?.times ?? [], history[s.key]?.values ?? []] as uPlot.AlignedData),
+      series.map((s) => [history[s.key]?.times ?? [], history[s.key]?.values ?? []] as uPlot.AlignedData),
     );
   }
 
@@ -61,7 +65,7 @@
           // The newest sample at the right edge, the chosen window to its left.
           x: {
             time: true,
-            range: (_u, min, max) => (max == null ? [min, max] : [Math.max(min, max - master.trendWindowS), max]),
+            range: (_u, min, max) => (max == null ? [min, max] : [Math.max(min, max - windowS), max]),
           },
         },
         axes: [
@@ -75,7 +79,7 @@
         ],
         series: [
           { label: m.trend_time(), value: (_u, t) => (t == null ? "--" : clock.format(t * 1000)) },
-          ...master.trend.map((s, i) => ({
+          ...series.map((s, i) => ({
             label: s.label,
             stroke: colors[i % colors.length],
             width: 1.8,
@@ -93,9 +97,7 @@
   }
 
   // Rebuild when the series, the theme, the language or the window change; otherwise push new data.
-  const signature = $derived(
-    [master.trend.map((s) => s.key).join("|"), app.theme, currentLocale(), master.trendWindowS].join(" "),
-  );
+  const signature = $derived([series.map((s) => s.key).join("|"), app.theme, currentLocale(), windowS].join(" "));
   $effect(() => {
     void signature;
     untrack(build);
@@ -106,7 +108,7 @@
   });
 
   $effect(() => {
-    void master.trend.map((s) => history[s.key]?.values.length);
+    void series.map((s) => history[s.key]?.values.length);
     plot?.setData(data());
   });
 
@@ -118,8 +120,8 @@
 </script>
 
 <div class="trend" bind:this={host}>
-  {#if master.trend.length === 0}
-    <div class="empty"><p>{m.trend_empty()}</p></div>
+  {#if series.length === 0}
+    <div class="empty"><p>{empty}</p></div>
   {/if}
 </div>
 

@@ -118,18 +118,23 @@ export async function readOnce(poll: PollConfig): Promise<void> {
   }
 }
 
-/** Writes from the grid: coils use FC05, one register FC06, more registers FC16. */
-export async function writeValues(poll: PollConfig, address: number, registers: number[]): Promise<void> {
+/** Writes through the master: coils use FC05, one register FC06, more registers FC16. */
+export async function writeTo(unit: number, coils: boolean, address: number, registers: number[]): Promise<void> {
   let operation: Operation;
-  if (poll.kind === "readCoils") operation = { kind: "writeSingleCoil", address, value: registers[0] !== 0 };
+  if (coils) operation = { kind: "writeSingleCoil", address, value: registers[0] !== 0 };
   else if (registers.length === 1) operation = { kind: "writeSingleRegister", address, value: registers[0] };
   else operation = { kind: "writeMultipleRegisters", address, values: registers };
   try {
-    await api.masterExecute(poll.unit, operation);
+    await api.masterExecute(unit, operation);
   } catch (e) {
     notify("error", m.master_write_failed({ error: message(e) }));
     throw e;
   }
+}
+
+/** Writes from a poll's grid, then reads the poll again if it is not running. */
+export async function writeValues(poll: PollConfig, address: number, registers: number[]): Promise<void> {
+  await writeTo(poll.unit, poll.kind === "readCoils", address, registers);
   if (!master.runtime[poll.id]?.running) await readOnce(poll);
 }
 
