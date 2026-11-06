@@ -4,7 +4,7 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
-## Unreleased
+## v3.5.0 — 2026-11-06
 
 Import a device's register map as a dashboard, and record a dashboard's values to file.
 
