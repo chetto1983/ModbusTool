@@ -4,10 +4,17 @@
   import type { Variable } from "../dashboards";
   import { BYTE_ORDERS, DATA_TYPES } from "../datatypes";
   import { isBitTable } from "../state.svelte";
+  import ColorField from "./ColorField.svelte";
   import ScalingFields from "./ScalingFields.svelte";
 
   // Where a panel element reads its value (spec D13), in a fieldset named by `legend`.
-  let { variable = $bindable(), legend, actions }: { variable: Variable; legend: string; actions?: Snippet } = $props();
+  // `coloured`: the panel draws the variable (trend line, bar, lamp), so it offers a colour.
+  let {
+    variable = $bindable(),
+    legend,
+    actions,
+    coloured = false,
+  }: { variable: Variable; legend: string; actions?: Snippet; coloured?: boolean } = $props();
 </script>
 
 <fieldset class="variable">
@@ -49,6 +56,9 @@
       </label>
     </div>
     <ScalingFields bind:scaling={variable.scaling} type={variable.dataType} />
+  {/if}
+  {#if coloured}
+    <ColorField bind:colour={variable.colour} />
   {/if}
 </fieldset>
 

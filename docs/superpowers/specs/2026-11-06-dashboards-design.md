@@ -63,6 +63,12 @@ Si riprende il modello d'uso, non il codice (React).
 |---|---|---|
 | D21 | Le variabili con stessa unit, tabella e periodo, **contigue o sovrapposte**, si leggono in **un'unica richiesta** (al massimo 125 registri o 2000 bit, i limiti di FC03/04 e FC01/02, Modbus Application Protocol 1.1b3 §6.1–6.4). Non si leggono indirizzi che nessuna variabile chiede: un dispositivo con un buco nella mappa risponde con l'eccezione 02 all'intero blocco | Calcolo dalla specifica: in RTU a 9600 baud un carattere dura 11/9600 s ≈ 1,15 ms e la pausa tra frame 3,5 caratteri ≈ 4 ms (Modbus over Serial Line 1.02 §2.5.1.1). Una lettura di un registro (8 + 7 byte) costa ≈ 25 ms, quindi 30 variabili ≈ 750 ms, più di un periodo da 200 ms. Misurato solo il numero di richieste e la correttezza dei valori: le pty di socat non hanno i tempi della seriale |
 
+## Colore delle variabili (2026-11-06, richiesta utente)
+
+| # | Decisione | Fonte |
+|---|---|---|
+| D22 | Ogni variabile può avere un **colore**: linea del trend, barra, lampada accesa. **Fissi**: cinque token Aura che seguono il tema (ring, success, warning, danger, text-muted; accent è quasi invisibile sul tema scuro, info coincide con ring sul chiaro). **Personalizzato**: un esadecimale scelto con `color-picker-svelte` 2.0.4 (MIT, Svelte 5, dipendenza `@ctrl/tinycolor` MIT). Nessun colore: la palette automatica per posizione, come prima. Nel file: `null`, il nome del token o `#rrggbb` | Richiesta utente con il playground di `color-picker-svelte`; inventario del pacchetto pubblicato |
+
 ## Cosa NON è dimostrato
 
 - Prestazioni con molti pannelli e poll veloci: da misurare (obiettivo: 20 pannelli, poll 200 ms).

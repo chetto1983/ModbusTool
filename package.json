@@ -55,6 +55,7 @@
     "@tauri-apps/plugin-fs": "^2.7.1",
     "@tauri-apps/plugin-process": "^2.4.0",
     "@tauri-apps/plugin-updater": "^2.14.1",
+    "color-picker-svelte": "^2.0.4",
     "gridstack": "^14.0.0",
     "svelte-gauge": "^2.0.2",
     "uplot": "^1.6.32"

@@ -4,6 +4,14 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
+## Unreleased
+
+### Added
+
+- A colour for each dashboard variable: trend line, bar and lamp. Pick one of five theme colours
+  that follow the light and dark themes, or any custom colour with a colour picker
+  (color-picker-svelte). Without one, the automatic colours stay as before.
+
 ## v3.3.1 — 2026-11-06
 
 Dashboards read neighbouring variables in one request, far less traffic on the device.
