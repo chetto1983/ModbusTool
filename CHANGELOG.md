@@ -4,6 +4,41 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
+## v3.3.0 — 2026-11-06
+
+Dashboards untied from the master's polls: every panel reads its own variables, scaled as SCADA
+tags are, and trends choose how their samples are joined.
+
+### Added
+
+- Dashboard trends choose how samples are joined: steps (held value), straight lines or a smooth
+  curve. New trends use straight lines; trends saved by 3.2.0 keep their steps.
+
+- Scaling as SCADA tags do it: a variable maps a raw range to an engineering range
+  (e.g. 0..27648 to 0..100 %), optionally kept to that range. Every panel shows engineering values,
+  and command panels write them back raw, so a setpoint is typed in its own units.
+
+- Gauges drawn with svelte-gauge: a 240° dial with the warning and alarm zones on the arc and the
+  range at its ends.
+
+### Fixed
+
+- Zooming a trend by dragging over it no longer jumps back at the next sample: the window holds
+  until "Reset zoom", a double click, or until it falls out of the history.
+
+### Changed
+
+- The value panel's scale and offset are replaced by the scaling of its variable; projects that
+  used them are converted.
+- Dashboards read their own variables and no longer depend on the master's polls. Each panel
+  element sets its unit, table, address, type and byte order. The variables are read while the
+  master is connected, at a period set for each dashboard. Command panels show the state read
+  back from the address they write, or from another variable.
+- Projects saved by 3.2.0 are converted when opened: each value taken from a poll becomes the
+  variable that poll read.
+- The value panel's "Unit" field is now "Unit of measure", so it cannot be confused with the
+  Modbus unit id.
+
 ## v3.2.0 — 2026-11-06
 
 Dashboards: a mini-SCADA view, Grafana style, with panels that show what the master's polls read

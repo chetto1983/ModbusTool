@@ -3,7 +3,8 @@
 
 import { m } from "../paraglide/messages.js";
 import type { MasterConfig, ReadKind, SlaveConfig, Table } from "./api";
-import { parseDashboards, type Dashboard } from "./dashboards";
+import type { Dashboard } from "./dashboards";
+import { parseDashboards } from "./dashboardsFile";
 import { BYTE_ORDERS, DATA_TYPES, type ByteOrder, type DataType } from "./datatypes";
 import { check, isInt, isObject, ProjectError } from "./validation";
 
@@ -111,7 +112,7 @@ export function parseProject(json: string): Project {
     ...defaultProject(),
     ...(data as unknown as Project),
     labels: (data.labels as Record<string, string>) ?? {},
-    dashboards: parseDashboards(data.dashboards),
+    dashboards: parseDashboards(data.dashboards, master.polls as PollConfig[]),
   };
 }
 

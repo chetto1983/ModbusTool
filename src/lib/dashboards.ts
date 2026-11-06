@@ -1,22 +1,32 @@
 // Dashboards (docs/superpowers/specs/2026-11-06-dashboards-design.md): named grids of panels that
-// show what the master's polls read and write values through the master.
+// read their own variables through the master and write values through it.
 
-import { BYTE_ORDERS, DATA_TYPES, type ByteOrder, type DataType } from "./datatypes";
-import { check, isInt, isNumber, isObject } from "./validation";
+import type { Table } from "./api";
+import type { ByteOrder, DataType } from "./datatypes";
+import type { Scaling } from "./scaling";
 
-/** A value read by a poll: the register at `offset` from the poll's address, in the poll's type. */
-export interface Signal {
-  pollId: string;
-  offset: number;
+/** A value on a device, read by the dashboard (D13). Type and byte order apply to registers. */
+export interface Variable {
+  /** Shown in legends and labels; empty means the address is shown. */
+  name: string;
+  unit: number;
+  table: Table;
+  address: number;
+  dataType: DataType;
+  byteOrder: ByteOrder;
+  /** Raw to engineering value (D16); null shows the raw value. */
+  scaling: Scaling | null;
 }
 
-/** Where a button or switch writes, through the master. */
+/** Where a command panel writes, through the master. */
 export interface WriteTarget {
   unit: number;
   table: "coils" | "holdingRegisters";
   address: number;
   dataType: DataType;
   byteOrder: ByteOrder;
+  /** Values to write are engineering values, written raw (D17). */
+  scaling: Scaling | null;
 }
 
 /** Position on the dashboard grid, in grid cells. */
@@ -33,19 +43,21 @@ interface PanelBase {
   place: Place;
 }
 
+/** How a trend joins its samples: held until the next one, straight, or smoothed. */
+export const INTERPOLATIONS = ["step", "linear", "spline"] as const;
+export type Interpolation = (typeof INTERPOLATIONS)[number];
+
 export interface TrendPanel extends PanelBase {
   kind: "trend";
-  signals: Signal[];
+  variables: Variable[];
   windowS: number;
+  interpolation: Interpolation;
 }
 
 export interface ValuePanel extends PanelBase {
   kind: "value";
-  signal: Signal | null;
+  variable: Variable;
   unit: string;
-  /** Shown value = read value × scale + offset. */
-  scale: number;
-  offset: number;
   decimals: number;
   gauge: boolean;
   min: number;
@@ -57,13 +69,13 @@ export interface ValuePanel extends PanelBase {
 
 export interface BarsPanel extends PanelBase {
   kind: "bars";
-  signals: Signal[];
+  variables: Variable[];
 }
 
 export interface LampPanel extends PanelBase {
   kind: "lamp";
   /** Lit when the read value is not zero. */
-  signal: Signal | null;
+  variable: Variable;
 }
 
 export interface ButtonPanel extends PanelBase {
@@ -78,8 +90,8 @@ export interface SwitchPanel extends PanelBase {
   kind: "switch";
   /** The coil it writes. */
   target: WriteTarget;
-  /** What shows its state, usually a poll reading the same coil. */
-  signal: Signal | null;
+  /** What shows its state, at first the coil it writes. */
+  state: Variable | null;
 }
 
 export interface SelectOption {
@@ -93,14 +105,14 @@ export interface SelectPanel extends PanelBase {
   target: WriteTarget;
   options: SelectOption[];
   /** What shows the chosen option: the one whose value equals the read value. */
-  signal: Signal | null;
+  state: Variable | null;
 }
 
 export interface NumberPanel extends PanelBase {
   kind: "number";
   target: WriteTarget;
-  /** What shows the current setpoint, usually a poll reading the same register. */
-  signal: Signal | null;
+  /** What shows the current setpoint, at first the register it writes. */
+  state: Variable | null;
   min: number | null;
   max: number | null;
 }
@@ -112,8 +124,12 @@ export type PanelKind = Panel["kind"];
 export interface Dashboard {
   id: string;
   name: string;
+  /** How often its variables are read while the master is connected (D14). */
+  periodMs: number;
   panels: Panel[];
 }
+
+export const DEFAULT_PERIOD_MS = 1000;
 
 export const PANEL_KINDS: PanelKind[] = ["trend", "value", "bars", "lamp", "button", "switch", "select", "number"];
 
@@ -136,10 +152,37 @@ const defaultTarget = (table: WriteTarget["table"]): WriteTarget => ({
   address: 0,
   dataType: "uint16",
   byteOrder: "ABCD",
+  scaling: null,
 });
 
 export function newDashboard(id: string, name: string): Dashboard {
-  return { id, name, panels: [] };
+  return { id, name, periodMs: DEFAULT_PERIOD_MS, panels: [] };
+}
+
+export const newVariable = (over: Partial<Variable> = {}): Variable => ({
+  name: "",
+  unit: 1,
+  table: "holdingRegisters",
+  address: 0,
+  dataType: "uint16",
+  byteOrder: "ABCD",
+  scaling: null,
+  ...over,
+});
+
+/** The variable at a write target's own location: what a command panel shows at first. */
+export const targetVariable = (target: WriteTarget): Variable => ({ ...target, name: "" });
+
+/** A command's state after its target changed: it follows the target while it reads that location. */
+export function followTarget(state: Variable | null, before: WriteTarget, after: WriteTarget): Variable | null {
+  if (!state || variableKey(state) !== variableKey(targetVariable(before))) return state;
+  return { ...targetVariable(after), name: state.name };
+}
+
+/** One key per location read: the name does not change what is read, and bits have no type. */
+export function variableKey(v: Variable): string {
+  const bits = v.table === "coils" || v.table === "discreteInputs";
+  return [v.unit, v.table, v.address, ...(bits ? [] : [v.dataType, v.byteOrder])].join(":");
 }
 
 const overlaps = (a: Place, b: Place) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
@@ -154,20 +197,24 @@ export function freePlace(panels: Panel[], size: Pick<Place, "w" | "h">): Place 
   }
 }
 
+const commandPanel = <P extends object>(panel: P, target: WriteTarget) => ({
+  ...panel,
+  target,
+  state: targetVariable(target),
+});
+
 /** A new panel of `kind` in the first free spot of the dashboard. */
 export function newPanel(id: string, kind: PanelKind, title: string, panels: Panel[]): Panel {
   const base = { id, title, place: freePlace(panels, SIZES[kind]) };
   switch (kind) {
     case "trend":
-      return { ...base, kind, signals: [], windowS: 60 };
+      return { ...base, kind, variables: [newVariable()], windowS: 60, interpolation: "linear" };
     case "value":
       return {
         ...base,
         kind,
-        signal: null,
+        variable: newVariable(),
         unit: "",
-        scale: 1,
-        offset: 0,
         decimals: 1,
         gauge: false,
         min: 0,
@@ -176,92 +223,19 @@ export function newPanel(id: string, kind: PanelKind, title: string, panels: Pan
         alarm: null,
       };
     case "bars":
-      return { ...base, kind, signals: [] };
+      return { ...base, kind, variables: [newVariable()] };
     case "lamp":
-      return { ...base, kind, signal: null };
+      return { ...base, kind, variable: newVariable({ table: "coils" }) };
     case "button":
       return { ...base, kind, target: defaultTarget("holdingRegisters"), value: "1", confirm: false };
     case "switch":
-      return { ...base, kind, target: defaultTarget("coils"), signal: null };
+      return commandPanel({ ...base, kind }, defaultTarget("coils"));
     case "select":
-      return {
-        ...base,
-        kind,
-        target: defaultTarget("holdingRegisters"),
-        options: ["0", "1"].map((value) => ({ label: value, value })),
-        signal: null,
-      };
+      return commandPanel(
+        { ...base, kind, options: ["0", "1"].map((value) => ({ label: value, value })) },
+        defaultTarget("holdingRegisters"),
+      );
     case "number":
-      return { ...base, kind, target: defaultTarget("holdingRegisters"), signal: null, min: null, max: null };
+      return commandPanel({ ...base, kind, min: null, max: null }, defaultTarget("holdingRegisters"));
   }
-}
-
-// ---------- project file validation ----------
-
-const isSignal = (v: unknown) => isObject(v) && typeof v.pollId === "string" && isInt(v.offset, 0, 1999);
-const isOptionalSignal = (v: unknown) => v === null || isSignal(v);
-const isNullableNumber = (v: unknown) => v === null || isNumber(v);
-
-function isTarget(v: unknown): boolean {
-  return (
-    isObject(v) &&
-    isInt(v.unit, 0, 255) &&
-    (v.table === "coils" || v.table === "holdingRegisters") &&
-    isInt(v.address, 0, 0xffff) &&
-    DATA_TYPES.some((t) => t.id === v.dataType) &&
-    BYTE_ORDERS.includes(v.byteOrder as ByteOrder)
-  );
-}
-
-function isPlace(v: unknown): boolean {
-  return (
-    isObject(v) &&
-    isInt(v.x, 0, GRID_COLUMNS - 1) &&
-    isInt(v.y, 0, 10_000) &&
-    isInt(v.w, 1, GRID_COLUMNS) &&
-    isInt(v.h, 1, 100)
-  );
-}
-
-const isOption = (v: unknown) => isObject(v) && typeof v.label === "string" && typeof v.value === "string";
-
-const PANEL_FIELDS: Record<PanelKind, (p: Record<string, unknown>) => boolean> = {
-  trend: (p) => Array.isArray(p.signals) && p.signals.every(isSignal) && isInt(p.windowS, 1, 86_400),
-  value: (p) =>
-    isOptionalSignal(p.signal) &&
-    typeof p.unit === "string" &&
-    [p.scale, p.offset, p.min, p.max].every(isNumber) &&
-    isInt(p.decimals, 0, 10) &&
-    typeof p.gauge === "boolean" &&
-    isNullableNumber(p.warn) &&
-    isNullableNumber(p.alarm),
-  bars: (p) => Array.isArray(p.signals) && p.signals.every(isSignal),
-  lamp: (p) => isOptionalSignal(p.signal),
-  button: (p) => isTarget(p.target) && typeof p.value === "string" && typeof p.confirm === "boolean",
-  switch: (p) => isTarget(p.target) && isOptionalSignal(p.signal),
-  select: (p) =>
-    isTarget(p.target) && Array.isArray(p.options) && p.options.every(isOption) && isOptionalSignal(p.signal),
-  number: (p) => isTarget(p.target) && isOptionalSignal(p.signal) && isNullableNumber(p.min) && isNullableNumber(p.max),
-};
-
-function checkPanel(v: unknown): void {
-  check(isObject(v), "panel must be an object");
-  const panel = v as Record<string, unknown>;
-  check(typeof panel.id === "string" && typeof panel.title === "string", "panel id/title");
-  check(PANEL_KINDS.includes(panel.kind as PanelKind), `panel kind ${String(panel.kind)}`);
-  check(isPlace(panel.place), "panel place");
-  check(PANEL_FIELDS[panel.kind as PanelKind](panel), `${String(panel.kind)} panel settings`);
-}
-
-/** Dashboards from a project file; a file without the field (before dashboards) has none. */
-export function parseDashboards(v: unknown): Dashboard[] {
-  if (v === undefined) return [];
-  check(Array.isArray(v), "dashboards");
-  for (const d of v as unknown[]) {
-    check(isObject(d) && typeof d.id === "string" && typeof d.name === "string", "dashboard id/name");
-    const panels = (d as Record<string, unknown>).panels;
-    check(Array.isArray(panels), "dashboard panels");
-    (panels as unknown[]).forEach(checkPanel);
-  }
-  return v as Dashboard[];
 }

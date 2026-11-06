@@ -3,12 +3,24 @@
   import uPlot from "uplot";
   import "uplot/dist/uPlot.min.css";
   import { m } from "../../paraglide/messages.js";
+  import type { Interpolation } from "../dashboards";
   import { currentLocale } from "../i18n.svelte";
+  import { toEngineering, type Scaling } from "../scaling";
   import { app, history } from "../state.svelte";
 
-  // Stepped lines of signals over the last `windowS` seconds, from the shared signal history.
-  let { series, windowS, empty }: { series: { key: string; label: string }[]; windowS: number; empty: string } =
-    $props();
+  // Lines of signals over the last `windowS` seconds, from the shared signal history.
+  let {
+    series,
+    windowS,
+    empty,
+    interpolation = "step",
+  }: {
+    /** History keys; samples are shown through `scaling` when given. */
+    series: { key: string; label: string; scaling?: Scaling | null }[];
+    windowS: number;
+    empty: string;
+    interpolation?: Interpolation;
+  } = $props();
 
   let host: HTMLDivElement;
   let plot: uPlot | null = null;
@@ -29,15 +41,35 @@
     if (series.length === 0) return [[]];
     // Series sample at different instants; join aligns them on a shared time axis.
     return uPlot.join(
-      series.map((s) => [history[s.key]?.times ?? [], history[s.key]?.values ?? []] as uPlot.AlignedData),
+      series.map((s) => {
+        const samples = history[s.key];
+        const values = samples?.values.map((v) => toEngineering(v, s.scaling ?? null)) ?? [];
+        return [samples?.times ?? [], values] as uPlot.AlignedData;
+      }),
     );
   }
 
-  const stepped = uPlot.paths.stepped!({ align: 1 });
+  // "step" holds a polled value until the next sample: straight lines would turn a square wave
+  // sampled once per level into a triangle. "linear" and "spline" suit analogue values.
+  const PATHS: Record<Interpolation, uPlot.Series.PathBuilder> = {
+    step: uPlot.paths.stepped!({ align: 1 }),
+    linear: uPlot.paths.linear!(),
+    spline: uPlot.paths.spline!(),
+  };
   // Tick steps in whole seconds: labels are HH:MM:SS, so finer steps would repeat a label.
   const CLOCK_STEPS_S = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600];
 
+  // A window dragged on the chart (uPlot drag-to-zoom) holds while samples arrive, until it is
+  // reset (button or double click) or falls out of the history, as the wpt-iot panels do.
+  let zoomed = $state(false);
+
+  function resetZoom() {
+    zoomed = false;
+    plot?.setData(data());
+  }
+
   function build() {
+    zoomed = false;
     clock = new Intl.DateTimeFormat(currentLocale(), {
       hour: "2-digit",
       minute: "2-digit",
@@ -61,6 +93,18 @@
         height: plotHeight(),
         legend: { show: true },
         cursor: { drag: { x: true, y: false } },
+        hooks: {
+          // Fires with the dragged area just before uPlot zooms to it.
+          setSelect: [(u) => (zoomed = zoomed || u.select.width > 0)],
+          // The time window on screen, for whoever reads the page (the E2E checks the zoom holds).
+          setScale: [
+            (u, key) => {
+              if (key !== "x") return;
+              host.dataset.xMin = String(u.scales.x.min);
+              host.dataset.xMax = String(u.scales.x.max);
+            },
+          ],
+        },
         scales: {
           // The newest sample at the right edge, the chosen window to its left.
           x: {
@@ -84,9 +128,7 @@
             stroke: colors[i % colors.length],
             width: 1.8,
             spanGaps: true,
-            // A polled value holds until the next sample: lines between samples would turn a
-            // square wave sampled once per level into a triangle.
-            paths: stepped,
+            paths: PATHS[interpolation],
             points: { show: false },
           })),
         ],
@@ -94,10 +136,14 @@
       data(),
       host,
     );
+    // uPlot zooms back out on a double click on the plot area.
+    plot.over.addEventListener("dblclick", () => (zoomed = false));
   }
 
   // Rebuild when the series, the theme, the language or the window change; otherwise push new data.
-  const signature = $derived([series.map((s) => s.key).join("|"), app.theme, currentLocale(), windowS].join(" "));
+  const signature = $derived(
+    [series.map((s) => s.key).join("|"), app.theme, currentLocale(), windowS, interpolation].join(" "),
+  );
   $effect(() => {
     void signature;
     untrack(build);
@@ -109,7 +155,12 @@
 
   $effect(() => {
     void series.map((s) => history[s.key]?.values.length);
-    plot?.setData(data());
+    if (!plot) return;
+    const next = data();
+    const oldest = next[0][0];
+    // A zoomed window wholly older than the history kept shows nothing: back to following.
+    if (zoomed && oldest !== undefined && (plot.scales.x.max ?? oldest) < oldest) zoomed = false;
+    plot.setData(next, !untrack(() => zoomed));
   });
 
   $effect(() => {
@@ -123,6 +174,9 @@
   {#if series.length === 0}
     <div class="empty"><p>{empty}</p></div>
   {/if}
+  {#if zoomed}
+    <button type="button" class="btn small reset" onclick={resetZoom}>{m.trend_reset_zoom()}</button>
+  {/if}
 </div>
 
 <style>
@@ -131,6 +185,12 @@
     height: 100%;
     min-height: 160px;
     overflow: hidden;
+  }
+  .reset {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 1;
   }
   .empty {
     position: absolute;

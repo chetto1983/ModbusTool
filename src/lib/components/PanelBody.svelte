@@ -3,14 +3,15 @@
   import Modal from "./Modal.svelte";
   import TrendChart from "./TrendChart.svelte";
   import ValueView from "./ValueView.svelte";
-  import { setpointRegisters, signalLabel, writeTarget } from "../dashboardActions.svelte";
-  import type { Panel, SelectPanel, Signal } from "../dashboards";
-  import { master, signalKey, signalValue } from "../state.svelte";
+  import { setpointRegisters, variableLabel, writeTarget } from "../dashboardActions.svelte";
+  import type { Panel, SelectOption, SelectPanel, Variable } from "../dashboards";
+  import { sameEngineering } from "../scaling";
+  import { master, readKey, variableScaling, variableStale, variableValue } from "../state.svelte";
 
   let { panel }: { panel: Panel } = $props();
 
-  const stale = (signal: Signal | null) => signal !== null && !master.runtime[signal.pollId]?.running;
-  const valueOf = (signal: Signal | null) => (signal ? signalValue(signal) : null);
+  const stale = (variable: Variable | null) => variable !== null && variableStale(variable);
+  const valueOf = (variable: Variable | null) => (variable ? variableValue(variable) : null);
 
   let confirming = $state(false);
   let writing = $state(false);
@@ -23,15 +24,18 @@
     return written;
   }
 
-  // A selector shows the option matching the read value; without a state signal, the last one written.
+  // A selector shows the option matching the read value; without a state variable, the last one written.
   let lastChosen = $state("");
   // Bumped after every write, to rebuild the <select>: WebKit sends no change event when the option
   // last chosen by the user is chosen again, even after the shown value changed (spec D9).
   let writes = $state(0);
   const chosen = (select: SelectPanel) => {
-    if (select.signal === null) return lastChosen;
-    const read = valueOf(select.signal);
-    return select.options.find((o) => o.value.trim() !== "" && Number(o.value) === read)?.value ?? "";
+    if (select.state === null) return lastChosen;
+    const read = valueOf(select.state);
+    if (read === null) return "";
+    const scaling = variableScaling(select.state);
+    const matches = (o: SelectOption) => o.value.trim() !== "" && sameEngineering(Number(o.value), read, scaling);
+    return select.options.find(matches)?.value ?? "";
   };
 
   async function choose(value: string) {
@@ -58,13 +62,12 @@
 
   const bars = $derived.by(() => {
     if (panel.kind !== "bars") return [];
-    const values = panel.signals.map(signalValue);
+    const values = panel.variables.map(variableValue);
     const largest = Math.max(1e-9, ...values.map((v) => Math.abs(v ?? 0)));
-    return panel.signals.map((signal, i) => ({
-      key: signalKey(signal),
-      label: signalLabel(signal),
+    return panel.variables.map((variable, i) => ({
+      label: variableLabel(variable),
       value: values[i],
-      stale: stale(signal),
+      stale: stale(variable),
       share: Math.abs(values[i] ?? 0) / largest,
     }));
   });
@@ -72,27 +75,32 @@
 
 {#if panel.kind === "trend"}
   <TrendChart
-    series={panel.signals.map((signal) => ({ key: signalKey(signal), label: signalLabel(signal) }))}
+    series={panel.variables.map((variable) => ({
+      key: readKey(variable),
+      label: variableLabel(variable),
+      scaling: variableScaling(variable),
+    }))}
     windowS={panel.windowS}
-    empty={m.panel_no_signal()}
+    interpolation={panel.interpolation}
+    empty={m.panel_no_variable()}
   />
 {:else if panel.kind === "value"}
-  <ValueView {panel} value={valueOf(panel.signal)} stale={stale(panel.signal)} />
+  <ValueView {panel} value={valueOf(panel.variable)} stale={stale(panel.variable)} />
 {:else if panel.kind === "bars"}
   <div class="bars">
-    {#each bars as bar (bar.key)}
+    {#each bars as bar, i (i)}
       <div class="bar" class:stale={bar.stale}>
         <span class="label" title={bar.label}>{bar.label}</span>
         <span class="track"><i style:width="{bar.share * 100}%"></i></span>
         <span class="data number">{bar.value ?? "—"}</span>
       </div>
     {:else}
-      <p class="muted">{m.panel_no_signal()}</p>
+      <p class="muted">{m.panel_no_variable()}</p>
     {/each}
   </div>
 {:else if panel.kind === "lamp"}
-  <div class="centre" class:stale={stale(panel.signal)}>
-    <span class="lamp" class:on={(valueOf(panel.signal) ?? 0) !== 0}></span>
+  <div class="centre" class:stale={stale(panel.variable)}>
+    <span class="lamp" class:on={(valueOf(panel.variable) ?? 0) !== 0}></span>
   </div>
 {:else if panel.kind === "button"}
   <div class="centre">
@@ -104,8 +112,8 @@
     >
   </div>
 {:else if panel.kind === "switch"}
-  {@const on = (valueOf(panel.signal) ?? 0) !== 0}
-  <div class="centre" class:stale={stale(panel.signal)}>
+  {@const on = (valueOf(panel.state) ?? 0) !== 0}
+  <div class="centre" class:stale={stale(panel.state)}>
     <button
       class="switch"
       class:on
@@ -121,7 +129,7 @@
   </div>
 {:else if panel.kind === "select"}
   {@const shown = chosen(panel)}
-  <div class="centre" class:stale={stale(panel.signal)}>
+  <div class="centre" class:stale={stale(panel.state)}>
     {#key `${shown}#${writes}`}
       <select
         class="command"
@@ -139,13 +147,13 @@
 {:else if panel.kind === "number"}
   <form
     class="centre setpoint"
-    class:stale={stale(panel.signal)}
+    class:stale={stale(panel.state)}
     onsubmit={(e) => {
       e.preventDefault();
       void write(setpoint);
     }}
   >
-    {#if panel.signal}<span class="data number read">{valueOf(panel.signal) ?? "—"}</span>{/if}
+    {#if panel.state}<span class="data number read">{valueOf(panel.state) ?? "—"}</span>{/if}
     <div class="row">
       <input
         aria-label={m.panel_setpoint()}

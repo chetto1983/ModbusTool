@@ -9,13 +9,14 @@ import {
   type Panel,
   type PanelKind,
   type Place,
-  type Signal,
+  type Variable,
   type WriteTarget,
 } from "./dashboards";
-import { labelFor, READ_KINDS, writeTo } from "./masterActions.svelte";
-import { newId } from "./project";
-import { app, isBitPoll, notify, pruneHistory } from "./state.svelte";
-import { encode, registerCount } from "./datatypes";
+import { writeTo } from "./masterActions.svelte";
+import { labelKey, newId } from "./project";
+import { app, notify, pruneHistory } from "./state.svelte";
+import { encode } from "./datatypes";
+import { effectiveScaling, toRaw } from "./scaling";
 
 export const dashboardUi = $state({
   selected: null as string | null,
@@ -84,40 +85,34 @@ export function placePanels(dashboard: Dashboard, places: { id: string; place: P
   }
 }
 
-export interface SignalOption {
-  signal: Signal;
-  label: string;
+const TABLE_SHORT: Record<Variable["table"], string> = {
+  coils: "Coil",
+  discreteInputs: "DI",
+  holdingRegisters: "HR",
+  inputRegisters: "IR",
+};
+
+/** How a variable is named on panels: its name, else the register's label, else its address. */
+export function variableLabel(variable: Variable): string {
+  const label = app.project.labels[labelKey("master", variable.unit, variable.table, variable.address)];
+  const address = `${TABLE_SHORT[variable.table]} ${variable.address}`;
+  return variable.name.trim() || label || (variable.unit === 1 ? address : `${variable.unit} · ${address}`);
 }
 
-/** Every value the polls read, one per register (or per multi-register value), for pickers. */
-export function signalOptions(): SignalOption[] {
-  return app.project.master.polls.flatMap((poll) => {
-    const width = isBitPoll(poll) ? 1 : registerCount(poll.dataType);
-    const code = READ_KINDS.find((k) => k.id === poll.kind)?.code;
-    const options: SignalOption[] = [];
-    for (let offset = 0; offset + width <= poll.quantity; offset += width) {
-      const address = poll.address + offset;
-      const label = labelFor(poll, address);
-      options.push({
-        signal: { pollId: poll.id, offset },
-        label: `${poll.name} · ${code} ${address}${label ? ` · ${label}` : ""}`,
-      });
-    }
-    return options;
-  });
-}
-
-/** How a signal is named on panels: the register's label, else poll and address. */
-export function signalLabel(signal: Signal): string {
-  const poll = app.project.master.polls.find((p) => p.id === signal.pollId);
-  if (!poll) return m.signal_missing();
-  const address = poll.address + signal.offset;
-  return labelFor(poll, address) || `${poll.name} · ${address}`;
-}
-
-/** The registers a button writes, or the error that makes its value unwritable. */
+/**
+ * The registers a command writes for `text`, an engineering value when the target scales (D17), or
+ * the error that makes it unwritable.
+ */
 export function targetRegisters(target: WriteTarget, text: string): number[] {
-  return target.table === "coils" ? encode(text, "bit") : encode(text, target.dataType, target.byteOrder);
+  if (target.table === "coils") return encode(text, "bit");
+  const scaling = effectiveScaling(target.scaling, target.dataType);
+  const engineering = Number(text);
+  // Text that is not a number is left to encode, which says why it is not writable.
+  const raw =
+    scaling && text.trim() !== "" && Number.isFinite(engineering)
+      ? String(toRaw(engineering, scaling, target.dataType))
+      : text;
+  return encode(raw, target.dataType, target.byteOrder);
 }
 
 /** The registers a setpoint writes, or the error: out of the panel's range or not encodable. */

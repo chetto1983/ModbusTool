@@ -10,6 +10,7 @@
   import { startUpdateChecks, updates } from "./lib/updates.svelte";
   import { api, onPollResults, onTraffic } from "./lib/api";
   import { startSimulationLoop } from "./lib/slaveActions.svelte";
+  import { followReads, wantedReads } from "./lib/dashboardReads.svelte";
   import {
     app,
     applyPollResults,
@@ -47,6 +48,11 @@
       openProject();
     }
   }
+
+  // Dashboards read their variables while the master is connected, whatever the view (spec D14).
+  $effect(() => {
+    void followReads(wantedReads());
+  });
 
   onMount(() => {
     setTheme(app.theme);
