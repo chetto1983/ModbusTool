@@ -51,6 +51,12 @@ otherwise the installer downloads it.
 
 **macOS** is not built in CI: run `npx tauri build` on a Mac.
 
+**Updates** — from version 3.1 ModbusTool can update itself. At the first start it asks whether
+to check for new versions automatically (at start and every 6 hours); *Updates* in the sidebar
+changes that choice and checks on demand. A new version is offered with its release notes and
+installed only when you choose *Install and restart*. Updates are verified with the project's
+update key before they are installed. Version 3.0.0 has no updater: install 3.1 by hand once.
+
 ## Known limits
 
 Measured with tests, see `docs/superpowers/specs/2026-11-05-tauri-rewrite-design.md`:
@@ -77,7 +83,9 @@ releases are published unsigned. How signing is set up: [docs/signing.md](docs/s
 
 **Privacy:** this program will not transfer any information to other networked systems unless
 specifically requested by the user or the person installing or operating it. ModbusTool connects
-only to the Modbus devices and ports the user configures.
+only to the Modbus devices and ports the user configures, and, only if the user allows it at the
+first start or under *Updates*, to github.com to read the list of published versions and
+download the one the user chooses to install. No data about the user or the computer is sent.
 
 ## Development
 

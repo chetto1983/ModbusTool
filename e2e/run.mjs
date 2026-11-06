@@ -136,6 +136,9 @@ async function masterScenario(browser, ports, serialRef) {
   if ((await browser.execute(() => document.documentElement.dataset.theme)) === "light") {
     await click(browser, "//nav//button[contains(@class,'theme')]");
   }
+  // First start asks about update checks: no, the run must not reach GitHub.
+  const consent = await browser.$(button(dialog, "No, I will check myself"));
+  if (await consent.isExisting()) await consent.click();
   await setField(browser, conn, "Port", ports.tcp);
   await click(browser, button(conn, "Connect"));
   await browser.$(button(conn, "Disconnect")).waitForExist({ timeout: 5000 });

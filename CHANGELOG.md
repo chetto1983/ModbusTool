@@ -8,6 +8,11 @@ publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full hi
 
 ### Added
 
+- Updates: at the first start ModbusTool asks whether to check GitHub for new versions (at start
+  and every 6 hours); *Updates* in the sidebar changes that and checks on demand. A new version
+  is offered with its notes and installed only on *Install and restart*, after stopping the
+  master and the slave. Updates are verified with the project's update key (MSI, .deb, AppImage).
+
 - Interface in English and Italian, chosen in the sidebar and remembered; the first start
   follows the system language. Other languages need only a messages file.
 

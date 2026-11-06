@@ -5,6 +5,8 @@
   import MasterView from "./lib/components/MasterView.svelte";
   import SlaveView from "./lib/components/SlaveView.svelte";
   import TrafficView from "./lib/components/TrafficView.svelte";
+  import UpdatesDialog from "./lib/components/UpdatesDialog.svelte";
+  import { startUpdateChecks, updates } from "./lib/updates.svelte";
   import { api, onPollResults, onTraffic } from "./lib/api";
   import { startSimulationLoop } from "./lib/slaveActions.svelte";
   import { app, applyPollResults, master, pushTraffic, setTheme, slave, traffic, type View } from "./lib/state.svelte";
@@ -34,11 +36,13 @@
     setTheme(app.theme);
     api.slaveSetUnits($state.snapshot(app.project.slave.units));
     const stopSimulation = startSimulationLoop();
+    const stopUpdateChecks = startUpdateChecks();
     const listeners = [onTraffic(pushTraffic), onPollResults(applyPollResults)];
     window.addEventListener("keydown", shortcuts);
     return () => {
       window.removeEventListener("keydown", shortcuts);
       stopSimulation();
+      stopUpdateChecks();
       listeners.forEach((l) => l.then((unlisten) => unlisten()));
     };
   });
@@ -62,6 +66,11 @@
       </button>
     {/each}
     <span class="spacer"></span>
+    <button class="nav" onclick={() => (updates.settingsOpen = true)}>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 V15 M7 10 L12 15 L17 10 M5 20 H19" /></svg>
+      <span>{m.updates_title()}</span>
+      <i class="led on" class:hidden={!updates.available}></i>
+    </button>
     <label class="nav language">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M12 3 A9 9 0 1 1 12 21 A9 9 0 1 1 12 3 M3 12 H21 M12 3 C8 8 8 16 12 21 M12 3 C16 8 16 16 12 21" />
@@ -113,6 +122,8 @@
       {/if}
     </main>
   </div>
+
+  <UpdatesDialog />
 
   {#if app.notice}
     <div class="notice {app.notice.kind}" role="status">{app.notice.text}</div>
@@ -199,6 +210,7 @@
     font-weight: 600;
     cursor: pointer;
   }
+  .nav .led.hidden,
   .nav .led:not(.on):not(.warn) {
     display: none;
   }

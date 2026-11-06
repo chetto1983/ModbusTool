@@ -10,6 +10,11 @@ name: Release
 # SIGNPATH_PROJECT_SLUG and SIGNPATH_SIGNING_POLICY_SLUG and the secret SIGNPATH_API_TOKEN.
 # Without SIGNPATH_PROJECT_SLUG the MSI is published unsigned. SignPath requires every job of
 # this workflow to run on GitHub-hosted runners.
+#
+# Updates (docs/superpowers/specs/2026-11-06-updater-design.md): the publish job signs every
+# package with the updater key (secrets TAURI_SIGNING_PRIVATE_KEY and
+# TAURI_SIGNING_PRIVATE_KEY_PASSWORD) and publishes latest.json, which installed apps read.
+# It signs after SignPath because Authenticode signing changes the MSI.
 on:
   push:
     tags: ["v*.*.*"]
@@ -167,6 +172,15 @@ jobs:
     permissions:
       contents: write
     steps:
+      # The Tauri CLI pinned by package-lock.json signs the packages for the updater.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
       - name: Signed MSI
         if: needs.sign-windows.result == 'success'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -183,13 +197,31 @@ jobs:
         with:
           name: linux
           path: assets
+      - name: Updater signatures and latest.json
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          NOTES: ${{ needs.notes.outputs.body }}
+          VERSION: ${{ needs.notes.outputs.version }}
+        # Without the key installed apps could not verify this release: stop instead of publishing
+        # a release they silently never see.
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "Secret TAURI_SIGNING_PRIVATE_KEY is not set (docs/signing.md, Updates)" >&2
+            exit 1
+          fi
+          printf '%s\n' "$NOTES" > notes.md
+          packages=(assets/*.msi assets/deb/*.deb assets/appimage/*.AppImage)
+          for package in "${packages[@]}"; do npx tauri signer sign "$package"; done
+          node scripts/updater-manifest.mjs "$VERSION" notes.md \
+            "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG" "${packages[@]}" > latest.json
+          jq -e '.platforms | has("windows-x86_64-msi") and has("linux-x86_64-appimage") and has("linux-x86_64-deb")' latest.json
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
-          NOTES: ${{ needs.notes.outputs.body }}
         run: |
-          printf '%s\n' "$NOTES" > notes.md
           find assets -type f -print
-          gh release create "$TAG" assets/*.msi assets/deb/*.deb assets/appimage/*.AppImage \
+          gh release create "$TAG" assets/*.msi assets/*.msi.sig assets/deb/*.deb assets/deb/*.deb.sig \
+            assets/appimage/*.AppImage assets/appimage/*.AppImage.sig latest.json \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "ModbusTool $TAG" --notes-file notes.md
