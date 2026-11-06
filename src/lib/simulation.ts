@@ -1,8 +1,16 @@
 // Slave value simulation. Values are a function of time, so every rule is deterministic
 // except "random".
 
-import type { SimulationRule } from "./project";
+import { m } from "../paraglide/messages.js";
+import type { SimulationKind, SimulationRule } from "./project";
 import { encode, registerCount } from "./datatypes";
+
+export const SIMULATION_KINDS: { id: SimulationKind; label: () => string }[] = [
+  { id: "sine", label: m.sim_sine },
+  { id: "increment", label: m.sim_ramp },
+  { id: "random", label: m.sim_random },
+  { id: "toggle", label: m.sim_square },
+];
 
 const isBitTable = (rule: SimulationRule) => rule.table === "coils" || rule.table === "discreteInputs";
 const isFloat = (rule: SimulationRule) => rule.dataType === "float32" || rule.dataType === "float64";

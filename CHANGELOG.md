@@ -14,6 +14,8 @@ publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full hi
 ### Changed
 
 - The Connection (master) and Listener (slave) panels fold away by clicking their title.
+- Polls and simulation generators are edited in a dialog with Save and Cancel; the sidebar keeps
+  a compact list. A running poll restarts once on save, only if what it reads changed.
 
 ### Fixed
 

@@ -300,6 +300,11 @@ input[type="checkbox"] {
   background: var(--color-surface-2);
 }
 
+.btn.icon {
+  width: 30px;
+  padding: 0;
+}
+
 .btn.small {
   min-height: 30px;
   padding: 0 10px;

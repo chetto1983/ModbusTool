@@ -110,6 +110,19 @@ export function newRule(unit: number, table: Table, address: number): Simulation
 /** Last simulation error per rule id, shown in the editor. */
 export const simulationErrors = $state<Record<string, string>>({});
 
+/** Applies an edited copy of a generator, or adds a new one. */
+export function saveRule(draft: SimulationRule): void {
+  const rules = app.project.slave.simulations;
+  const index = rules.findIndex((r) => r.id === draft.id);
+  if (index < 0) rules.push(draft);
+  else rules[index] = draft;
+}
+
+export function removeRule(id: string): void {
+  app.project.slave.simulations = app.project.slave.simulations.filter((r) => r.id !== id);
+  delete simulationErrors[id];
+}
+
 const lastTick = new Map<string, number>();
 let simulationTimer: ReturnType<typeof setInterval> | null = null;
 
