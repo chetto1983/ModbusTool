@@ -12,12 +12,13 @@ import {
   eventually,
   expectEqual,
   gridValues,
+  python,
   reference,
   root,
   setField,
 } from "./helpers.mjs";
 
-const groups = JSON.parse(execFileSync("python3", [join(root, "e2e/typed_values.py")], { encoding: "utf8" }));
+const groups = JSON.parse(execFileSync(python, [join(root, "e2e/typed_values.py")], { encoding: "utf8" }));
 
 function shows(text, expect) {
   if (expect.kind === "text") return text === expect.text;

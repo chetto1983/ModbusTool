@@ -1,13 +1,15 @@
-// End-to-end run of the real app (tauri-driver + WebKitWebDriver) against pymodbus as an
-// independent reference implementation. Linux only (tauri-driver has no macOS driver).
+// End-to-end run of the real app (tauri-driver) against pymodbus as an independent reference
+// implementation, on Linux (WebKitWebDriver) and Windows (msedgedriver matching WebView2).
+// tauri-driver has no macOS driver.
 //
 //   npx tauri build --debug --no-bundle && node e2e/run.mjs [screenshot-dir]
 //
-// Needs: tauri-driver, WebKitWebDriver, socat, python3 with pymodbus, an X display.
+// Needs: tauri-driver, the platform's WebDriver, python with pymodbus; on Linux also socat (the
+// serial checks) and an X display. Windows runs every check but the serial ones.
 
 import { remote } from "webdriverio";
 import { spawn } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, openSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import {
@@ -22,10 +24,12 @@ import {
   gridValues,
   labelled,
   panel,
+  python,
   reference,
   results,
   root,
   saveDialog,
+  serial,
   setField,
   tmp,
   track,
@@ -33,11 +37,15 @@ import {
 import { dashboardScenario } from "./dashboard.mjs";
 import { typesMaster, typesSlave } from "./types.mjs";
 
+const APP = process.platform === "win32" ? "modbus-tool.exe" : "modbus-tool";
 const shots = process.argv[2] ? resolve(process.argv[2]) : null;
 const children = [];
+// What tauri-driver, the native WebDriver, the app and its webview print: read when the app fails to start.
+const driverLog = join(tmp, "tauri-driver.log");
 
-function background(command, args) {
-  const child = spawn(command, args, { stdio: "ignore" });
+function background(command, args, log) {
+  const out = log ? openSync(log, "w") : "ignore";
+  const child = spawn(command, args, { stdio: ["ignore", out, out] });
   children.push(child);
   return child;
 }
@@ -50,11 +58,78 @@ async function screenshot(browser, name) {
 
 // ---------- scenario ----------
 
+/**
+ * The app has started once its theme is set. A cold start on a fresh CI runner takes longer than
+ * the 5 s default; when it never starts, what the webview shows is kept for the CI artifact.
+ */
+async function whenStarted(browser) {
+  try {
+    await browser.waitUntil(async () => Boolean(await browser.execute(() => document.documentElement.dataset.theme)), {
+      timeout: 30_000,
+    });
+  } catch (e) {
+    await browser.saveScreenshot(join(tmp, "not-started.png")).catch(() => {});
+    const state = await browser
+      .execute(() => ({
+        url: location.href,
+        ready: document.readyState,
+        agent: navigator.userAgent,
+        body: document.body?.innerHTML.slice(0, 800),
+        // A module script waits for the stylesheets before it: was the one before it loaded?
+        stylesheet: (() => {
+          try {
+            return `${document.styleSheets[0]?.cssRules.length} rules`;
+          } catch (err) {
+            return String(err);
+          }
+        })(),
+      }))
+      .catch((err) => ({ error: String(err) }));
+    // Importing the app's module again surfaces the error that stopped it, if it threw. If the app
+    // mounts after it, the first load of the bundle never ran.
+    const load = await browser
+      .execute(async () => {
+        const src = document.querySelector("script[type=module]")?.getAttribute("src");
+        if (!src) return "no module script";
+        try {
+          await import(src);
+          await new Promise((done) => requestAnimationFrame(done));
+          return `module ${src} loaded; theme after it: ${document.documentElement.dataset.theme ?? "none"}`;
+        } catch (err) {
+          return `module ${src}: ${err?.stack ?? err}`;
+        }
+      })
+      .catch((err) => `import check failed: ${err}`);
+    // Whether the app's protocol answers requests for the page's own files now.
+    const fetched = await browser
+      .execute(async () => {
+        const urls = [...document.querySelectorAll("script[src], link[href]")].map((tag) => tag.src || tag.href);
+        return Promise.all(
+          urls.map(async (url) => {
+            const answer = await Promise.race([
+              fetch(url).then(
+                (r) => `${r.status} ${r.headers.get("content-type")}`,
+                (err) => String(err),
+              ),
+              new Promise((done) => setTimeout(() => done("no answer in 5 s"), 5000)),
+            ]);
+            return `${url}: ${answer}`;
+          }),
+        );
+      })
+      .catch((err) => `fetch check failed: ${err}`);
+    console.error("Fetch:", fetched);
+    console.error("Module:", load);
+    console.error("App not started:", JSON.stringify(state));
+    console.error("tauri-driver output (last 4 KB):\n" + readFileSync(driverLog, "utf8").slice(-4096));
+    throw e;
+  }
+}
+
 async function masterScenario(browser, ports, serialRef) {
   const conn = panel("Connection");
   console.log("Master against pymodbus");
   // The theme persists across runs; start from the dark one so screenshots are comparable.
-  await browser.waitUntil(async () => Boolean(await browser.execute(() => document.documentElement.dataset.theme)));
   if ((await browser.execute(() => document.documentElement.dataset.theme)) === "light") {
     await click(browser, "//nav//button[contains(@class,'theme')]");
   }
@@ -129,7 +204,7 @@ async function masterScenario(browser, ports, serialRef) {
   const others = [
     ["UDP", "Modbus UDP", { Port: ports.udp }],
     ["RTU over TCP", "RTU over TCP", { Port: ports.rtuOverTcp }],
-    ["ASCII serial", "ASCII · serial", { "Serial port": serialRef, "Data bits": "8" }],
+    ...(serial ? [["ASCII serial", "ASCII · serial", { "Serial port": serialRef, "Data bits": "8" }]] : []),
   ];
   for (const [name, protocol, fields] of others) {
     await check(`${name}: read once FC04 matches the reference`, async () => {
@@ -215,7 +290,7 @@ async function slaveScenario(browser, ports, slaveSerial, clientSerial) {
       { Port: ports.slaveRtuOverTcp },
       ["rtuovertcp", `127.0.0.1:${ports.slaveRtuOverTcp}`],
     ],
-    ["RTU serial", "RTU · serial", { "Serial port": slaveSerial }, ["rtu", clientSerial]],
+    ...(serial ? [["RTU serial", "RTU · serial", { "Serial port": slaveSerial }, ["rtu", clientSerial]]] : []),
   ];
   for (const [name, protocol, fields, client] of others) {
     await check(`${name}: reference reads FC03 from the slave`, async () => {
@@ -285,27 +360,32 @@ async function main() {
   const ports = { tcp: 15020, udp: 15022, rtuOverTcp: 15021, slaveTcp: 15030, slaveUdp: 15031, slaveRtuOverTcp: 15032 };
   const pty = (a, b) =>
     background("socat", [`pty,raw,echo=0,link=${join(tmp, a)}`, `pty,raw,echo=0,link=${join(tmp, b)}`]);
-  pty("refA", "refB");
-  pty("slaveA", "slaveB");
-  await sleep(800);
-  background("python3", [
+  if (serial) {
+    pty("refA", "refB");
+    pty("slaveA", "slaveB");
+    await sleep(800);
+  } else {
+    console.log("Not run on this platform (no socat): ASCII serial master, RTU serial slave\n");
+  }
+  background(python, [
     join(root, "e2e/reference_servers.py"),
     ports.tcp,
     ports.udp,
     ports.rtuOverTcp,
-    join(tmp, "refA"),
+    ...(serial ? [join(tmp, "refA")] : []),
   ]);
-  background("tauri-driver", []);
+  background("tauri-driver", [], driverLog);
   await sleep(2000);
 
   const browser = await remote({
     hostname: "127.0.0.1",
     port: 4444,
     logLevel: "error",
-    capabilities: { "tauri:options": { application: join(root, "src-tauri/target/debug/modbus-tool") } },
+    capabilities: { "tauri:options": { application: join(root, "src-tauri/target/debug", APP) } },
   });
   track(browser);
   try {
+    await whenStarted(browser);
     await masterScenario(browser, ports, join(tmp, "refB"));
     await slaveScenario(browser, ports, join(tmp, "slaveA"), join(tmp, "slaveB"));
     await trafficScenario(browser);

@@ -7,6 +7,11 @@ on:
 permissions:
   contents: read
 
+# A newer push to the same branch or pull request makes the older run moot.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -121,3 +126,74 @@ jobs:
             src-tauri/target/release/bundle/deb/*.deb
             src-tauri/target/release/bundle/appimage/*.AppImage
           if-no-files-found: error
+
+  # The real app against pymodbus (e2e/run.mjs), on both desktop platforms Tauri can drive.
+  # Windows has no socat, so its run has no serial checks and says so in its output.
+  e2e:
+    needs: [rust, frontend, file-size]
+    strategy:
+      fail-fast: false
+      matrix:
+        # Not windows-latest: on windows-2025 msedgedriver cannot attach to WebView2 even at matching
+        # versions ("DevToolsActivePort file doesn't exist", measured here with 156.0.4314.58 on
+        # 2026-11-06; https://github.com/actions/runner-images/issues/14738, closed upstream).
+        os: [ubuntu-24.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pymodbus==3.16.2
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      - uses: Swatinem/rust-cache@e9d7b9f1e587218970671bac74e5511ed9506e6a # v2
+        with:
+          workspaces: src-tauri
+          shared-key: e2e
+          save-if: ${{ github.ref == 'refs/heads/master' }}
+      - name: System dependencies
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/linux-deps
+        timeout-minutes: 30
+        with:
+          extra: webkit2gtk-driver xvfb socat
+      - run: cargo install tauri-driver --locked --version 2.1.0
+      # tauri-driver drives Edge WebView2 through msedgedriver, whose version must match the
+      # WebView2 on the runner (https://v2.tauri.app/develop/tests/webdriver/ci/).
+      - name: Edge driver matching WebView2
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cargo install --git https://github.com/chippers/msedgedriver-tool
+          & "$HOME/.cargo/bin/msedgedriver-tool.exe"
+          $PWD.Path >> $env:GITHUB_PATH
+          # The driver must match WebView2, which can differ from Edge: print both to compare.
+          $webview = Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" -ErrorAction SilentlyContinue
+          $edge = (Get-Item "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe" -ErrorAction SilentlyContinue).VersionInfo.ProductVersion
+          Write-Output "WebView2 $($webview.pv), Edge $edge, $(& .\msedgedriver.exe --version)"
+      - run: npm ci
+      - run: npx tauri build --debug --no-bundle
+      - name: E2E (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a node e2e/run.mjs
+        env:
+          E2E_OUT: ${{ runner.temp }}/e2e
+      - name: E2E (Windows)
+        if: runner.os == 'Windows'
+        run: node e2e/run.mjs
+        env:
+          E2E_OUT: ${{ runner.temp }}/e2e
+      # Failure screenshots and what the webview showed, to read a failure without guessing.
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: e2e-${{ runner.os }}
+          path: ${{ runner.temp }}/e2e
+          if-no-files-found: ignore

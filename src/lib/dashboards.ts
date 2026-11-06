@@ -16,6 +16,8 @@ export interface Variable {
   byteOrder: ByteOrder;
   /** Raw to engineering value (D16); null shows the raw value. */
   scaling: Scaling | null;
+  /** Line, bar or lamp colour (D22): a fixed token name, a custom #rrggbb, or null (automatic). */
+  colour: string | null;
 }
 
 /** Where a command panel writes, through the master. */
@@ -167,16 +169,17 @@ export const newVariable = (over: Partial<Variable> = {}): Variable => ({
   dataType: "uint16",
   byteOrder: "ABCD",
   scaling: null,
+  colour: null,
   ...over,
 });
 
 /** The variable at a write target's own location: what a command panel shows at first. */
-export const targetVariable = (target: WriteTarget): Variable => ({ ...target, name: "" });
+export const targetVariable = (target: WriteTarget): Variable => ({ ...target, name: "", colour: null });
 
 /** A command's state after its target changed: it follows the target while it reads that location. */
 export function followTarget(state: Variable | null, before: WriteTarget, after: WriteTarget): Variable | null {
   if (!state || variableKey(state) !== variableKey(targetVariable(before))) return state;
-  return { ...targetVariable(after), name: state.name };
+  return { ...targetVariable(after), name: state.name, colour: state.colour };
 }
 
 /** One key per location read: the name does not change what is read, and bits have no type. */

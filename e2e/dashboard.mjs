@@ -93,7 +93,10 @@ export async function dashboardScenario(browser, target) {
   await period.clearValue();
   await period.setValue("200");
   await addPanel(browser, "Value", { Title: "Pressure", Address: 2, "Unit of measure": "bar", Decimals: 0 });
-  await addPanel(browser, "Lamp", { Title: "Running", "Read from": "Coils", Address: 0 });
+  await click(browser, button("", "Add panel"));
+  await click(browser, button(dialog, "Lamp"));
+  await click(browser, `${dialog}//button[@aria-label='Red']`);
+  await saveDialog(browser, { Title: "Running", "Read from": "Coils", Address: 0 });
   await addPanel(browser, "Button", { Title: "Set 4242", Address: 5, "Value to write": "4242" });
   // The state of a command is read at first from the address it writes.
   await addPanel(browser, "Switch", { Title: "Valve 7" }, 7);
@@ -151,6 +154,16 @@ export async function dashboardScenario(browser, target) {
     await eventually(async () => {
       if (!(await lamp.getAttribute("class")).includes("on")) throw new Error("lamp off");
     }, "lamp");
+    // Lit in the colour chosen for its variable: the theme's danger red.
+    const [lit, red] = await browser.execute((el) => {
+      const probe = document.createElement("i");
+      probe.style.color = "var(--color-danger)";
+      document.body.append(probe);
+      const colours = [getComputedStyle(el).backgroundColor, getComputedStyle(probe).color];
+      probe.remove();
+      return colours;
+    }, lamp);
+    expectEqual(lit, red, "lamp colour");
   });
 
   await check("Dashboard: a button writes its value (FC06) to the reference", async () => {

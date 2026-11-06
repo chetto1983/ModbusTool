@@ -95,6 +95,7 @@ describe("dashboards", () => {
       ["select", (p) => (p.options = "On=1")],
       ["select", (p) => (p.state = 0)],
       ["switch", (p) => (p.state = { ...newVariable(), byteOrder: "ZYXW" })],
+      ["trend", (p) => (p.variables = [{ ...newVariable(), colour: "chartreuse" }])],
       ["value", (p) => (p.variable = { ...newVariable(), scaling: { ...defaultScaling(), rawMax: 0 } })],
       ["number", (p) => (p.target = { ...(p.target as object), scaling: { ...defaultScaling(), engMax: 0 } })],
       ["button", (p) => (p.target = { ...(p.target as object), scaling: { rawMin: 0 } })],
@@ -133,7 +134,7 @@ describe("dashboards", () => {
   it("reads each command's state at first from the location it writes", () => {
     const valve = newPanel("s", "switch", "Valve", []);
     if (valve.kind !== "switch") throw new Error(valve.kind);
-    expect(valve.state).toEqual({ ...valve.target, name: "" });
+    expect(valve.state).toEqual({ ...valve.target, name: "", colour: null });
   });
 
   it("moves a command's state with its target only while the state reads the written location", () => {
@@ -146,7 +147,7 @@ describe("dashboards", () => {
       scaling: null,
     };
     const after = { ...before, address: 7 };
-    const same = { ...newVariable({ table: "coils" }), name: "Valve" };
+    const same = { ...newVariable({ table: "coils" }), name: "Valve", colour: "danger" };
     expect(followTarget(same, before, after)).toEqual({ ...same, address: 7 });
     const feedback = newVariable({ table: "discreteInputs", address: 3 });
     expect(followTarget(feedback, before, after)).toBe(feedback);
@@ -225,7 +226,15 @@ describe("dashboards saved by 3.2.0, read through the master's polls", () => {
 
   it("turns every signal into the variable its poll read, and keeps the steps of the trends", () => {
     const [dashboard] = parseWithPolls(JSON.parse(JSON.stringify(saved)), polls);
-    const pumps = { name: "", unit: 2, table: "holdingRegisters", dataType: "int32", byteOrder: "CDAB", scaling: null };
+    const pumps = {
+      name: "",
+      unit: 2,
+      table: "holdingRegisters",
+      dataType: "int32",
+      byteOrder: "CDAB",
+      scaling: null,
+      colour: null,
+    };
     expect(dashboard.periodMs).toBe(1000);
     expect(dashboard.panels).toEqual([
       {
@@ -245,7 +254,7 @@ describe("dashboards saved by 3.2.0, read through the master's polls", () => {
         place,
         title: "S",
         target: { ...target, scaling: null },
-        state: { ...target, name: "", scaling: null },
+        state: { ...target, name: "", scaling: null, colour: null },
       },
     ]);
   });

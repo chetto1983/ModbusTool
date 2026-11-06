@@ -2,13 +2,23 @@
 // WebDriver UI helpers (see run.mjs).
 
 import { execFileSync } from "node:child_process";
-import { mkdtempSync } from "node:fs";
+import { mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
 export const root = resolve(import.meta.dirname, "..");
-export const tmp = mkdtempSync(join(tmpdir(), "modbustool-e2e-"));
+/** Windows names the interpreter `python`; elsewhere `python3` is the one with pymodbus. */
+export const python = process.platform === "win32" ? "python" : "python3";
+/**
+ * Serial checks need socat's pty pairs, which Windows does not have: there they are not run, and
+ * the run says so, rather than counting them as passed.
+ */
+export const serial = process.platform !== "win32";
+/** Failure screenshots and the run's files; E2E_OUT names a folder CI uploads when a run fails. */
+export const tmp = process.env.E2E_OUT
+  ? (mkdirSync(process.env.E2E_OUT, { recursive: true }), process.env.E2E_OUT)
+  : mkdtempSync(join(tmpdir(), "modbustool-e2e-"));
 export const results = [];
 let currentBrowser = null;
 
@@ -18,7 +28,7 @@ export function track(browser) {
 }
 
 export function reference(...args) {
-  const out = execFileSync("python3", [join(root, "e2e/reference_client.py"), ...args.map(String)], {
+  const out = execFileSync(python, [join(root, "e2e/reference_client.py"), ...args.map(String)], {
     encoding: "utf8",
   });
   return JSON.parse(out.trim().split("\n").pop());
@@ -74,10 +84,18 @@ export async function setField(browser, scope, label, value) {
   }
 }
 
-export async function click(browser, xpath) {
-  const el = await browser.$(xpath);
+/**
+ * Scrolls the element into view first, as a user would: on the Windows runner the desktop is
+ * 1024×768, the window is clamped to it, and rows of a scrolled grid are outside the viewport.
+ */
+async function clickElement(el) {
   await el.waitForClickable({ timeout: 5000 });
+  await el.scrollIntoView({ block: "center" });
   await el.click();
+}
+
+export async function click(browser, xpath) {
+  await clickElement(await browser.$(xpath));
 }
 
 export const button = (scope, text) => `${scope}//button[normalize-space()="${text}"]`;
@@ -96,14 +114,19 @@ export async function editPoll(browser, fields) {
   await saveDialog(browser, fields);
 }
 
+/**
+ * The value column. textContent, not getText: WebDriver's text is empty for a cell its scrolled grid
+ * keeps out of view, which happens in the short window of the Windows runner.
+ */
 export async function gridValues(browser) {
-  return browser.$$("//div[@role='row' and contains(@class,'line')]/span[@role='cell'][4]").map((c) => c.getText());
+  return browser
+    .$$("//div[@role='row' and contains(@class,'line')]/span[@role='cell'][4]")
+    .map(async (c) => (await c.getProperty("textContent")).trim());
 }
 
 export async function editCell(browser, index, value) {
   const cell = await browser.$(`(//div[contains(@class,'line')]//button[contains(@class,'cell')])[${index + 1}]`);
-  await cell.waitForClickable({ timeout: 5000 });
-  await cell.click();
+  await clickElement(cell);
   const input = await browser.$("input.edit");
   await input.waitForExist({ timeout: 3000 });
   // setValue would run WebDriver "Element Clear", which blurs the input and cancels the edit.

@@ -81,8 +81,25 @@ Data: 2026-11-06. Spec: `docs/superpowers/specs/2026-11-06-dashboards-design.md`
   - posizione di ogni variabile nel suo blocco;
   - un'eccezione sul blocco segna come non aggiornate tutte le sue variabili.
 
+## Colore delle variabili (D22), misurato il 2026-11-06
+
+- **E2E** 88/88: la lampada "Running" impostata su Rosso si accende col colore calcolato del
+  token `--color-danger`.
+- **Screenshot** dell'editor (tema scuro):
+  - campioni Automatico e cinque colori fissi, con il selezionato evidenziato;
+  - il personalizzato apre il selettore di color-picker-svelte con l'esadecimale.
+
+  Il primo screenshot ha trovato un difetto del pacchetto 2.0.4: con `Position.Auto` il popup si
+  apre sempre sotto, perché `showAbove` non restituisce il risultato. Veniva tagliato dal fondo
+  della finestra di modifica. Ora la posizione si sceglie in base allo spazio nella finestra, e lo
+  screenshot dopo la correzione mostra il popup sopra, intero.
+- **Unit test**: colori accettati e rifiutati nel file, risoluzione token/esadecimale/automatico,
+  colore conservato quando lo stato segue il target.
+
 ## Cosa NON dimostra
 
+- Il colore delle linee del trend e delle barre: verificato solo a vista nell'editor; l'E2E
+  controlla la lampada.
 - Il gauge nel tema scuro e su WebView2: provato solo in WebKitGTK, tema chiaro.
 - WebView2 su Windows: trascinamento, selettore e input numerico vanno provati a mano.
 - Il ridimensionamento dei pannelli (nessun controllo E2E).

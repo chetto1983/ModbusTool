@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "ModbusTool",
-  "version": "3.3.1",
+  "version": "3.4.0",
   "identifier": "io.github.chetto1983.modbustool",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -26,6 +26,11 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "publisher": "chetto1983",
+    "homepage": "https://github.com/chetto1983/ModbusTool",
+    "category": "DeveloperTool",
+    "shortDescription": "Modbus master and slave with live dashboards",
+    "longDescription": "A Modbus master and slave for TCP, UDP, RTU, ASCII and RTU over TCP, with a traffic monitor and live dashboards.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

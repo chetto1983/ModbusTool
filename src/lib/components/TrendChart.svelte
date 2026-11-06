@@ -5,6 +5,7 @@
   import { m } from "../../paraglide/messages.js";
   import type { Interpolation } from "../dashboards";
   import { currentLocale } from "../i18n.svelte";
+  import { colourValue } from "../colors";
   import { toEngineering, type Scaling } from "../scaling";
   import { app, history } from "../state.svelte";
 
@@ -16,7 +17,7 @@
     interpolation = "step",
   }: {
     /** History keys; samples are shown through `scaling` when given. */
-    series: { key: string; label: string; scaling?: Scaling | null }[];
+    series: { key: string; label: string; scaling?: Scaling | null; colour?: string | null }[];
     windowS: number;
     empty: string;
     interpolation?: Interpolation;
@@ -25,13 +26,6 @@
   let host: HTMLDivElement;
   let plot: uPlot | null = null;
   let clock: Intl.DateTimeFormat;
-
-  const PALETTE_VARS = ["--color-ring", "--color-success", "--color-warning", "--color-danger", "--color-text-muted"];
-
-  function palette(): string[] {
-    const style = getComputedStyle(document.documentElement);
-    return PALETTE_VARS.map((v) => style.getPropertyValue(v).trim());
-  }
 
   // The legend is rendered below the canvas, inside the same host.
   const LEGEND_HEIGHT = 30;
@@ -77,7 +71,6 @@
       hourCycle: "h23",
     });
     plot?.destroy();
-    const colors = palette();
     const style = getComputedStyle(document.documentElement);
     const ink = style.getPropertyValue("--color-text-faint").trim();
     const grid = style.getPropertyValue("--color-border").trim();
@@ -125,7 +118,7 @@
           { label: m.trend_time(), value: (_u, t) => (t == null ? "--" : clock.format(t * 1000)) },
           ...series.map((s, i) => ({
             label: s.label,
-            stroke: colors[i % colors.length],
+            stroke: colourValue(s.colour ?? null, i),
             width: 1.8,
             spanGaps: true,
             paths: PATHS[interpolation],
@@ -142,7 +135,13 @@
 
   // Rebuild when the series, the theme, the language or the window change; otherwise push new data.
   const signature = $derived(
-    [series.map((s) => s.key).join("|"), app.theme, currentLocale(), windowS, interpolation].join(" "),
+    [
+      series.map((s) => `${s.key}=${s.colour ?? ""}`).join("|"),
+      app.theme,
+      currentLocale(),
+      windowS,
+      interpolation,
+    ].join(" "),
   );
   $effect(() => {
     void signature;

@@ -15,6 +15,7 @@ import {
   type Variable,
 } from "./dashboards";
 import type { PollConfig } from "./project";
+import { isColour } from "./colors";
 import { isScaling } from "./scaling";
 import { check, isInt, isNumber, isObject } from "./validation";
 
@@ -29,7 +30,12 @@ const isLocation = (v: Record<string, unknown>) =>
   BYTE_ORDERS.includes(v.byteOrder as ByteOrder);
 
 const isVariable = (v: unknown) =>
-  isObject(v) && typeof v.name === "string" && TABLES.has(v.table) && isLocation(v) && isScaling(v.scaling, false);
+  isObject(v) &&
+  typeof v.name === "string" &&
+  TABLES.has(v.table) &&
+  isLocation(v) &&
+  isScaling(v.scaling, false) &&
+  isColour(v.colour);
 const isVariables = (v: unknown) => Array.isArray(v) && v.every(isVariable);
 const isState = (v: unknown) => v === null || isVariable(v);
 
@@ -86,6 +92,7 @@ function signalVariable(signal: unknown, polls: PollConfig[]): Variable | null {
     dataType: poll.dataType,
     byteOrder: poll.byteOrder,
     scaling: null,
+    colour: null,
   };
 }
 
@@ -109,6 +116,8 @@ function convertPanel(panel: Record<string, unknown>, polls: PollConfig[]): void
   // Saved before scaling (D16): nothing scaled, except a value panel's own scale and offset (D18).
   const variables = Array.isArray(panel.variables) ? panel.variables : [];
   for (const v of [panel.variable, panel.state, panel.target, ...variables]) if (isObject(v)) v.scaling ??= null;
+  // Saved before colours (D22): automatic.
+  for (const v of [panel.variable, panel.state, ...variables]) if (isObject(v)) v.colour ??= null;
   if (panel.kind === "value" && ("scale" in panel || "offset" in panel)) {
     const { scale, offset } = panel;
     check(isNumber(scale) && isNumber(offset), "value panel settings");

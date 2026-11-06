@@ -5,6 +5,7 @@
   import ValueView from "./ValueView.svelte";
   import { setpointRegisters, variableLabel, writeTarget } from "../dashboardActions.svelte";
   import type { Panel, SelectOption, SelectPanel, Variable } from "../dashboards";
+  import { colourCss } from "../colors";
   import { sameEngineering } from "../scaling";
   import { master, readKey, variableScaling, variableStale, variableValue } from "../state.svelte";
 
@@ -66,6 +67,8 @@
     const largest = Math.max(1e-9, ...values.map((v) => Math.abs(v ?? 0)));
     return panel.variables.map((variable, i) => ({
       label: variableLabel(variable),
+      // One hue for every bar unless a variable has its own: colour tells them apart only on demand.
+      colour: colourCss(variable.colour ?? "ring", 0),
       value: values[i],
       stale: stale(variable),
       share: Math.abs(values[i] ?? 0) / largest,
@@ -79,6 +82,7 @@
       key: readKey(variable),
       label: variableLabel(variable),
       scaling: variableScaling(variable),
+      colour: variable.colour,
     }))}
     windowS={panel.windowS}
     interpolation={panel.interpolation}
@@ -91,7 +95,7 @@
     {#each bars as bar, i (i)}
       <div class="bar" class:stale={bar.stale}>
         <span class="label" title={bar.label}>{bar.label}</span>
-        <span class="track"><i style:width="{bar.share * 100}%"></i></span>
+        <span class="track"><i style:width="{bar.share * 100}%" style:background={bar.colour}></i></span>
         <span class="data number">{bar.value ?? "—"}</span>
       </div>
     {:else}
@@ -100,7 +104,11 @@
   </div>
 {:else if panel.kind === "lamp"}
   <div class="centre" class:stale={stale(panel.variable)}>
-    <span class="lamp" class:on={(valueOf(panel.variable) ?? 0) !== 0}></span>
+    <span
+      class="lamp"
+      class:on={(valueOf(panel.variable) ?? 0) !== 0}
+      style:--lamp={colourCss(panel.variable.colour ?? "success", 0)}
+    ></span>
   </div>
 {:else if panel.kind === "button"}
   <div class="centre">
@@ -214,9 +222,9 @@
     background: var(--color-surface-3);
   }
   .lamp.on {
-    border-color: var(--color-success);
-    background: var(--color-success);
-    box-shadow: 0 0 0 6px color-mix(in oklab, var(--color-success) 22%, transparent);
+    border-color: var(--lamp);
+    background: var(--lamp);
+    box-shadow: 0 0 0 6px color-mix(in oklab, var(--lamp) 22%, transparent);
   }
   .command {
     min-width: 60%;
@@ -311,7 +319,6 @@
   .track i {
     display: block;
     height: 100%;
-    background: var(--color-accent);
   }
   .number {
     min-width: 5ch;

@@ -64,3 +64,9 @@ lo storico non cresce senza limite; gridstack e Svelte non si contendono il DOM.
 - [x] **T11 Blocchi di lettura**: blocchi di variabili contigue per unit, tabella e periodo; un poll del
   backend per blocco; valori e storico di ogni variabile presi dal suo blocco; test (blocchi,
   limiti 125/2000, nessun buco letto); misura delle richieste prima e dopo contro pymodbus.
+
+## Colore delle variabili (spec D22)
+
+- [x] **T12 Colore**: `colour` sulla variabile (validazione, conversione dei file senza), colori
+  fissi dai token e personalizzato con color-picker-svelte; trend, barre e lampada; test; E2E
+  (lampada accesa nel colore scelto).

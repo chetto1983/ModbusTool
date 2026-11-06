@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ModbusTool: free Modbus master and slave with live dashboards</title>
+    <meta
+      name="description"
+      content="A free, open-source Modbus master and slave for Windows and Linux: TCP, UDP, RTU, ASCII and RTU over TCP, a traffic monitor and live dashboards."
+    />
+    <meta property="og:title" content="ModbusTool" />
+    <meta property="og:description" content="Free, open-source Modbus master and slave with live dashboards." />
+    <meta property="og:image" content="https://chetto1983.github.io/ModbusTool/screenshots/master-dark.png" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="tokens.css" />
+    <link rel="stylesheet" href="style.css" />
+    <script>
+      // Before first paint, so the page never flashes the other theme.
+      try {
+        const saved = localStorage.getItem("theme");
+        const light = saved ? saved === "light" : matchMedia("(prefers-color-scheme: light)").matches;
+        document.documentElement.dataset.theme = light ? "light" : "dark";
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <header class="bar">
+      <a class="brand" href="#top"><img src="icon.svg" alt="" width="28" height="28" />ModbusTool</a>
+      <nav aria-label="Sections">
+        <a href="#features">Features</a>
+        <a href="#compare">Compare</a>
+        <a href="#download">Download</a>
+        <a href="https://github.com/chetto1983/ModbusTool">GitHub</a>
+      </nav>
+      <button class="theme" type="button" aria-label="Switch between light and dark theme">◐</button>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <p class="eyebrow">Free and open source · MIT · Windows and Linux</p>
+        <h1>Test any Modbus device,<br />then watch it live.</h1>
+        <p class="lead">
+          A master and a slave in one window, for TCP, UDP, RTU, ASCII and RTU over TCP. Every data type and byte order,
+          a frame-by-frame traffic monitor, and dashboards with trends, gauges and command panels.
+        </p>
+        <div class="actions">
+          <a class="btn primary" href="#download" data-latest-label>Download</a>
+          <a class="btn" href="https://github.com/chetto1983/ModbusTool">Source on GitHub</a>
+        </div>
+        <figure class="shot">
+          <img
+            src="screenshots/dashboard.gif"
+            width="1000"
+            height="399"
+            alt="A dashboard reading a live slave: a smooth trend of a sine wave, a gauge, a lamp and bars"
+          />
+        </figure>
+      </section>
+
+      <section id="features" class="features">
+        <h2>Everything for the commissioning bench</h2>
+        <div class="grid">
+          <article>
+            <h3>Master</h3>
+            <p>
+              Several polls at once, each with its unit, function, range and interval. FC01–FC06, FC15, FC16, with
+              per-poll statistics. Edit a value in the grid to write it.
+            </p>
+          </article>
+          <article>
+            <h3>Slave</h3>
+            <p>
+              Several unit ids with full tables, response delay, broadcast writes, and generators: sine, ramp, random
+              and square wave. CSV import and export.
+            </p>
+          </article>
+          <article>
+            <h3>Data types</h3>
+            <p>
+              UInt16 to UInt64, Int16 to Int64, Float32, Float64, hex, binary and ASCII, in the byte orders ABCD, CDAB,
+              BADC and DCBA. Labels per register.
+            </p>
+          </article>
+          <article>
+            <h3>Traffic monitor</h3>
+            <p>
+              Every frame, decoded into words you can read, with filters and CSV export. See exactly what went on the
+              wire and what came back.
+            </p>
+          </article>
+          <article>
+            <h3>Dashboards</h3>
+            <p>
+              Trends with zoom, values and gauges with alarm colours, bars, lamps, buttons, switches, selectors and
+              setpoints. Arrange them by dragging.
+            </p>
+          </article>
+          <article>
+            <h3>Scaling like SCADA tags</h3>
+            <p>
+              Map raw counts to engineering units, for example 0…27648 to 0…100 %. Setpoints are typed in their own
+              units and written raw.
+            </p>
+          </article>
+        </div>
+        <div class="gallery">
+          <figure>
+            <img
+              src="screenshots/master-dark.png"
+              width="1440"
+              height="900"
+              alt="The master reading a device"
+              loading="lazy"
+            />
+            <figcaption>Master</figcaption>
+          </figure>
+          <figure>
+            <img
+              src="screenshots/slave-dark.png"
+              width="1440"
+              height="900"
+              alt="The slave with value generators"
+              loading="lazy"
+            />
+            <figcaption>Slave</figcaption>
+          </figure>
+          <figure>
+            <img
+              src="screenshots/traffic-dark.png"
+              width="1440"
+              height="900"
+              alt="The traffic monitor"
+              loading="lazy"
+            />
+            <figcaption>Traffic monitor</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section id="compare" class="compare">
+        <h2>How it compares</h2>
+        <div class="table">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col"></th>
+                <th scope="col" class="us">ModbusTool</th>
+                <th scope="col">Modbus Poll + Slave</th>
+                <th scope="col">ModbusTools</th>
+                <th scope="col">QModMaster</th>
+                <th scope="col">mbpoll</th>
+                <th scope="col">Simply Modbus</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Price</th>
+                <td class="us">Free</td>
+                <td>USD 129 each</td>
+                <td>Free</td>
+                <td>Free</td>
+                <td>Free</td>
+                <td>From USD 60</td>
+              </tr>
+              <tr>
+                <th scope="row">Windows · Linux</th>
+                <td class="us">✓ · ✓</td>
+                <td>✓ · –</td>
+                <td>✓ · ✓</td>
+                <td>✓ · ✓</td>
+                <td>✓ · ✓</td>
+                <td>✓ · –</td>
+              </tr>
+              <tr>
+                <th scope="row">Master and slave</th>
+                <td class="us">One app</td>
+                <td>Two products</td>
+                <td>Two apps</td>
+                <td>Master</td>
+                <td>Master</td>
+                <td>Separate products</td>
+              </tr>
+              <tr>
+                <th scope="row">UDP and ASCII</th>
+                <td class="us">✓</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>–</td>
+                <td>–</td>
+                <td>ASCII only</td>
+              </tr>
+              <tr>
+                <th scope="row">64-bit and doubles</th>
+                <td class="us">✓</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>–</td>
+                <td>–</td>
+                <td>–</td>
+              </tr>
+              <tr>
+                <th scope="row">Traffic monitor</th>
+                <td class="us">✓</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>–</td>
+                <td>Log file</td>
+              </tr>
+              <tr>
+                <th scope="row">Trend charts</th>
+                <td class="us">✓</td>
+                <td>✓</td>
+                <td>–</td>
+                <td>–</td>
+                <td>–</td>
+                <td>–</td>
+              </tr>
+              <tr>
+                <th scope="row">Dashboards with commands</th>
+                <td class="us">✓</td>
+                <td>–</td>
+                <td>–</td>
+                <td>–</td>
+                <td>–</td>
+                <td>–</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note">
+          – means not offered, or not stated by the project. Checked on 2026-11-06 against each project's own site; the
+          sources are listed in the
+          <a href="https://github.com/chetto1983/ModbusTool#how-it-compares">README</a>.
+        </p>
+      </section>
+
+      <section id="download" class="download">
+        <h2>Download</h2>
+        <p class="version" data-latest-version>The latest release is on GitHub.</p>
+        <div class="platforms">
+          <a class="card" data-asset="msi" href="https://github.com/chetto1983/ModbusTool/releases/latest">
+            <strong>Windows</strong>
+            <span>Installer (.msi), 64-bit</span>
+          </a>
+          <a class="card" data-asset="deb" href="https://github.com/chetto1983/ModbusTool/releases/latest">
+            <strong>Debian, Ubuntu</strong>
+            <span>Package (.deb)</span>
+          </a>
+          <a class="card" data-asset="AppImage" href="https://github.com/chetto1983/ModbusTool/releases/latest">
+            <strong>Other Linux</strong>
+            <span>AppImage</span>
+          </a>
+        </div>
+        <p class="note">
+          The Windows installer is not code-signed: if SmartScreen stops it, choose <em>More info → Run anyway</em>.
+          Once installed, ModbusTool updates itself, and every update is verified with the project's key before it is
+          installed.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        MIT licence ·
+        <a href="https://github.com/chetto1983/ModbusTool/blob/master/CHANGELOG.md">Changelog</a> ·
+        <a href="https://github.com/chetto1983/ModbusTool/issues">Issues</a> · Design:
+        <a href="https://github.com/chetto1983/Aura">Aura</a>
+      </p>
+    </footer>
+    <script src="site.js" type="module"></script>
+  </body>
+</html>

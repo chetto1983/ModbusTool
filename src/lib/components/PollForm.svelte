@@ -1,20 +1,12 @@
 <script lang="ts">
   import { m } from "../../paraglide/messages.js";
-  import { app } from "../state.svelte";
-  import { READ_KINDS } from "../masterActions.svelte";
+  import { maxReadCount, READ_KINDS } from "../masterActions.svelte";
   import { BYTE_ORDERS, DATA_TYPES } from "../datatypes";
   import type { PollConfig } from "../project";
 
   let { poll = $bindable() }: { poll: PollConfig } = $props();
 
-  // rmodbus caps a TCP/UDP frame at 255 bytes: 123 registers per read (README, Known limits).
-  const maxQuantity = $derived(
-    poll.kind === "readCoils" || poll.kind === "readDiscreteInputs"
-      ? 2000
-      : app.project.master.config.link.kind === "tcp" || app.project.master.config.link.kind === "udp"
-        ? 123
-        : 125,
-  );
+  const maxQuantity = $derived(maxReadCount(poll.kind === "readCoils" || poll.kind === "readDiscreteInputs"));
 </script>
 
 <label class="field">

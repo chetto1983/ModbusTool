@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=ModbusTool
+GenericName=Modbus master and slave
+Comment=Test Modbus devices: master, slave, traffic monitor and live dashboards
+Exec=modbus-tool
+Icon=io.github.chetto1983.modbustool
+Terminal=false
+Categories=Development;Electronics;Engineering;
+Keywords=Modbus;PLC;SCADA;RTU;TCP;serial;

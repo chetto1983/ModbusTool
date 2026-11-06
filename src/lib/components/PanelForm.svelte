@@ -54,7 +54,7 @@
 
 {#snippet variableList(variables: Variable[])}
   {#each variables as _, i (i)}
-    <VariableFields bind:variable={variables[i]!} legend={m.panel_variable_number({ number: i + 1 })}>
+    <VariableFields bind:variable={variables[i]!} legend={m.panel_variable_number({ number: i + 1 })} coloured>
       {#snippet actions()}
         <button
           type="button"
@@ -69,7 +69,7 @@
   <button
     type="button"
     class="btn small"
-    onclick={() => variables.push({ ...(variables.at(-1) ?? newVariable()), name: "" })}
+    onclick={() => variables.push({ ...(variables.at(-1) ?? newVariable()), name: "", colour: null })}
     >{m.panel_add_variable()}</button
   >
 {/snippet}
@@ -126,7 +126,7 @@
     </div>
   {/if}
 {:else if panel.kind === "lamp"}
-  <VariableFields bind:variable={panel.variable} legend={m.panel_variable()} />
+  <VariableFields bind:variable={panel.variable} legend={m.panel_variable()} coloured />
 {:else}
   <div class="grid-3">
     <label class="field">

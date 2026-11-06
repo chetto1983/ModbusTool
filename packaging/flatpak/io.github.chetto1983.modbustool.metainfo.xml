@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.chetto1983.modbustool</id>
+  <name>ModbusTool</name>
+  <summary>Modbus master and slave with live dashboards</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="io.github.chetto1983">
+    <name>chetto1983</name>
+  </developer>
+  <description>
+    <p>
+      ModbusTool tests and simulates Modbus devices: a master that reads and writes them and a
+      slave that answers like one, in a single window.
+    </p>
+    <ul>
+      <li>Modbus TCP, UDP, RTU over TCP, RTU and ASCII on serial ports</li>
+      <li>Integers, floats and 64-bit values in every byte order</li>
+      <li>A frame-by-frame traffic monitor with decoded descriptions</li>
+      <li>Dashboards with trends, gauges, lamps, buttons and setpoints, scaled like SCADA tags</li>
+      <li>Value generators on the slave: sine, ramp, random and square wave</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github.chetto1983.modbustool.desktop</launchable>
+  <url type="homepage">https://github.com/chetto1983/ModbusTool</url>
+  <url type="bugtracker">https://github.com/chetto1983/ModbusTool/issues</url>
+  <url type="vcs-browser">https://github.com/chetto1983/ModbusTool</url>
+  <screenshots>
+    <screenshot type="default">
+      <caption>The master reading a device</caption>
+      <image>https://raw.githubusercontent.com/chetto1983/ModbusTool/master/docs/screenshots/master-dark.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The slave with value generators</caption>
+      <image>https://raw.githubusercontent.com/chetto1983/ModbusTool/master/docs/screenshots/slave-dark.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The traffic monitor</caption>
+      <image>https://raw.githubusercontent.com/chetto1983/ModbusTool/master/docs/screenshots/traffic-dark.png</image>
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1"/>
+  <branding>
+    <color type="primary" scheme_preference="light">#d7e7ff</color>
+    <color type="primary" scheme_preference="dark">#1f3760</color>
+  </branding>
+  <releases>
+    <release version="3.3.1" date="2026-11-06">
+      <description>
+        <p>Dashboards read neighbouring variables in one request.</p>
+      </description>
+    </release>
+    <release version="3.3.0" date="2026-11-06">
+      <description>
+        <p>Dashboards read their own variables, with SCADA-style scaling, trend lines and zoom, and gauges.</p>
+      </description>
+    </release>
+  </releases>
+</component>

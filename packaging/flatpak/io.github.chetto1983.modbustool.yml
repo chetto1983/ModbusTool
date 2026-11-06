@@ -1,0 +1,52 @@
+# Flathub manifest, built from source as the Tauri guide's open-source path does
+# (https://v2.tauri.app/distribute/flatpak/). Not built in this repository's CI: see
+# docs/publishing.md for what is checked and what has to be done before submitting.
+id: io.github.chetto1983.modbustool
+runtime: org.gnome.Platform
+# The Tauri guide's version; check it is still a supported GNOME runtime that ships
+# webkit2gtk-4.1 before submitting (docs/publishing.md).
+runtime-version: "47"
+sdk: org.gnome.Sdk
+command: modbus-tool
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --share=ipc
+  # Modbus TCP, UDP and RTU over TCP.
+  - --share=network
+  # Serial ports (/dev/ttyUSB*, /dev/ttyACM*, /dev/ttyS*) for RTU and ASCII.
+  - --device=all
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.node22
+  - org.freedesktop.Sdk.Extension.rust-stable
+build-options:
+  append-path: /usr/lib/sdk/node22/bin:/usr/lib/sdk/rust-stable/bin
+modules:
+  - name: modbus-tool
+    buildsystem: simple
+    env:
+      CARGO_HOME: /run/build/modbus-tool/cargo
+      XDG_CACHE_HOME: /run/build/modbus-tool/flatpak-node/cache
+      npm_config_cache: /run/build/modbus-tool/flatpak-node/npm-cache
+      npm_config_offline: "true"
+    sources:
+      - type: git
+        url: https://github.com/chetto1983/ModbusTool.git
+        tag: v3.4.0
+      # Generated with flatpak-builder-tools from Cargo.lock and package-lock.json
+      # (docs/publishing.md); the build has no network.
+      - cargo-sources.json
+      - node-sources.json
+    build-commands:
+      - mkdir -p src-tauri/.cargo
+      - printf '[source.crates-io]\nreplace-with = "vendored-sources"\n\n[source.vendored-sources]\ndirectory = "/run/build/modbus-tool/cargo/vendor"\n' > src-tauri/.cargo/config.toml
+      - npm ci --offline
+      - npx tauri build --no-bundle -- --offline
+      - install -Dm755 src-tauri/target/release/modbus-tool /app/bin/modbus-tool
+      - install -Dm644 packaging/flatpak/io.github.chetto1983.modbustool.desktop /app/share/applications/io.github.chetto1983.modbustool.desktop
+      - install -Dm644 packaging/flatpak/io.github.chetto1983.modbustool.metainfo.xml /app/share/metainfo/io.github.chetto1983.modbustool.metainfo.xml
+      - install -Dm644 src-tauri/icons/32x32.png /app/share/icons/hicolor/32x32/apps/io.github.chetto1983.modbustool.png
+      - install -Dm644 src-tauri/icons/128x128.png /app/share/icons/hicolor/128x128/apps/io.github.chetto1983.modbustool.png
+      - install -Dm644 src-tauri/icons/128x128@2x.png /app/share/icons/hicolor/256x256/apps/io.github.chetto1983.modbustool.png
+      - install -Dm644 src-tauri/icons/icon.svg /app/share/icons/hicolor/scalable/apps/io.github.chetto1983.modbustool.svg
