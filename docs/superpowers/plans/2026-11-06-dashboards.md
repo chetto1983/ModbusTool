@@ -37,5 +37,6 @@ lo storico non cresce senza limite; gridstack e Svelte non si contendono il DOM.
   T3–T5 in un solo commit: la vista senza pannelli non si prova nell'E2E e i pannelli di lettura
   e di comando condividono editor e cornice.
 - [x] **T5b Selettore e numerico** (D11): modello e validazione, editor, scrittura, test, E2E.
-- [ ] **T6 E2E e verifica**: E2E contro pymodbus (valore letto, pulsante che scrive, layout salvato
-  e riaperto); file di verifica; CHANGELOG.
+- [x] **T6 E2E e verifica**: E2E contro pymodbus (valore letto, pulsante che scrive, layout salvato
+  e riaperto); file di verifica; CHANGELOG. Il layout riaperto è provato dal round-trip del
+  progetto, non dall'E2E (vedi il file di verifica).
