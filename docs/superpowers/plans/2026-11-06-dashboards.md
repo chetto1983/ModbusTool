@@ -58,3 +58,9 @@ lo storico non cresce senza limite; gridstack e Svelte non si contendono il DOM.
   (test di proprietà: andata e ritorno restituiscono il grezzo), applicata a letture, storico e
   scritture; conversione di scala/offset del pannello valore; editor; E2E contro pymodbus (un
   registro grezzo letto scalato, un setpoint ingegneristico scritto grezzo); verifica; CHANGELOG.
+
+## Letture raggruppate (spec D21)
+
+- [x] **T11 Blocchi di lettura**: blocchi di variabili contigue per unit, tabella e periodo; un poll del
+  backend per blocco; valori e storico di ogni variabile presi dal suo blocco; test (blocchi,
+  limiti 125/2000, nessun buco letto); misura delle richieste prima e dopo contro pymodbus.

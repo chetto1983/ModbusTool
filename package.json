@@ -1,7 +1,7 @@
 {
   "name": "modbus-tool",
   "private": true,
-  "version": "3.3.0",
+  "version": "3.3.1",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -62,6 +62,12 @@
   "overrides": {
     "typed-rest-client": {
       "qs": "^6.17.1"
+    },
+    "@stryker-mutator/core": {
+      "minimatch": "^11.0.5"
+    },
+    "readdir-glob": {
+      "minimatch": "^11.0.5"
     }
   }
 }

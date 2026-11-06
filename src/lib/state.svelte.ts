@@ -75,13 +75,16 @@ export const master = $state({
  */
 export const history = $state<Record<string, Samples>>({});
 
-/** The last read of a dashboard variable (D14), by readKey. */
+/** The last read of a block of dashboard variables (D14, D21), by the block's backend poll id. */
 export interface Reading {
   values: number[] | null;
   error: string | null;
 }
 
 export const readings = $state<Record<string, Reading>>({});
+
+/** Where each dashboard variable's registers are, by readKey: its block and its offset in it. */
+export const readLayout = $state<Record<string, { block: string; offset: number }>>({});
 
 /** Backend poll ids of dashboard reads start with this; the master's polls never do. */
 export const READ_PREFIX = "dash:";
@@ -233,9 +236,28 @@ function applyReading(result: PollResult): void {
   if (!(result.id in readings)) return;
   readings[result.id] = { values: result.values, error: result.values ? null : result.error };
   if (!result.values) return;
-  const variable = watchedVariables().find((v) => readKey(v) === result.id);
-  const value = variable && decodeVariable(variable, result.values);
-  if (variable && value !== null) appendSample(result.id, result.timestampMs / 1000, value as number);
+  const seen = new Set<string>();
+  for (const variable of watchedVariables()) {
+    const key = readKey(variable);
+    if (seen.has(key) || readLayout[key]?.block !== result.id) continue;
+    seen.add(key);
+    const raw = rawValue(variable);
+    if (raw !== null) appendSample(key, result.timestampMs / 1000, raw);
+  }
+}
+
+/** A variable's registers (or bit) from its block's last good read. */
+function variableRegisters(variable: Variable): number[] | null {
+  const at = readLayout[readKey(variable)];
+  const values = at && readings[at.block]?.values;
+  if (!values) return null;
+  const width = isBitTable(variable.table) ? 1 : registerCount(variable.dataType);
+  return values.slice(at.offset, at.offset + width);
+}
+
+function rawValue(variable: Variable): number | null {
+  const registers = variableRegisters(variable);
+  return registers ? decodeVariable(variable, registers) : null;
 }
 
 /** The scaling that applies to a variable: none for bits and non-numeric types (D16). */
@@ -244,15 +266,13 @@ export const variableScaling = (variable: Variable) =>
 
 /** A dashboard variable's last read value, scaled, or null before its first good read. */
 export function variableValue(variable: Variable): number | null {
-  const values = readings[readKey(variable)]?.values;
-  const raw = values ? decodeVariable(variable, values) : null;
+  const raw = rawValue(variable);
   return raw === null ? null : toEngineering(raw, variableScaling(variable));
 }
 
 /** True without a good last read: not read yet, master disconnected, or the last read failed. */
 export function variableStale(variable: Variable): boolean {
-  const reading = readings[readKey(variable)];
-  return !reading?.values;
+  return variableRegisters(variable) === null;
 }
 
 /** Drops the history of signals nothing watches any more. */
