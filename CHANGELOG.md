@@ -4,7 +4,10 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
-## Unreleased
+## v3.3.0 — 2026-11-06
+
+Dashboards untied from the master's polls: every panel reads its own variables, scaled as SCADA
+tags are, and trends choose how their samples are joined.
 
 ### Added
 
