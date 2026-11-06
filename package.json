@@ -47,7 +47,7 @@
     "typescript": "~5.9.3",
     "vite": "^8.3.6",
     "vitest": "^5.1.0",
-    "webdriverio": "^9.33.1"
+    "webdriverio": "^10.2.0"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",
@@ -56,5 +56,10 @@
     "@tauri-apps/plugin-process": "^2.4.0",
     "@tauri-apps/plugin-updater": "^2.14.1",
     "uplot": "^1.6.32"
+  },
+  "overrides": {
+    "typed-rest-client": {
+      "qs": "^6.17.1"
+    }
   }
 }
