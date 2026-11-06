@@ -76,13 +76,15 @@ async function whenStarted(browser) {
       .catch((err) => ({ error: String(err) }));
     // Importing the app's module again surfaces the error that stopped it, if it threw.
     const load = await browser
-      .executeAsync((done) => {
+      .execute(async () => {
         const src = document.querySelector("script[type=module]")?.getAttribute("src");
-        if (!src) return done("no module script");
-        import(src).then(
-          () => done(`module ${src} loaded`),
-          (err) => done(`module ${src}: ${err?.stack ?? err}`),
-        );
+        if (!src) return "no module script";
+        try {
+          await import(src);
+          return `module ${src} loaded`;
+        } catch (err) {
+          return `module ${src}: ${err?.stack ?? err}`;
+        }
       })
       .catch((err) => `import check failed: ${err}`);
     console.error("Module:", load);
