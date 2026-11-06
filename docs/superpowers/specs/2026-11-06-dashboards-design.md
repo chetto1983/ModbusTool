@@ -42,6 +42,14 @@ Si riprende il modello d'uso, non il codice (React).
 | D14 | La dashboard **legge da sé**, sempre mentre il master è connesso (anche su un'altra vista), con un **periodo per dashboard** (predefinito 1000 ms). Riuso: ogni variabile distinta diventa un poll del backend (`poll_start`, id `dash:<chiave>`), con il periodo minimo tra le dashboard che la usano; stessa temporizzazione, timeout e traffico dei poll del master. Alla connessione si riavviano (il backend li cancella a `master_disconnect`) | Inventario `commands.rs`/`poller.rs`: `Poller` già fa letture cicliche ed emette `poll-result` |
 | D15 | I progetti 3.2.0 si **convertono all'apertura**: un segnale (poll + offset) diventa la variabile con unit, tabella, indirizzo (`poll.address + offset`), tipo e ordine del poll; un segnale di un poll inesistente si scarta. Lo storico dei trend si indicizza per variabile | Scelta utente 2026-11-06 |
 
+## Scalatura (2026-11-06, richiesta utente "come fanno gli SCADA moderni")
+
+| # | Decisione | Fonte |
+|---|---|---|
+| D16 | **Scalatura lineare a due punti sulla variabile** (come i tag di WinCC/Ignition): grezzo min/max → ingegneristico min/max, facoltativa, con "limita all'intervallo". Vale in lettura per ogni pannello (valore, trend, barre, lampada, stato) | Richiesta utente 2026-11-06 |
+| D17 | **Anche il target di scrittura** ha la sua scalatura: pulsante, selettore e input numerico ricevono valori ingegneristici e scrivono il grezzo (inversa, arrotondata se il tipo è intero). Lo stato iniziale di un comando copia anche la scalatura del target | Coerenza lettura/scrittura: un setpoint in bar si legge e si scrive in bar |
+| D18 | Scala/offset del pannello valore spariscono: alla lettura del progetto diventano la scalatura della sua variabile (grezzo 0…1 → ingegneristico offset…offset+scala) | Una sola strada per la stessa cosa |
+
 ## Cosa NON è dimostrato
 
 - Prestazioni con molti pannelli e poll veloci: da misurare (obiettivo: 20 pannelli, poll 200 ms).
