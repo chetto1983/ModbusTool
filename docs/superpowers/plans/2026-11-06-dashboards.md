@@ -40,3 +40,12 @@ lo storico non cresce senza limite; gridstack e Svelte non si contendono il DOM.
 - [x] **T6 E2E e verifica**: E2E contro pymodbus (valore letto, pulsante che scrive, layout salvato
   e riaperto); file di verifica; CHANGELOG. Il layout riaperto è provato dal round-trip del
   progetto, non dall'E2E (vedi il file di verifica).
+
+## Sganciamento dai poll (spec D13–D15)
+
+- [ ] **T7 Modello**: `Variable`, pannelli con variabili, `periodMs` della dashboard, conversione
+  dei progetti 3.2.0 in `parseProject` (servono i poll), test.
+- [ ] **T8 Letture**: un poll del backend per variabile distinta finché il master è connesso,
+  valori e storico per variabile, riavvio alla connessione; test con `api` simulata.
+- [ ] **T9 Editor e pannelli**: campi della variabile nell'editor (per elemento), stato dei comandi,
+  periodo della dashboard; E2E contro pymodbus senza poll del master; verifica; CHANGELOG.
