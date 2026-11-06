@@ -1,14 +1,20 @@
 # Signing the Windows installer with SignPath
 
+**Status: not active.** On 2026-11-06 the maintainer decided not to apply to SignPath: the
+unsigned MSI installs on their Windows PC and ESET does not block it. The Release workflow keeps
+the signing job, skipped while `SIGNPATH_PROJECT_SLUG` is unset; the steps below remain the way
+to turn it on. The README's "Code signing" section must then be rewritten as the "Code signing
+policy" SignPath requires (roles and privacy statement).
+
 Decision and verified facts: `docs/superpowers/specs/2026-11-05-signing-design.md`.
-The Release workflow already contains the signing job; it stays skipped until the steps below
-are done, and releases are published unsigned meanwhile.
 
 ## 1. Before applying
 
 - Enable two-factor authentication on the GitHub account of every maintainer (required).
-- The README carries the "Code signing policy" section SignPath asks for: keep its roles and
-  privacy statement accurate.
+- Turn the README's "Code signing" section into the "Code signing policy" SignPath asks for:
+  "Free code signing provided by SignPath.io, certificate by SignPath Foundation", what is
+  signed, the roles (authors, reviewers, approvers) and the privacy statement. The version
+  removed on 2026-11-06 is in git history.
 - At least one release must exist in the form to be signed (the MSI): v3.0.0.
 
 ## 2. Apply

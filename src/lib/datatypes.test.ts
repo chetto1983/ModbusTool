@@ -32,12 +32,22 @@ describe("known vectors", () => {
     expect(decode(encode("-2.5", "float64"), "float64")).toBe("-2.5");
   });
 
+  it("float64 shows every value exactly, up to the largest finite one", () => {
+    // Found by the E2E types run against pymodbus on 2026-11-06: 15 significant digits rounded
+    // 1.7976931348623157e308 up to Infinity.
+    expect(decode([0x7fef, 0xffff, 0xffff, 0xffff], "float64")).toBe("1.7976931348623157e+308");
+    expect(decode(encode("0.1", "float64"), "float64")).toBe("0.1");
+    expect(decode(encode("-0", "float64"), "float64")).toBe("-0");
+  });
+
   it("16-bit formats", () => {
     expect(decode([0x04c8], "hex")).toBe("0x04C8");
     expect(decode([0xffff], "int16")).toBe("-1");
     expect(decode([5], "binary")).toBe("0000 0000 0000 0101");
     expect(decode([0x4142], "ascii")).toBe("AB");
     expect(decode([0x4100], "ascii")).toBe("A·");
+    expect(decode([0x7e20], "ascii")).toBe("~ ");
+    expect(encode("~ ", "ascii")).toEqual([0x7e20]);
     expect(decode([1], "bit")).toBe("1");
     expect(encode("-1", "int16")).toEqual([0xffff]);
     expect(encode("0x1F", "uint16")).toEqual([31]);
@@ -86,7 +96,8 @@ describe("properties", () => {
           const text = decode(registers, type, order);
           // NaN has many bit patterns; only the canonical one survives a round trip.
           fc.pre(text !== "NaN");
-          if (type.startsWith("float")) {
+          if (type === "float32") {
+            // Shown with 7 significant digits, the precision a float32 carries: not exact bits.
             expect(decode(encode(text, type, order), type, order)).toBe(text);
           } else {
             expect(encode(text, type, order)).toEqual(registers);
