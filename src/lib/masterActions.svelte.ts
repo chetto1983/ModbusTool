@@ -138,6 +138,17 @@ export async function writeValues(poll: PollConfig, address: number, registers: 
   if (!master.runtime[poll.id]?.running) await readOnce(poll);
 }
 
+/**
+ * Most values one read returns on the master's link: 2000 bits, 125 registers (Modbus Application
+ * Protocol 1.1b3 §6.1-6.4), but 123 over TCP/UDP, where rmodbus caps a frame at 255 bytes (README,
+ * Known limits; the backend's check_limits refuses more).
+ */
+export function maxReadCount(bits: boolean): number {
+  if (bits) return 2000;
+  const { kind } = app.project.master.config.link;
+  return kind === "tcp" || kind === "udp" ? 123 : 125;
+}
+
 export function labelFor(poll: PollConfig, address: number): string {
   return app.project.labels[labelKey("master", poll.unit, tableOf(poll.kind), address)] ?? "";
 }

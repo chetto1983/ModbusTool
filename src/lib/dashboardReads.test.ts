@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ pollStart: vi.fn(), pollStop: vi.fn() }));
 vi.mock("./api", () => ({ api: { pollStart: mocks.pollStart, pollStop: mocks.pollStop } }));
 
-import { followReads, MAX_BITS, MAX_REGISTERS, panelVariables, readPlan } from "./dashboardReads.svelte";
+import { followReads, panelVariables, readPlan } from "./dashboardReads.svelte";
 import { newDashboard, newPanel, newVariable, type Dashboard, type Panel } from "./dashboards";
 import { defaultProject } from "./project";
 import { app, master, readings, readKey, readLayout } from "./state.svelte";
@@ -20,6 +20,7 @@ const dashboard = (periodMs: number, panels: Panel[]): Dashboard => ({
   panels,
 });
 
+const blocks = () => readPlan().polls.map((p) => [p.unit, p.operation.address, p.operation.quantity, p.intervalMs]);
 const at = (address: number, over = {}) => newVariable({ address, ...over });
 
 beforeEach(async () => {
@@ -92,13 +93,23 @@ describe("dashboard reads", () => {
         panel("lamp", (p) => p.kind === "lamp" && (p.variable = newVariable({ unit: 2, address: 130 }))),
       ]),
     ];
-    expect(readPlan().polls.map((p) => [p.unit, p.operation.address, p.operation.quantity, p.intervalMs])).toEqual([
-      [1, 0, MAX_REGISTERS, 200],
-      [1, 125, 5, 200],
-      [1, 0, MAX_BITS, 200],
+    // Over TCP (the default link) a read returns at most 123 registers: rmodbus's 255-byte frames.
+    expect(blocks()).toEqual([
+      [1, 0, 123, 200],
+      [1, 123, 7, 200],
+      [1, 0, 2000, 200],
       [1, 2000, 1, 200],
       [1, 200, 1, 500],
       [2, 130, 1, 200],
+    ]);
+    // On a serial link the protocol's own limit, 125.
+    app.project.master.config.link = {
+      kind: "rtu",
+      serial: { port: "COM1", baudRate: 9600, dataBits: 8, parity: "none", stopBits: 1 },
+    };
+    expect(blocks().slice(0, 2)).toEqual([
+      [1, 0, 125, 200],
+      [1, 125, 5, 200],
     ]);
   });
 

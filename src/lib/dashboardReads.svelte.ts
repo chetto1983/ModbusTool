@@ -4,6 +4,7 @@
 import { api, type PollDefinition, type ReadKind } from "./api";
 import type { Dashboard, Panel, Variable } from "./dashboards";
 import { registerCount } from "./datatypes";
+import { maxReadCount } from "./masterActions.svelte";
 import { app, isBitTable, master, READ_PREFIX, readings, readKey, readLayout } from "./state.svelte";
 
 const READ_KIND: Record<Variable["table"], ReadKind> = {
@@ -30,10 +31,6 @@ export function panelVariables(panel: Panel): Variable[] {
 }
 
 const dashboardVariables = (dashboard: Dashboard) => dashboard.panels.flatMap(panelVariables);
-
-/** Most values one request reads: FC03/04 and FC01/02 (Modbus Application Protocol 1.1b3 §6.1-6.4). */
-export const MAX_REGISTERS = 125;
-export const MAX_BITS = 2000;
 
 export interface ReadPlan {
   polls: PollDefinition[];
@@ -69,7 +66,7 @@ function spans(): Span[] {
 /**
  * The backend polls the dashboards need now (none while the master is not connected): one per
  * block of variables of the same unit, table and period that touch or overlap, up to what one
- * request reads. Addresses no variable asks for are never read (spec D21).
+ * read returns on the master's link (maxReadCount). Addresses no variable asks for are never read (spec D21).
  */
 export function readPlan(): ReadPlan {
   const plan: ReadPlan = { polls: [], layout: {} };
@@ -81,7 +78,7 @@ export function readPlan(): ReadPlan {
   }
   for (const group of groups.values()) {
     const sorted = group.toSorted((a, b) => a.start - b.start);
-    const limit = isBitTable(sorted[0].table) ? MAX_BITS : MAX_REGISTERS;
+    const limit = maxReadCount(isBitTable(sorted[0].table));
     let block: Span[] = [];
     let end = 0;
     const close = () => {

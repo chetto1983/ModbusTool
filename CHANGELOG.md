@@ -15,6 +15,12 @@ now run on every change, on Linux and Windows.
   that follow the light and dark themes, or any custom colour with a colour picker
   (color-picker-svelte). Without one, the automatic colours stay as before.
 
+### Fixed
+
+- Dashboards on Modbus TCP or UDP: a block of more than 123 neighbouring registers (3.3.1) was
+  refused by the master, so its values never updated. Blocks now stop at 123 registers on TCP/UDP
+  and at 125 on the other links, like the polls.
+
 ### Changed
 
 - The end-to-end tests against an independent Modbus server run in CI on Linux and Windows. On
