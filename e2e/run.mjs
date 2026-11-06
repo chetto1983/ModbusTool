@@ -9,7 +9,7 @@
 
 import { remote } from "webdriverio";
 import { spawn } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, openSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import {
@@ -40,9 +40,12 @@ import { typesMaster, typesSlave } from "./types.mjs";
 const APP = process.platform === "win32" ? "modbus-tool.exe" : "modbus-tool";
 const shots = process.argv[2] ? resolve(process.argv[2]) : null;
 const children = [];
+// What tauri-driver, the native WebDriver, the app and its webview print: read when the app fails to start.
+const driverLog = join(tmp, "tauri-driver.log");
 
-function background(command, args) {
-  const child = spawn(command, args, { stdio: "ignore" });
+function background(command, args, log) {
+  const out = log ? openSync(log, "w") : "ignore";
+  const child = spawn(command, args, { stdio: ["ignore", out, out] });
   children.push(child);
   return child;
 }
@@ -118,6 +121,7 @@ async function whenStarted(browser) {
     console.error("Fetch:", fetched);
     console.error("Module:", load);
     console.error("App not started:", JSON.stringify(state));
+    console.error("tauri-driver output (last 4 KB):\n" + readFileSync(driverLog, "utf8").slice(-4096));
     throw e;
   }
 }
@@ -370,7 +374,7 @@ async function main() {
     ports.rtuOverTcp,
     ...(serial ? [join(tmp, "refA")] : []),
   ]);
-  background("tauri-driver", []);
+  background("tauri-driver", [], driverLog);
   await sleep(2000);
 
   const browser = await remote({
