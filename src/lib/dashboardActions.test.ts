@@ -4,21 +4,9 @@ const mocks = vi.hoisted(() => ({ masterExecute: vi.fn() }));
 vi.mock("./api", () => ({ api: { masterExecute: mocks.masterExecute } }));
 
 import * as d from "./dashboardActions.svelte";
-import { defaultProject, type PollConfig } from "./project";
-import { app, history } from "./state.svelte";
-
-const poll = (over: Partial<PollConfig> = {}): PollConfig => ({
-  id: "p",
-  name: "Pumps",
-  unit: 1,
-  kind: "readHoldingRegisters",
-  address: 100,
-  quantity: 4,
-  intervalMs: 1000,
-  dataType: "uint16",
-  byteOrder: "ABCD",
-  ...over,
-});
+import { defaultProject } from "./project";
+import { newVariable } from "./dashboards";
+import { app, history, readKey } from "./state.svelte";
 
 beforeEach(() => {
   mocks.masterExecute.mockReset().mockResolvedValue({ values: [], elapsedMs: 1 });
@@ -65,36 +53,27 @@ describe("dashboards", () => {
   });
 
   it("removing a panel closes its full screen and drops history nothing watches", () => {
-    app.project.master.polls = [poll()];
     d.addDashboard("Plant");
     const dashboard = d.currentDashboard()!;
     const trend = d.newPanelDraft(dashboard, "trend");
-    if (trend.kind === "trend") trend.signals.push({ pollId: "p", offset: 0 });
     d.savePanel(dashboard, trend);
-    history["p:0"] = { times: [1], values: [2] };
+    const key = readKey(trend.kind === "trend" ? trend.variables[0] : newVariable());
+    history[key] = { times: [1], values: [2] };
     d.dashboardUi.fullscreen = trend.id;
     d.removePanel(dashboard, trend.id);
     expect(d.dashboardUi.fullscreen).toBeNull();
-    expect(history["p:0"]).toBeUndefined();
+    expect(history[key]).toBeUndefined();
   });
 });
 
-describe("signals for pickers and labels", () => {
-  it("lists one option per value, by the poll's type width, with register labels", () => {
-    app.project.master.polls = [
-      poll({ dataType: "float32" }),
-      poll({ id: "c", name: "Valves", kind: "readCoils", quantity: 2 }),
-    ];
+describe("variable labels", () => {
+  it("names a variable by its name, else the register label, else table and address", () => {
     app.project.labels["master:1:holdingRegisters:102"] = "Flow";
-    expect(d.signalOptions().map((o) => o.label)).toEqual([
-      "Pumps · FC03 100",
-      "Pumps · FC03 102 · Flow",
-      "Valves · FC01 100",
-      "Valves · FC01 101",
-    ]);
-    expect(d.signalLabel({ pollId: "p", offset: 2 })).toBe("Flow");
-    expect(d.signalLabel({ pollId: "p", offset: 0 })).toBe("Pumps · 100");
-    expect(d.signalLabel({ pollId: "nope", offset: 0 })).toBe("Deleted poll");
+    expect(d.variableLabel(newVariable({ address: 102 }))).toBe("Flow");
+    expect(d.variableLabel(newVariable({ address: 102, name: " Pump flow " }))).toBe("Pump flow");
+    expect(d.variableLabel(newVariable({ table: "inputRegisters", address: 7 }))).toBe("IR 7");
+    expect(d.variableLabel(newVariable({ unit: 3, table: "coils", address: 1 }))).toBe("3 · Coil 1");
+    expect(d.variableLabel(newVariable({ table: "discreteInputs", address: 2 }))).toBe("DI 2");
   });
 });
 

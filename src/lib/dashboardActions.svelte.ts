@@ -9,13 +9,13 @@ import {
   type Panel,
   type PanelKind,
   type Place,
-  type Signal,
+  type Variable,
   type WriteTarget,
 } from "./dashboards";
-import { labelFor, READ_KINDS, writeTo } from "./masterActions.svelte";
-import { newId } from "./project";
-import { app, isBitPoll, notify, pruneHistory } from "./state.svelte";
-import { encode, registerCount } from "./datatypes";
+import { writeTo } from "./masterActions.svelte";
+import { labelKey, newId } from "./project";
+import { app, notify, pruneHistory } from "./state.svelte";
+import { encode } from "./datatypes";
 
 export const dashboardUi = $state({
   selected: null as string | null,
@@ -84,35 +84,18 @@ export function placePanels(dashboard: Dashboard, places: { id: string; place: P
   }
 }
 
-export interface SignalOption {
-  signal: Signal;
-  label: string;
-}
+const TABLE_SHORT: Record<Variable["table"], string> = {
+  coils: "Coil",
+  discreteInputs: "DI",
+  holdingRegisters: "HR",
+  inputRegisters: "IR",
+};
 
-/** Every value the polls read, one per register (or per multi-register value), for pickers. */
-export function signalOptions(): SignalOption[] {
-  return app.project.master.polls.flatMap((poll) => {
-    const width = isBitPoll(poll) ? 1 : registerCount(poll.dataType);
-    const code = READ_KINDS.find((k) => k.id === poll.kind)?.code;
-    const options: SignalOption[] = [];
-    for (let offset = 0; offset + width <= poll.quantity; offset += width) {
-      const address = poll.address + offset;
-      const label = labelFor(poll, address);
-      options.push({
-        signal: { pollId: poll.id, offset },
-        label: `${poll.name} · ${code} ${address}${label ? ` · ${label}` : ""}`,
-      });
-    }
-    return options;
-  });
-}
-
-/** How a signal is named on panels: the register's label, else poll and address. */
-export function signalLabel(signal: Signal): string {
-  const poll = app.project.master.polls.find((p) => p.id === signal.pollId);
-  if (!poll) return m.signal_missing();
-  const address = poll.address + signal.offset;
-  return labelFor(poll, address) || `${poll.name} · ${address}`;
+/** How a variable is named on panels: its name, else the register's label, else its address. */
+export function variableLabel(variable: Variable): string {
+  const label = app.project.labels[labelKey("master", variable.unit, variable.table, variable.address)];
+  const address = `${TABLE_SHORT[variable.table]} ${variable.address}`;
+  return variable.name.trim() || label || (variable.unit === 1 ? address : `${variable.unit} · ${address}`);
 }
 
 /** The registers a button writes, or the error that makes its value unwritable. */

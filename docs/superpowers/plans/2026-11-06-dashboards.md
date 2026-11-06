@@ -43,9 +43,11 @@ lo storico non cresce senza limite; gridstack e Svelte non si contendono il DOM.
 
 ## Sganciamento dai poll (spec D13–D15)
 
-- [ ] **T7 Modello**: `Variable`, pannelli con variabili, `periodMs` della dashboard, conversione
+- [x] **T7 Modello**: `Variable`, pannelli con variabili, `periodMs` della dashboard, conversione
   dei progetti 3.2.0 in `parseProject` (servono i poll), test.
-- [ ] **T8 Letture**: un poll del backend per variabile distinta finché il master è connesso,
+- [x] **T8 Letture**: un poll del backend per variabile distinta finché il master è connesso,
   valori e storico per variabile, riavvio alla connessione; test con `api` simulata.
-- [ ] **T9 Editor e pannelli**: campi della variabile nell'editor (per elemento), stato dei comandi,
+- [x] **T9 Editor e pannelli**: campi della variabile nell'editor (per elemento), stato dei comandi,
   periodo della dashboard; E2E contro pymodbus senza poll del master; verifica; CHANGELOG.
+  T7–T9 in un solo commit: il modello senza letture e le letture senza editor non si provano
+  nell'E2E.

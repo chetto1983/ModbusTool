@@ -1,14 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrafficEvent } from "./api";
 import { defaultProject, type PollConfig } from "./project";
-import { newDashboard, newPanel } from "./dashboards";
+import { newDashboard, newPanel, newVariable } from "./dashboards";
 import {
   app,
   clearMasterTrend,
   forgetPollHistory,
   history,
   pruneHistory,
-  signalValue,
+  readings,
+  readKey,
+  variableStale,
+  variableValue,
   applyPollResults,
   emptyRuntime,
   isBitPoll,
@@ -61,6 +64,7 @@ describe("state", () => {
     master.runtime = {};
     master.trend = [];
     for (const key of Object.keys(history)) delete history[key];
+    for (const key of Object.keys(readings)) delete readings[key];
     traffic.events = [];
     traffic.paused = false;
   });
@@ -118,27 +122,62 @@ describe("state", () => {
     expect(history["p:0"]).toBeUndefined();
   });
 
-  it("reads signal values and keeps history for dashboard trend panels too", () => {
-    app.project.master.polls = [poll({ dataType: "int16" })];
-    master.runtime.p = emptyRuntime(true);
-    expect(signalValue({ pollId: "p", offset: 0 })).toBeNull();
+  it("keeps dashboard readings by variable, decoded with the variable's own type", () => {
+    const signed = newVariable({ address: 7, dataType: "int16" });
+    const coil = newVariable({ table: "coils", address: 3, dataType: "float32" });
+    const wide = newVariable({ address: 9, dataType: "float32" });
+    expect(variableValue(signed)).toBeNull();
+    expect(variableStale(signed)).toBe(true);
+    const read = (variable: typeof signed, values: number[] | null, error: string | null = null) => ({
+      ...result(values, error),
+      id: readKey(variable),
+    });
+    // Results of reads not started (or already stopped) are dropped.
+    applyPollResults([read(signed, [0xfffe])]);
+    expect(variableValue(signed)).toBeNull();
+    for (const v of [signed, coil, wide]) readings[readKey(v)] = { values: null, error: null };
+    expect(variableStale(signed)).toBe(true);
+    applyPollResults([read(signed, [0xfffe]), read(coil, [1]), read(wide, [1])]);
+    expect(variableValue(signed)).toBe(-2);
+    expect(variableStale(signed)).toBe(false);
+    // A coil is a bit whatever type is left on the variable; a short read decodes to nothing.
+    expect(variableValue(coil)).toBe(1);
+    expect(variableValue(wide)).toBeNull();
+    applyPollResults([read(signed, null, "Timeout: no response")]);
+    expect(variableValue(signed)).toBeNull();
+    expect(variableStale(signed)).toBe(true);
+    expect(master.runtime).toEqual({});
+  });
+
+  it("keeps history only for variables a trend panel shows, once per location", () => {
+    const flow = newVariable({ address: 7 });
     const dashboard = newDashboard("d", "D");
     const panel = newPanel("t", "trend", "T", []);
-    if (panel.kind === "trend") panel.signals.push({ pollId: "p", offset: 1 }, { pollId: "p", offset: 1 });
+    if (panel.kind === "trend") panel.variables = [flow, { ...flow, name: "Same register" }];
     dashboard.panels.push(panel);
     app.project.dashboards = [dashboard];
-    toggleTrend("p", 1, "same signal as the panel");
-    applyPollResults([result([5, 0xfffe])]);
-    expect(signalValue({ pollId: "p", offset: 1 })).toBe(-2);
-    expect(signalValue({ pollId: "p", offset: 9 })).toBeNull();
-    expect(signalValue({ pollId: "gone", offset: 0 })).toBeNull();
-    // One sample per signal, however many places watch it.
-    expect(history["p:1"].values).toEqual([-2]);
-    clearMasterTrend();
-    expect(history["p:1"].values).toEqual([-2]);
+    const lamp = newVariable({ address: 8 });
+    for (const v of [flow, lamp]) readings[readKey(v)] = { values: null, error: null };
+    applyPollResults([
+      { ...result([42]), id: readKey(flow) },
+      { ...result([1]), id: readKey(lamp) },
+    ]);
+    expect(history[readKey(flow)].values).toEqual([42]);
+    expect(history[readKey(lamp)]).toBeUndefined();
     app.project.dashboards = [];
     pruneHistory();
-    expect(history["p:1"]).toBeUndefined();
+    expect(history[readKey(flow)]).toBeUndefined();
+  });
+
+  it("clears the master's trend and its history", () => {
+    app.project.master.polls = [poll()];
+    master.runtime.p = emptyRuntime(true);
+    toggleTrend("p", 0, "x");
+    applyPollResults([result([3])]);
+    expect(history["p:0"].values).toEqual([3]);
+    clearMasterTrend();
+    expect(master.trend).toEqual([]);
+    expect(history["p:0"]).toBeUndefined();
   });
 
   it("forgets one poll's history", () => {

@@ -1,14 +1,34 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { m } from "../../paraglide/messages.js";
-  import SignalSelect from "./SignalSelect.svelte";
-  import { signalOptions, targetRegisters } from "../dashboardActions.svelte";
-  import { INTERPOLATIONS, type Interpolation, type Panel, type Signal } from "../dashboards";
+  import VariableFields from "./VariableFields.svelte";
+  import { targetRegisters } from "../dashboardActions.svelte";
+  import {
+    INTERPOLATIONS,
+    followTarget,
+    newVariable,
+    targetVariable,
+    type Interpolation,
+    type Panel,
+    type Variable,
+    type WriteTarget,
+  } from "../dashboards";
   import { BYTE_ORDERS, DATA_TYPES } from "../datatypes";
   import { TREND_WINDOWS_S } from "../state.svelte";
 
   let { panel = $bindable() }: { panel: Panel } = $props();
 
-  const options = $derived(signalOptions());
+  // A command whose state reads the location it writes keeps doing so when that location is edited.
+  let previousTarget: WriteTarget | null = null;
+  $effect(() => {
+    if (panel.kind !== "switch" && panel.kind !== "select" && panel.kind !== "number") return;
+    const command = panel;
+    const target = $state.snapshot(command.target);
+    untrack(() => {
+      if (previousTarget) command.state = followTarget(command.state, previousTarget, target);
+      previousTarget = target;
+    });
+  });
 
   /** A value to write must encode with the target's type, as the grid requires. */
   function checkValue(input: HTMLInputElement) {
@@ -31,23 +51,26 @@
     seconds < 60 ? m.trend_seconds({ count: seconds }) : m.trend_minutes({ count: seconds / 60 });
 </script>
 
-{#snippet signalList(signals: Signal[])}
-  {#each signals as _, i (i)}
-    <div class="row">
-      <div class="grow"><SignalSelect bind:signal={signals[i]!} {options} label={m.panel_signal()} required /></div>
-      <button
-        type="button"
-        class="btn small ghost icon"
-        aria-label={m.panel_remove_signal()}
-        onclick={() => signals.splice(i, 1)}>✕</button
-      >
-    </div>
+{#snippet variableList(variables: Variable[])}
+  {#each variables as _, i (i)}
+    <VariableFields bind:variable={variables[i]!} legend={m.panel_variable_number({ number: i + 1 })}>
+      {#snippet actions()}
+        <button
+          type="button"
+          class="btn small ghost icon"
+          aria-label={m.panel_remove_variable()}
+          disabled={variables.length === 1}
+          onclick={() => variables.splice(i, 1)}>✕</button
+        >
+      {/snippet}
+    </VariableFields>
   {/each}
-  {#if options.length}
-    <button type="button" class="btn small" onclick={() => signals.push(options[0].signal)}
-      >{m.panel_add_signal()}</button
-    >
-  {/if}
+  <button
+    type="button"
+    class="btn small"
+    onclick={() => variables.push({ ...(variables.at(-1) ?? newVariable()), name: "" })}
+    >{m.panel_add_variable()}</button
+  >
 {/snippet}
 
 <label class="field">
@@ -66,12 +89,8 @@
   />
 {/snippet}
 
-{#if options.length === 0 && panel.kind !== "button"}
-  <p class="muted">{m.panel_no_polls()}</p>
-{/if}
-
 {#if panel.kind === "trend"}
-  {@render signalList(panel.signals)}
+  {@render variableList(panel.variables)}
   <label class="field">
     {m.panel_window()}
     <select bind:value={panel.windowS}>
@@ -85,9 +104,9 @@
     </select>
   </label>
 {:else if panel.kind === "bars"}
-  {@render signalList(panel.signals)}
+  {@render variableList(panel.variables)}
 {:else if panel.kind === "value"}
-  <SignalSelect bind:signal={panel.signal} {options} label={m.panel_signal()} required />
+  <VariableFields bind:variable={panel.variable} legend={m.panel_variable()} />
   <div class="grid-3">
     <label class="field">{m.panel_unit()}<input bind:value={panel.unit} /></label>
     <label class="field">{m.panel_scale()}<input type="number" step="any" required bind:value={panel.scale} /></label>
@@ -108,7 +127,7 @@
     </div>
   {/if}
 {:else if panel.kind === "lamp"}
-  <SignalSelect bind:signal={panel.signal} {options} label={m.panel_signal()} required />
+  <VariableFields bind:variable={panel.variable} legend={m.panel_variable()} />
 {:else}
   <div class="grid-3">
     <label class="field">
@@ -191,15 +210,22 @@
         <label class="field">{m.panel_max()}<input type="number" step="any" bind:value={panel.max} /></label>
       </div>
     {/if}
-    <SignalSelect bind:signal={panel.signal} {options} label={m.panel_state()} />
+    {@const command = panel}
+    <label class="check">
+      <input
+        type="checkbox"
+        checked={command.state !== null}
+        onchange={(e) => (command.state = e.currentTarget.checked ? targetVariable(command.target) : null)}
+      />
+      {m.panel_show_state()}
+    </label>
+    {#if command.state}
+      <VariableFields bind:variable={command.state} legend={m.panel_state()} />
+    {/if}
   {/if}
 {/if}
 
 <style>
-  .grow {
-    flex: 1;
-    min-width: 0;
-  }
   .check {
     display: flex;
     align-items: center;

@@ -11,6 +11,17 @@ publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full hi
 - Dashboard trends choose how samples are joined: steps (held value), straight lines or a smooth
   curve. New trends use straight lines; trends saved by 3.2.0 keep their steps.
 
+### Changed
+
+- Dashboards read their own variables and no longer depend on the master's polls. Each panel
+  element sets its unit, table, address, type and byte order. The variables are read while the
+  master is connected, at a period set for each dashboard. Command panels show the state read
+  back from the address they write, or from another variable.
+- Projects saved by 3.2.0 are converted when opened: each value taken from a poll becomes the
+  variable that poll read.
+- The value panel's "Unit" field is now "Unit of measure", so it cannot be confused with the
+  Modbus unit id.
+
 ## v3.2.0 — 2026-11-06
 
 Dashboards: a mini-SCADA view, Grafana style, with panels that show what the master's polls read

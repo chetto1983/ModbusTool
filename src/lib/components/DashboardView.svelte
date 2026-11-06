@@ -83,6 +83,10 @@
     <span class="spacer"></span>
     {#if dashboard}
       {#if dashboardUi.editing}
+        <label class="period">
+          {m.dashboard_period()}
+          <input type="number" min="50" max="3600000" step="50" required bind:value={dashboard.periodMs} />
+        </label>
         <button class="btn small" onclick={() => (picking = true)}>{m.dashboard_add_panel()}</button>
       {/if}
       <button
@@ -215,6 +219,16 @@
   .choose {
     width: auto;
     min-width: 200px;
+  }
+  .period {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+  }
+  .period input {
+    width: 9ch;
   }
   .kinds {
     display: grid;

@@ -1,27 +1,32 @@
 // Dashboard against pymodbus (docs/superpowers/specs/2026-11-06-dashboards-design.md): panels read
-// what a running poll reads from the reference server, and buttons and switches write to it.
+// their own variables from the reference server, and command panels write to it.
 // Reference holding register n = 111 * (n + 1), even coils ON (reference_servers.py).
 
-import { setTimeout as sleep } from "node:timers/promises";
 import {
   button,
   check,
   click,
   dialog,
-  editPoll,
   eventually,
   expectEqual,
   labelled,
+  panel,
   reference,
   saveDialog,
 } from "./helpers.mjs";
 
 const panelBody = (title) => `//article[.//h3[normalize-space()="${title}"]]`;
 
-async function addPanel(browser, kind, fields) {
+/** Adds a panel; `writeTo` is the address a command writes, the first of its address fields. */
+async function addPanel(browser, kind, fields, writeTo = null) {
   await click(browser, button("", "Add panel"));
   await click(browser, button(dialog, kind));
   await browser.$(button(dialog, "Save")).waitForExist({ timeout: 3000 });
+  if (writeTo !== null) {
+    const address = await browser.$(`(${dialog}//label[starts-with(normalize-space(),"Address")]//input)[1]`);
+    await address.clearValue();
+    await address.setValue(String(writeTo));
+  }
   await saveDialog(browser, fields);
 }
 
@@ -58,33 +63,25 @@ async function dragRight(browser, title, columns) {
   await browser.releaseActions();
 }
 
-/** Master connected over TCP to the reference server; Poll 1 is stopped. */
+/**
+ * Master connected over TCP to the reference server, and no poll of the master running: the
+ * dashboard reads its own variables (spec D13-D14).
+ */
 export async function dashboardScenario(browser, target) {
   console.log("Dashboard");
-  await editPoll(browser, {
-    Function: "FC03 · Holding registers",
-    Address: 0,
-    Quantity: 10,
-    Type: "UInt16",
-    Order: "ABCD",
-    "Every ms": 200,
-  });
-  await click(browser, labelled("Start Poll 1"));
   await click(browser, "//nav//button[.//span[normalize-space()='Dashboard']]");
   await click(browser, button("", "New dashboard"));
   await saveDialog(browser, { Name: "Plant" });
-  await addPanel(browser, "Value", { Title: "Pressure", Value: "Poll 1 · FC03 2", Unit: "bar", Decimals: 0 });
-  await addPanel(browser, "Lamp", { Title: "Running", Value: "Poll 1 · FC03 0" });
+  const period = await browser.$("//header//label[contains(normalize-space(),'Read every ms')]//input");
+  await period.clearValue();
+  await period.setValue("200");
+  await addPanel(browser, "Value", { Title: "Pressure", Address: 2, "Unit of measure": "bar", Decimals: 0 });
+  await addPanel(browser, "Lamp", { Title: "Running", "Read from": "Coils", Address: 0 });
   await addPanel(browser, "Button", { Title: "Set 4242", Address: 5, "Value to write": "4242" });
-  await addPanel(browser, "Switch", { Title: "Valve 7", Address: 7 });
-  await addPanel(browser, "Selector", { Title: "Mode", Address: 8, "State from": "Poll 1 · FC03 8" });
-  await addPanel(browser, "Number input", {
-    Title: "Speed",
-    Address: 9,
-    Min: 0,
-    Max: 5000,
-    "State from": "Poll 1 · FC03 9",
-  });
+  // The state of a command is read at first from the address it writes.
+  await addPanel(browser, "Switch", { Title: "Valve 7" }, 7);
+  await addPanel(browser, "Selector", { Title: "Mode" }, 8);
+  await addPanel(browser, "Number input", { Title: "Speed", Min: 0, Max: 5000 }, 9);
 
   await check("Dashboard: panels are placed side by side without overlaps", async () => {
     const places = await Promise.all(
@@ -105,7 +102,7 @@ export async function dashboardScenario(browser, target) {
 
   await click(browser, "//button[normalize-space()='Done']");
 
-  await check("Dashboard: a value panel shows the register a running poll reads", () =>
+  await check("Dashboard: a value panel reads its own variable, with no poll of the master running", () =>
     eventually(
       async () =>
         expectEqual(
@@ -138,6 +135,12 @@ export async function dashboardScenario(browser, target) {
     await eventually(
       () => expectEqual(reference("read", "tcp", target, "coils", 7, 1).values, [1], "coil 7"),
       "switch",
+    );
+    // The switch shows the coil it writes, read back from the device.
+    const toggle = await browser.$(`${panelBody("Valve 7")}//button[@role='switch']`);
+    await eventually(
+      async () => expectEqual(await toggle.getAttribute("aria-checked"), "true", "shown state"),
+      "state",
     );
   });
 
@@ -183,7 +186,19 @@ export async function dashboardScenario(browser, target) {
     );
   });
 
-  await sleep(500);
+  await check("Dashboard: reads stop when the master disconnects", async () => {
+    await click(browser, "//nav//button[.//span[normalize-space()='Master']]");
+    await click(browser, button(panel("Connection"), "Disconnect"));
+    await click(browser, "//nav//button[.//span[normalize-space()='Dashboard']]");
+    await eventually(async () => {
+      const cls = await browser.$(`${panelBody("Pressure")}//div[contains(@class,'value')]`).getAttribute("class");
+      if (!cls.includes("stale")) throw new Error(`not stale: ${cls}`);
+    }, "stale");
+  });
+  // Delete the dashboard: its reads would add traffic to the scenarios that follow.
+  await click(browser, labelled("Delete dashboard"));
+  await click(browser, button(dialog, "Yes"));
   await click(browser, "//nav//button[.//span[normalize-space()='Master']]");
-  await click(browser, labelled("Stop Poll 1"));
+  await click(browser, button(panel("Connection"), "Connect"));
+  await browser.$(button(panel("Connection"), "Disconnect")).waitForExist({ timeout: 5000 });
 }

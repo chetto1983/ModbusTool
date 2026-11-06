@@ -2,7 +2,7 @@
 
 import type { PollResult, TrafficEvent } from "./api";
 import { defaultProject, type PollConfig, type Project } from "./project";
-import type { Signal } from "./dashboards";
+import { variableKey, type Variable } from "./dashboards";
 import { numeric, registerCount } from "./datatypes";
 import { readPreference, writePreference } from "./preferences";
 import { m } from "../paraglide/messages.js";
@@ -29,6 +29,12 @@ export interface PollRuntime {
   error: string | null;
   updatedMs: number | null;
   stats: PollStats;
+}
+
+/** A value read by a poll: the register at `offset` from the poll's address, in the poll's type. */
+export interface Signal {
+  pollId: string;
+  offset: number;
 }
 
 /** A signal plotted in the master's trend; its samples are in `history`. */
@@ -62,8 +68,24 @@ export const master = $state({
   trendWindowS: 60,
 });
 
-/** Samples of every watched signal (see watchedSignals), by signalKey, for TREND_RETENTION_S. */
+/**
+ * Samples of every watched series, for TREND_RETENTION_S: the master's trend by signalKey, the
+ * dashboards' trend variables by readKey.
+ */
 export const history = $state<Record<string, Samples>>({});
+
+/** The last read of a dashboard variable (D14), by readKey. */
+export interface Reading {
+  values: number[] | null;
+  error: string | null;
+}
+
+export const readings = $state<Record<string, Reading>>({});
+
+/** Backend poll ids of dashboard reads start with this; the master's polls never do. */
+export const READ_PREFIX = "dash:";
+export const readKey = (variable: Variable) => READ_PREFIX + variableKey(variable);
+export const isBitTable = (table: Variable["table"]) => table === "coils" || table === "discreteInputs";
 
 export const slave = $state({
   running: false,
@@ -136,6 +158,10 @@ function pollById(id: string): PollConfig | undefined {
 
 export function applyPollResults(results: PollResult[]): void {
   for (const result of results) {
+    if (result.id.startsWith(READ_PREFIX)) {
+      applyReading(result);
+      continue;
+    }
     const runtime = master.runtime[result.id];
     if (!runtime?.running) continue;
     runtime.stats.requests++;
@@ -164,44 +190,68 @@ function decodeAt(poll: PollConfig, values: number[], offset: number): number | 
   return bits ? registers[0] : numeric(registers, poll.dataType, poll.byteOrder);
 }
 
-/** The signal's last read value, or null when its poll has not read it. */
-export function signalValue(signal: Signal): number | null {
-  const poll = pollById(signal.pollId);
-  const values = master.runtime[signal.pollId]?.values;
-  return poll && values ? decodeAt(poll, values, signal.offset) : null;
+/** Dashboard variables whose history is kept: those of every trend panel. */
+function watchedVariables(): Variable[] {
+  const panels = app.project.dashboards.flatMap((d) => d.panels);
+  return panels.flatMap((p) => (p.kind === "trend" ? p.variables : []));
 }
 
-/** Signals whose history is kept: the master's trend and every trend panel of every dashboard. */
-function watchedSignals(): Signal[] {
-  const panels = app.project.dashboards.flatMap((d) => d.panels);
-  return [...master.trend, ...panels.flatMap((p) => (p.kind === "trend" ? p.signals : []))];
+function appendSample(key: string, time: number, value: number): void {
+  const samples = (history[key] ??= { times: [], values: [] });
+  samples.times.push(time);
+  samples.values.push(value);
+  const expired = samples.times.findIndex((t) => t >= time - TREND_RETENTION_S);
+  if (expired > 0) {
+    samples.times.splice(0, expired);
+    samples.values.splice(0, expired);
+  }
 }
 
 function appendTrend(pollId: string, timeMs: number, values: number[]): void {
   const poll = pollById(pollId);
   if (!poll) return;
-  const time = timeMs / 1000;
   const seen = new Set<string>();
-  for (const signal of watchedSignals()) {
+  for (const signal of master.trend) {
     const key = signalKey(signal);
     if (signal.pollId !== pollId || seen.has(key)) continue;
     seen.add(key);
     const value = decodeAt(poll, values, signal.offset);
-    if (value === null) continue;
-    const samples = (history[key] ??= { times: [], values: [] });
-    samples.times.push(time);
-    samples.values.push(value);
-    const expired = samples.times.findIndex((t) => t >= time - TREND_RETENTION_S);
-    if (expired > 0) {
-      samples.times.splice(0, expired);
-      samples.values.splice(0, expired);
-    }
+    if (value !== null) appendSample(key, timeMs / 1000, value);
   }
+}
+
+/** Decodes a variable from the registers (or bit) read for it. */
+function decodeVariable(variable: Variable, values: number[]): number | null {
+  if (isBitTable(variable.table)) return values.length ? values[0] : null;
+  if (values.length < registerCount(variable.dataType)) return null;
+  return numeric(values, variable.dataType, variable.byteOrder);
+}
+
+function applyReading(result: PollResult): void {
+  // A result still on its way when its read was stopped (disconnect, panel removed) is dropped.
+  if (!(result.id in readings)) return;
+  readings[result.id] = { values: result.values, error: result.values ? null : result.error };
+  if (!result.values) return;
+  const variable = watchedVariables().find((v) => readKey(v) === result.id);
+  const value = variable && decodeVariable(variable, result.values);
+  if (variable && value !== null) appendSample(result.id, result.timestampMs / 1000, value as number);
+}
+
+/** A dashboard variable's last read value, or null before its first good read. */
+export function variableValue(variable: Variable): number | null {
+  const values = readings[readKey(variable)]?.values;
+  return values ? decodeVariable(variable, values) : null;
+}
+
+/** True without a good last read: not read yet, master disconnected, or the last read failed. */
+export function variableStale(variable: Variable): boolean {
+  const reading = readings[readKey(variable)];
+  return !reading?.values;
 }
 
 /** Drops the history of signals nothing watches any more. */
 export function pruneHistory(): void {
-  const watched = new Set(watchedSignals().map(signalKey));
+  const watched = new Set([...master.trend.map(signalKey), ...watchedVariables().map(readKey)]);
   for (const key of Object.keys(history)) if (!watched.has(key)) delete history[key];
 }
 
