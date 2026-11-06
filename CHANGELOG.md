@@ -4,7 +4,9 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
-## Unreleased
+## v3.3.1 — 2026-11-06
+
+Dashboards read neighbouring variables in one request, far less traffic on the device.
 
 ### Changed
 
