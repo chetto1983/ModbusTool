@@ -41,9 +41,10 @@ scelta; le righe non dipendono da timer; i progetti esistenti si aprono ancora.
   T1–T3 in un solo commit: il pannello tabella senza interfaccia non si prova nell'E2E.
   Misurato durante T3: i tasti inviati prima che il dialogo GTK sia pronto si perdono; l'E2E
   ripete la risposta finché il dialogo non si chiude.
-- [ ] **T4 Registrazione (logica):** intestazione, righe, nomi, cadenza e giorno; registratore con
+- [x] **T4 Registrazione (logica):** intestazione, righe, nomi, cadenza e giorno; registratore con
   fs simulato; test.
-- [ ] **T5 Registrazione nell'app:** Registra/Ferma con scelta della cartella, indicatore, errori;
-  E2E su Linux: righe nel file confrontate con pymodbus; misure: finestra minimizzata, mappa di 200
-  righe per un'ora.
+- [x] **T5 Registrazione nell'app:** Registra/Ferma nella cartella fissa (spec L4, cambiata dopo la misura), indicatore, errori;
+  E2E su Linux e Windows: righe nel file confrontate con pymodbus; misure: finestra minimizzata, mappa di 200
+  righe (un minuto, non un'ora: spec, Misure).
+  T4–T5 in un solo commit: la logica senza interfaccia non si prova nell'E2E.
 - [ ] **T6 Documenti:** README, CHANGELOG, file di verifica.

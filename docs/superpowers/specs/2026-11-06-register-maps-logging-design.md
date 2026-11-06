@@ -38,11 +38,11 @@ Data: 2026-11-06. Stato: decisioni dell'utente (sotto), misure preliminari fatte
 | # | Decisione | Fonte |
 |---|---|---|
 | L1 | Si registrano le variabili distinte della dashboard aperta (stessa identità di `variableKey`), con il valore scalato; una cella vuota se la lettura è vecchia o in errore | Decisione 2 |
-| L2 | Intestazione `time` e poi una colonna per variabile, `nome [unità]`. Il tempo è locale, `AAAA-MM-GG hh:mm:ss.mmm`, che Excel e LibreOffice leggono come data | Decisione 3 |
-| L3 | Una riga al più ogni periodo della dashboard, scritta all'arrivo di una lettura (nessun timer): senza letture, per esempio a master scollegato, non nascono righe e il buco si vede nella colonna del tempo | Un timer JS rallenta quando la finestra è nascosta; un evento dal backend no (da misurare, sotto) |
-| L4 | L'utente sceglie una **cartella**; i file si chiamano `<dashboard>_AAAA-MM-GG.csv` e cambiano a mezzanotte locale. Se il file del giorno esiste già con la stessa intestazione si continua a scriverlo; con un'intestazione diversa si apre `<dashboard>_AAAA-MM-GG_2.csv` (e così via) | Decisione 4. Misura sotto: il dialogo di salvataggio dà il permesso su un solo file |
-| L5 | Pulsante Registra/Ferma nella barra della dashboard, con indicatore e nome del file. Un errore di scrittura ferma la registrazione e lo dice | — |
-| L6 | Il permesso sulla cartella vale per la sessione: dopo un riavvio dell'app la registrazione non riparte da sola | `tauri-plugin-dialog` 2.8.4: lo scope non è persistito |
+| L2 | Intestazione `time` e poi una colonna per variabile, `nome [unità]`. Il nome è quello della variabile; senza, il titolo del pannello che mostra solo lei (valore, lampada, comandi), come l'utente la chiama sullo schermo; altrimenti etichetta o indirizzo. Il tempo è locale, `AAAA-MM-GG hh:mm:ss.mmm`, che Excel e LibreOffice leggono come data | Decisione 3 |
+| L3 | Una riga al più ogni mezzo periodo della dashboard, scritta all'arrivo di una lettura (nessun timer): le letture in leggero anticipo non saltano una riga e i blocchi di uno stesso ciclo ne fanno una sola. Senza letture valide, per esempio a master scollegato, non nascono righe e il buco si vede nella colonna del tempo | Misura sotto: con la finestra nascosta le righe continuano |
+| L4 | ~~L'utente sceglie una cartella~~ (2026-11-06, decisione dell'utente dopo la misura sotto: il dialogo cartella di GTK non si pilota nell'E2E). Cartella **fissa**: `Documenti/ModbusTool/recordings`, oppure `~/ModbusTool/recordings` dove il sistema non definisce Documenti. I file si chiamano `<dashboard>_AAAA-MM-GG.csv` e cambiano a mezzanotte locale. Se il file del giorno esiste già con la stessa intestazione si continua a scriverlo; con un'intestazione diversa si apre `<dashboard>_AAAA-MM-GG_2.csv` (e così via) | Decisione 4. dirs 7.0.0 (`document_dir`): su Linux Documenti esiste solo se `~/.config/user-dirs.dirs` lo definisce, cosa che WSL2, container e runner CI spesso non hanno |
+| L5 | Pulsante Registra/Ferma nella barra della dashboard, con indicatore, righe scritte e percorso completo del file (selezionabile). Un errore di scrittura, o la cartella che non si crea, ferma la registrazione e lo dice | — |
+| L6 | Permessi: `fs:allow-mkdir` e lo scope solo su `$DOCUMENT/ModbusTool/recordings` e `$HOME/ModbusTool/recordings`, non su tutta la cartella Documenti. Nessun pulsante "Apri cartella": `tauri-plugin-opener` 2.7.2 aggiungeva 457 righe a `Cargo.lock` (lo stack D-Bus `zbus` su Linux) per un solo pulsante | Misura 2026-11-06 |
 
 ## Inventario (versioni installate)
 
@@ -62,14 +62,25 @@ Data: 2026-11-06. Stato: decisioni dell'utente (sotto), misure preliminari fatte
   non funziona senza window manager. Su Windows i dialoghi nativi non si pilotano: lì quei
   controlli si dichiarano non eseguiti, come quelli seriali.
 
-## Da misurare durante l'implementazione
+## Misure durante l'implementazione (2026-11-06, stesso ambiente)
 
-- Scrittura in append su un file nuovo dentro la cartella scelta (scope della cartella).
-- Il dialogo cartella di GTK guidato da `xdotool`.
-- Righe scritte con la finestra minimizzata (L3).
-- Prestazioni: una mappa di 200 righe letta a 1 s e registrata per un'ora (dimensione, CPU).
+- **Dialogo apri e salva:** i tasti inviati prima che il dialogo sia pronto si perdono; l'E2E
+  ripete la risposta finché il dialogo non si chiude. Il dialogo di salvataggio ("Save File")
+  prende il percorso nel campo del nome (Ctrl+A).
+- **Dialogo cartella ("Select Folder"):** non si chiude né con il percorso e Invio (entra nella
+  cartella), né con un secondo Invio, né con Alt+S (rfd 0.17.2 usa `GtkFileChooserNative` senza
+  etichetta propria). Dopo tre tentativi la scelta è passata all'utente: cartella fissa (L4).
+- **Cartella fissa e permessi:** con una HOME senza `user-dirs.dirs` l'app crea
+  `~/ModbusTool/recordings` e ci scrive (E2E, 91/91).
+- **Finestra nascosta e carico:** mappa di 200 registri (100 input e 100 holding), periodo 1 s,
+  build debug. Finestra visibile 5 s: 5 righe; poi nascosta (`xdotool windowunmap`) 60 s: altre 60
+  righe, tutte con 200 valori. File: circa 1 KB a riga, cioè circa 90 MB al giorno a questo ritmo.
+  CPU dell'app nel minuto nascosto: 0,7% di un core.
 
 ## Cosa NON è dimostrato
 
-- Nessuna misura su Windows dei dialoghi nativi né della registrazione con la finestra nascosta.
+- Nessuna misura su Windows dei dialoghi nativi (lì l'import della mappa non è nell'E2E) né della
+  registrazione con la finestra nascosta; la registrazione stessa è nell'E2E anche su Windows.
+- "Nascosta" è la finestra tolta dallo schermo sotto Xvfb, non la riduzione a icona di un desktop
+  vero; il carico è misurato per un minuto, non per ore.
 - La notazione 40001 non è supportata (R2): una mappa scritta così va convertita.
