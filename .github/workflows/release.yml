@@ -121,9 +121,8 @@ jobs:
           shared-key: bundle
           save-if: false
       - name: System dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libudev-dev
+        uses: ./.github/actions/linux-deps
+        timeout-minutes: 30
       - run: npm ci
       - run: npx tauri build --bundles deb,appimage
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

@@ -1,0 +1,22 @@
+name: Linux build dependencies
+description: >-
+  The system packages Tauri needs on Linux. apt on hosted runners sometimes hangs on a mirror
+  with no time limit (a CI job stuck 37 min on 2026-11-05, another 30+ min on 2026-11-06), so
+  every apt call has a time limit and network timeouts, and the whole install is retried.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        packages=(libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libudev-dev)
+        apt=(sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30)
+        for attempt in 1 2 3; do
+          if timeout 300 "${apt[@]}" update && timeout 600 "${apt[@]}" install -y "${packages[@]}"; then
+            exit 0
+          fi
+          echo "::warning::apt attempt $attempt failed or timed out"
+          # A timed-out install can leave dpkg half done; finish it before the next attempt.
+          sudo dpkg --configure -a || true
+          sleep 15
+        done
+        exit 1
