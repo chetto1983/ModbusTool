@@ -23,6 +23,12 @@ jobs:
   cargo-mutants:
     runs-on: ubuntu-24.04
     timeout-minutes: 90
+    env:
+      # Test builds without debug info, which mutation testing does not use. The job used to be
+      # stopped by the runner after 14-20 minutes, five runs in a row: measured on 2026-11-06 with
+      # the same flags, target is 4.0 GB and cargo-mutants' two build copies 9 GB, against the
+      # 14 GB disk of a standard runner. Without debug info target is 1.7 GB.
+      CARGO_PROFILE_DEV_DEBUG: "0"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -58,6 +64,10 @@ jobs:
         if: steps.results.outputs.cache-hit != 'true'
         run: mkdir -p dist
 
+      - name: Disk before mutating
+        if: steps.results.outputs.cache-hit != 'true'
+        run: df -h / && (du -sh src-tauri/target || true)
+
       # --copy-target starts every scratch build from the restored dependency cache instead of
       # a cold build. Scope and analysed exclusions: src-tauri/.cargo/mutants.toml. The exit code
       # is stored with the results so a cached run is judged like a fresh one.
@@ -68,6 +78,11 @@ jobs:
           set +e
           cargo mutants -j 2 --timeout 60 --copy-target=true
           echo $? > mutants.out/exit-code
+
+      # Also after a failure: whether the disk was the limit is the question this answers.
+      - name: Disk after mutating
+        if: always() && steps.results.outputs.cache-hit != 'true'
+        run: df -h /
 
       # Saved when the gate fails too: a measurement stays a measurement for this commit.
       # A run that did not finish (baseline failure, crash) is not saved.
