@@ -232,6 +232,14 @@ select {
   background-repeat: no-repeat;
 }
 
+/* The open list of a <select> is drawn by the OS. WebView2 on Windows paints it white whatever
+   color-scheme says, while the options inherit the select's text colour: light text on white in
+   the dark theme (user report 2026-11-06). Colours on the options themselves are honoured. */
+option {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+
 input[type="number"]::-webkit-inner-spin-button {
   opacity: 0.35;
 }

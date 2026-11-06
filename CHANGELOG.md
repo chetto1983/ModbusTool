@@ -4,6 +4,13 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
+## Unreleased
+
+### Fixed
+
+- Windows: the open list of every drop-down was white with light text in the dark theme, so
+  options were hard to read.
+
 ## v3.1.0 — 2026-11-06
 
 Interface in Italian, editors in a dialog, a trend that shows polled values as they are, and the
