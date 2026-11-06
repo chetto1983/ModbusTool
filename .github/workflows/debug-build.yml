@@ -1,0 +1,38 @@
+name: Debug build
+
+# A Windows MSI built in debug mode, with the WebView2 developer tools (right click > Inspect,
+# or Ctrl+Shift+I): for diagnosing what only happens in the installed app on Windows. Start it
+# from the Actions tab (Run workflow); the MSI is the run's "ModbusTool-debug-msi" artifact.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  windows-debug:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      - uses: Swatinem/rust-cache@e9d7b9f1e587218970671bac74e5511ed9506e6a # v2
+        with:
+          workspaces: src-tauri
+          shared-key: debug
+      - run: npm ci
+      - run: npx tauri build --debug --bundles msi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ModbusTool-debug-msi
+          path: src-tauri/target/debug/bundle/msi/*.msi
+          if-no-files-found: error

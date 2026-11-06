@@ -6,6 +6,10 @@ publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full hi
 
 ## Unreleased
 
+### Added
+
+- Unexpected errors are shown as a notice instead of passing silently.
+
 ### Fixed
 
 - Windows: the open list of every drop-down was white with light text in the dark theme, so

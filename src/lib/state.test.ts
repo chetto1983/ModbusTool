@@ -14,6 +14,7 @@ import {
   traffic,
   TRAFFIC_LIMIT,
   TREND_RETENTION_S,
+  watchUnexpectedErrors,
 } from "./state.svelte";
 
 const poll = (over: Partial<PollConfig> = {}): PollConfig => ({
@@ -124,5 +125,23 @@ describe("state", () => {
     vi.advanceTimersByTime(4000);
     expect(app.notice).toBeNull();
     vi.useRealTimers();
+  });
+
+  it("shows uncaught errors and rejections as notices until stopped", () => {
+    const stop = watchUnexpectedErrors();
+    window.dispatchEvent(new ErrorEvent("error", { message: "boom" }));
+    expect(app.notice).toEqual({ kind: "error", text: "Unexpected error: boom" });
+    const rejection = new Event("unhandledrejection") as PromiseRejectionEvent;
+    Object.defineProperty(rejection, "reason", { value: new Error("lost") });
+    window.dispatchEvent(rejection);
+    expect(app.notice?.text).toBe("Unexpected error: lost");
+    const plain = new Event("unhandledrejection") as PromiseRejectionEvent;
+    Object.defineProperty(plain, "reason", { value: "nope" });
+    window.dispatchEvent(plain);
+    expect(app.notice?.text).toBe("Unexpected error: nope");
+    stop();
+    app.notice = null;
+    window.dispatchEvent(new ErrorEvent("error", { message: "after" }));
+    expect(app.notice).toBeNull();
   });
 });

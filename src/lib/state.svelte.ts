@@ -4,6 +4,7 @@ import type { PollResult, TrafficEvent } from "./api";
 import { defaultProject, type PollConfig, type Project } from "./project";
 import { numeric, registerCount } from "./datatypes";
 import { readPreference, writePreference } from "./preferences";
+import { m } from "../paraglide/messages.js";
 
 export type View = "master" | "slave" | "traffic";
 export type Theme = "dark" | "light";
@@ -73,6 +74,26 @@ export function setTheme(theme: Theme): void {
   app.theme = theme;
   document.documentElement.dataset.theme = theme;
   writePreference("theme", theme);
+}
+
+const onUncaughtError = (event: ErrorEvent) => notify("error", m.unexpected_error({ error: event.message }));
+
+function onUnhandledRejection(event: PromiseRejectionEvent): void {
+  const reason = event.reason instanceof Error ? event.reason.message : String(event.reason);
+  notify("error", m.unexpected_error({ error: reason }));
+}
+
+/**
+ * Shows any uncaught error or rejected promise as an error notice instead of letting it pass
+ * silently: in the installed app there is no console to read it from.
+ */
+export function watchUnexpectedErrors(): () => void {
+  window.addEventListener("error", onUncaughtError);
+  window.addEventListener("unhandledrejection", onUnhandledRejection);
+  return () => {
+    window.removeEventListener("error", onUncaughtError);
+    window.removeEventListener("unhandledrejection", onUnhandledRejection);
+  };
 }
 
 export function notify(kind: "ok" | "error", text: string): void {

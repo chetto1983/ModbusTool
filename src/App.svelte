@@ -9,7 +9,17 @@
   import { startUpdateChecks, updates } from "./lib/updates.svelte";
   import { api, onPollResults, onTraffic } from "./lib/api";
   import { startSimulationLoop } from "./lib/slaveActions.svelte";
-  import { app, applyPollResults, master, pushTraffic, setTheme, slave, traffic, type View } from "./lib/state.svelte";
+  import {
+    app,
+    applyPollResults,
+    master,
+    pushTraffic,
+    setTheme,
+    slave,
+    traffic,
+    watchUnexpectedErrors,
+    type View,
+  } from "./lib/state.svelte";
   import { fileName, openProject, saveProject } from "./lib/projectActions.svelte";
 
   const NAV: { id: View; label: () => string; glyph: string }[] = [
@@ -37,12 +47,14 @@
     api.slaveSetUnits($state.snapshot(app.project.slave.units));
     const stopSimulation = startSimulationLoop();
     const stopUpdateChecks = startUpdateChecks();
+    const stopWatchingErrors = watchUnexpectedErrors();
     const listeners = [onTraffic(pushTraffic), onPollResults(applyPollResults)];
     window.addEventListener("keydown", shortcuts);
     return () => {
       window.removeEventListener("keydown", shortcuts);
       stopSimulation();
       stopUpdateChecks();
+      stopWatchingErrors();
       listeners.forEach((l) => l.then((unlisten) => unlisten()));
     };
   });
