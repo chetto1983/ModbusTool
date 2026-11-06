@@ -228,3 +228,24 @@ jobs:
             assets/appimage/*.AppImage assets/appimage/*.AppImage.sig latest.json \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "ModbusTool $TAG" --notes-file notes.md
+
+  # Updates the package in the Windows Package Manager (docs/publishing.md). It runs once the first
+  # version is in microsoft/winget-pkgs and the WINGET_TOKEN secret (a classic token with
+  # public_repo, from the account that forked winget-pkgs) is set; without the secret it skips.
+  winget:
+    needs: publish
+    runs-on: windows-latest
+    env:
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+    steps:
+      - name: Submit the new version to winget-pkgs
+        if: env.WINGET_TOKEN != ''
+        shell: pwsh
+        run: |
+          $version = "${env:TAG}".TrimStart("v")
+          $url = "https://github.com/${env:GITHUB_REPOSITORY}/releases/download/${env:TAG}/ModbusTool_${version}_x64_en-US.msi"
+          # A pinned release of Microsoft's tool, checked against its hash before it runs.
+          Invoke-WebRequest https://github.com/microsoft/winget-create/releases/download/v1.12.13.0/wingetcreate.exe -OutFile wingetcreate.exe
+          $hash = (Get-FileHash wingetcreate.exe -Algorithm SHA256).Hash
+          if ($hash -ne "24042BD37915805615E6CF969AC57C6439124C3FE85823327F5F3FB24BD9FFEA") { throw "wingetcreate.exe hash $hash" }
+          .\wingetcreate.exe update chetto1983.ModbusTool --urls $url --version $version --submit --token $env:WINGET_TOKEN
