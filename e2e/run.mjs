@@ -67,8 +67,25 @@ async function whenStarted(browser) {
   } catch (e) {
     await browser.saveScreenshot(join(tmp, "not-started.png")).catch(() => {});
     const state = await browser
-      .execute(() => ({ url: location.href, ready: document.readyState, body: document.body?.innerHTML.slice(0, 800) }))
+      .execute(() => ({
+        url: location.href,
+        ready: document.readyState,
+        agent: navigator.userAgent,
+        body: document.body?.innerHTML.slice(0, 800),
+      }))
       .catch((err) => ({ error: String(err) }));
+    // Importing the app's module again surfaces the error that stopped it, if it threw.
+    const load = await browser
+      .executeAsync((done) => {
+        const src = document.querySelector("script[type=module]")?.getAttribute("src");
+        if (!src) return done("no module script");
+        import(src).then(
+          () => done(`module ${src} loaded`),
+          (err) => done(`module ${src}: ${err?.stack ?? err}`),
+        );
+      })
+      .catch((err) => `import check failed: ${err}`);
+    console.error("Module:", load);
     console.error("App not started:", JSON.stringify(state));
     throw e;
   }
