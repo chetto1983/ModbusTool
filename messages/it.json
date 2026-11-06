@@ -89,6 +89,7 @@
   "panel_state": "Stato",
   "panel_show_state": "Mostra lo stato letto dal dispositivo",
   "dashboard_period": "Leggi ogni ms",
+  "trend_reset_zoom": "Annulla zoom",
   "trend_interpolation": "Linea",
   "trend_step": "Gradini (valore mantenuto)",
   "trend_linear": "Retta",

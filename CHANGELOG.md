@@ -18,6 +18,14 @@ tags are, and trends choose how their samples are joined.
   (e.g. 0..27648 to 0..100 %), optionally kept to that range. Every panel shows engineering values,
   and command panels write them back raw, so a setpoint is typed in its own units.
 
+- Gauges drawn with svelte-gauge: a 240° dial with the warning and alarm zones on the arc and the
+  range at its ends.
+
+### Fixed
+
+- Zooming a trend by dragging over it no longer jumps back at the next sample: the window holds
+  until "Reset zoom", a double click, or until it falls out of the history.
+
 ### Changed
 
 - The value panel's scale and offset are replaced by the scaling of its variable; projects that

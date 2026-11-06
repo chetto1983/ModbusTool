@@ -32,7 +32,7 @@ Si riprende il modello d'uso, non il codice (React).
 | D10 | La griglia **compatta verso l'alto** (gridstack `float` spento, come Grafana): un pannello trascinato nel vuoto in basso risale; si sposta di lato o scambiandolo con un altro | Misura E2E 2026-11-06: trascinato in basso di 260 px, il pannello tornava in riga 0 |
 | D11 | Due pannelli di comando in più (richiesta utente 2026-11-06): **selettore** (elenco di opzioni etichetta → valore; sceglierne una scrive il valore; mostra l'opzione corrispondente al valore letto) e **numerico** (setpoint digitato con min/max opzionali, scritto con Invio o "Imposta"; mostra il valore letto). Stesso `WriteTarget` e stessa codifica del pulsante | Richiesta utente "combobox e numeric input" |
 | D12 | Ogni pannello trend sceglie la **linea**: gradini (valore mantenuto, per segnali a livelli), retta, curva (uPlot `paths.stepped/linear/spline`, già nella dipendenza). Nuovi pannelli: retta; trend salvati dalla 3.2.0 senza il campo: gradini, come erano disegnati. Il trend del master resta a gradini | Richiesta utente 2026-11-06 ("mancano le interpolazioni"); screenshot dell'app con sinusoide dello slave: i tre modi si distinguono |
-| D7 | Il gauge è un arco SVG disegnato da noi (nessuna libreria di gauge tra le dipendenze; poche righe di geometria), colori dai token | Inventario: uPlot non disegna gauge |
+| D7 | ~~Il gauge è un arco SVG disegnato da noi~~ (sostituita da D20) Il gauge è un arco SVG disegnato da noi (nessuna libreria di gauge tra le dipendenze; poche righe di geometria), colori dai token | Inventario: uPlot non disegna gauge |
 
 ## Sganciamento dai poll (2026-11-06, scelta utente)
 
@@ -49,6 +49,13 @@ Si riprende il modello d'uso, non il codice (React).
 | D16 | **Scalatura lineare a due punti sulla variabile** (come i tag di WinCC/Ignition): grezzo min/max → ingegneristico min/max, facoltativa, con "limita all'intervallo". Vale in lettura per ogni pannello (valore, trend, barre, lampada, stato) | Richiesta utente 2026-11-06 |
 | D17 | **Anche il target di scrittura** ha la sua scalatura: pulsante, selettore e input numerico ricevono valori ingegneristici e scrivono il grezzo (inversa, arrotondata se il tipo è intero). Lo stato iniziale di un comando copia anche la scalatura del target | Coerenza lettura/scrittura: un setpoint in bar si legge e si scrive in bar |
 | D18 | Scala/offset del pannello valore spariscono: alla lettura del progetto diventano la scalatura della sua variabile (grezzo 0…1 → ingegneristico offset…offset+scala) | Una sola strada per la stessa cosa |
+
+## Zoom dei trend e gauge (2026-11-06)
+
+| # | Decisione | Fonte |
+|---|---|---|
+| D19 | Una finestra trascinata su un trend (zoom di uPlot) **resta** mentre arrivano campioni: i dati si aggiornano senza ricalcolare le scale (`setData(data, false)`), finché si preme "Annulla zoom", si fa doppio clic o la finestra esce dallo storico. Stesso comportamento dei pannelli di wpt-iot (`panel-chart.tsx`: `xDomain` mantenuto, `resetZoom`, azzeramento se fuori dai dati) | Segnalazione utente: "il prossimo tick me lo toglie"; misura E2E: con 10 letture a 200 ms la finestra non si muove |
+| D20 | Il gauge usa **svelte-gauge 2.0.2** (MIT, nessuna dipendenza, CSS compilato nel pacchetto): quadrante da 240°, zone di avviso e allarme come segmenti, etichette min/max, colori dai token. wpt-iot usa `react-gauge-component` e `recharts`, che sono React e non si usano in Svelte | Scelta utente 2026-11-06 (link al pacchetto); inventario del tarball pubblicato, `npm audit` senza vulnerabilità |
 
 ## Cosa NON è dimostrato
 

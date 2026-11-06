@@ -2,6 +2,7 @@
 // their own variables from the reference server, and command panels write to it.
 // Reference holding register n = 111 * (n + 1), even coils ON (reference_servers.py).
 
+import { setTimeout as sleep } from "node:timers/promises";
 import {
   button,
   check,
@@ -98,10 +99,12 @@ export async function dashboardScenario(browser, target) {
   await addPanel(browser, "Switch", { Title: "Valve 7" }, 7);
   await addPanel(browser, "Selector", { Title: "Mode" }, 8);
   await addPanel(browser, "Number input", { Title: "Speed", Min: 0, Max: 5000 }, 9);
+  await addPanel(browser, "Trend", { Title: "History", Address: 2 });
   // Scaling (spec D16-D17): register 2 holds 333, 0..1000 raw is 0..100 %.
   await click(browser, button("", "Add panel"));
   await click(browser, button(dialog, "Value"));
   await scaleFirst(browser, [0, 1000, 0, 100]);
+  await click(browser, `${dialog}//label[contains(normalize-space(),'Show a gauge')]//input`);
   await saveDialog(browser, { Title: "Level", Address: 2, "Unit of measure": "%", Decimals: 1 });
   // A setpoint typed in % is written raw (0..27648, the S7 analogue range) to register 11.
   await click(browser, button("", "Add panel"));
@@ -112,11 +115,11 @@ export async function dashboardScenario(browser, target) {
 
   await check("Dashboard: panels are placed side by side without overlaps", async () => {
     const places = await Promise.all(
-      ["Pressure", "Running", "Set 4242", "Valve 7", "Mode", "Speed", "Level", "Level SP"].map((t) =>
+      ["Pressure", "Running", "Set 4242", "Valve 7", "Mode", "Speed", "Level", "Level SP", "History"].map((t) =>
         place(browser, t),
       ),
     );
-    expectEqual(new Set(places.map(String)).size, 8, "distinct places");
+    expectEqual(new Set(places.map(String)).size, 9, "distinct places");
     if (places.some((p) => p === null)) throw new Error(`missing panel: ${JSON.stringify(places)}`);
   });
 
@@ -227,6 +230,12 @@ export async function dashboardScenario(browser, target) {
     ),
   );
 
+  await check("Dashboard: a gauge draws the scaled value on its dial", async () => {
+    const level = panelBody("Level");
+    await browser.$(`${level}//*[name()='path' and contains(@class,'gauge-progress')]`).waitForExist({ timeout: 5000 });
+    expectEqual(await browser.$(`${level}//span[contains(@class,'number')]`).getText(), "33.3", "reading");
+  });
+
   await check("Dashboard: a scaled setpoint is written raw and read back in engineering units", async () => {
     const input = await browser.$(`${panelBody("Level SP")}//input`);
     await input.clearValue();
@@ -241,6 +250,48 @@ export async function dashboardScenario(browser, target) {
         expectEqual(await browser.$(`${panelBody("Level SP")}//span[contains(@class,'read')]`).getText(), "50", "read"),
       "scaled read",
     );
+  });
+
+  await check("Dashboard: a window dragged on a trend holds while new samples arrive", async () => {
+    const chart = await browser.$(`${panelBody("History")}//div[contains(@class,'trend')]`);
+    const windowOf = async () => [await chart.getAttribute("data-x-min"), await chart.getAttribute("data-x-max")];
+    // Let a few seconds of samples in, then drag over the middle of the plot.
+    await eventually(async () => {
+      const [from, to] = (await windowOf()).map(Number);
+      if (!(to - from >= 3)) throw new Error(`only ${to - from} s`);
+    }, "samples");
+    const over = await browser.$(`${panelBody("History")}//div[contains(@class,'u-over')]`);
+    const box = await browser.execute((el) => el.getBoundingClientRect().toJSON(), over);
+    const y = Math.round(box.y + box.height / 2);
+    const steps = Array.from({ length: 8 }, (_, i) => ({
+      type: "pointerMove",
+      duration: 20,
+      x: Math.round(box.x + box.width * (0.3 + (0.3 * (i + 1)) / 8)),
+      y,
+    }));
+    await browser.performActions([
+      {
+        type: "pointer",
+        id: "mouse",
+        parameters: { pointerType: "mouse" },
+        actions: [
+          { type: "pointerMove", duration: 0, x: Math.round(box.x + box.width * 0.3), y },
+          { type: "pointerDown", button: 0 },
+          ...steps,
+          { type: "pointerUp", button: 0 },
+        ],
+      },
+    ]);
+    await browser.releaseActions();
+    await browser.$(button(panelBody("History"), "Reset zoom")).waitForExist({ timeout: 3000 });
+    const zoomed = await windowOf();
+    // Ten reads at 200 ms: the window must not move.
+    await sleep(2000);
+    expectEqual(await windowOf(), zoomed, "zoomed window");
+    await click(browser, button(panelBody("History"), "Reset zoom"));
+    await eventually(async () => {
+      if (JSON.stringify(await windowOf()) === JSON.stringify(zoomed)) throw new Error("still zoomed");
+    }, "reset");
   });
 
   await check("Dashboard: reads stop when the master disconnects", async () => {

@@ -54,8 +54,19 @@ Data: 2026-11-06. Spec: `docs/superpowers/specs/2026-11-06-dashboards-design.md`
 - **Screenshot** dell'editor: la scalatura del target appare sotto tipo e ordine dei byte, e lo
   stato la eredita quando legge l'indirizzo scritto.
 
+## Zoom dei trend e gauge (D19–D20), misurati il 2026-11-06
+
+- **E2E** 88/88:
+  - trascinato su un trend, lo zoom resta uguale (`data-x-min`/`data-x-max` del grafico) per
+    10 letture a 200 ms; "Reset zoom" torna a seguire i dati;
+  - il gauge di svelte-gauge disegna l'arco del valore scalato (33.3 %).
+- **Screenshot** sull'app vera, con un segnale generato dallo slave e letto in loopback: quadrante
+  da 240° centrato nel pannello, zone di avviso (60) e allarme (80) sull'arco, etichette min/max,
+  numero proporzionato al pannello.
+
 ## Cosa NON dimostra
 
+- Il gauge nel tema scuro e su WebView2: provato solo in WebKitGTK, tema chiaro.
 - WebView2 su Windows: trascinamento, selettore e input numerico vanno provati a mano.
 - Il ridimensionamento dei pannelli (nessun controllo E2E).
 - Il pannello trend e le barre contro il riferimento: coperti da unit test e dal trend del master,
