@@ -151,7 +151,7 @@ cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings &
 End-to-end run of the real app against [pymodbus](https://github.com/pymodbus-dev/pymodbus) as an
 independent implementation. CI runs it on Linux and Windows (Windows without the serial checks,
 which need `socat`). Locally on Linux it needs `tauri-driver`, `WebKitWebDriver`, `socat` and
-`pymodbus`:
+pymodbus with its serial extra (`pip install "pymodbus[serial]"`):
 
 ```sh
 npx tauri build --debug --no-bundle

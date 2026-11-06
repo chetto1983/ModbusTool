@@ -4,8 +4,8 @@
 //
 //   npx tauri build --debug --no-bundle && node e2e/run.mjs [screenshot-dir]
 //
-// Needs: tauri-driver, the platform's WebDriver, python with pymodbus; on Linux also socat (the
-// serial checks) and an X display. Windows runs every check but the serial ones.
+// Needs: tauri-driver, the platform's WebDriver, python with pymodbus[serial]; on Linux also socat
+// (the serial checks) and an X display. Windows runs every check but the serial ones.
 
 import { remote } from "webdriverio";
 import { spawn } from "node:child_process";

@@ -7,6 +7,7 @@ pub mod poller;
 pub mod slave;
 pub mod slave_server;
 pub mod traffic;
+pub mod webview_locale;
 
 use tauri::Manager;
 
@@ -15,6 +16,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .setup(|app| {
+            #[cfg(target_os = "linux")]
+            webview_locale::apply(app)?;
             #[cfg(desktop)]
             {
                 app.handle()

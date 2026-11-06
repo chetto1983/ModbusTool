@@ -17,6 +17,9 @@ now run on every change, on Linux and Windows.
 
 ### Fixed
 
+- Linux: with the C locale (`LANG=C.UTF-8`, common on WSL2, containers and cloud VMs) the window
+  stayed empty, because the webview reported the language "C" and the chart library refused it.
+  The webview now gets English when the locale names no language; any other language is kept.
 - Dashboards on Modbus TCP or UDP: a block of more than 123 neighbouring registers (3.3.1) was
   refused by the master, so its values never updated. Blocks now stop at 123 registers on TCP/UDP
   and at 125 on the other links, like the polls.
