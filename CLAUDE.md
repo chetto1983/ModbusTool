@@ -62,6 +62,18 @@ data types, byte orders) and backend texts stay in English
 
 ## Behavioral rules (apply to every change)
 
+- **READ, THEN PROBE, THEN IMPLEMENT.** No code, CI change or test edit before these steps, in
+  this order:
+  1. **Read** the installed source and the documentation of every component involved.
+  2. **Reproduce** the failure locally, under the conditions where it fails.
+  3. **Measure** the candidate fix in a throwaway copy (a git worktree outside the repo).
+
+  For a CI-only failure, first list how the runner differs from the local run, then try each
+  difference locally, one at a time: user (root or not), locale (`LANG`), environment variables
+  exported by setup actions, OS image, library versions. A push is not an experiment: never loop
+  "add a diagnostic, push, wait for CI". (2026-11-06: six diagnostic pushes went by before the
+  cause was found locally. The runner is not root and has `LANG=C.UTF-8`; WebKitGTK reported
+  `navigator.language = "C"` and uPlot threw at load.)
 - **NEVER SUPPOSE.** Read code before editing. If uncertain about an API contract, stop and ask.
 - **READ THE DOCUMENTATION FIRST — ALWAYS.** Before writing a line against any external system or
   library (Tauri, tokio-modbus, serialport, Svelte, the Modbus specification), read its
