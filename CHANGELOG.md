@@ -4,7 +4,10 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
-## Unreleased
+## v3.1.1 — 2026-11-06
+
+Readable drop-down lists on Windows, and unexpected errors shown instead of passing silently. The
+first version that 3.1.0 can install by itself.
 
 ### Added
 
