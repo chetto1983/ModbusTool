@@ -24,10 +24,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
-      # Test builds without debug info, which mutation testing does not use. The job used to be
-      # stopped by the runner after 14-20 minutes, five runs in a row: measured on 2026-11-06 with
-      # the same flags, target is 4.0 GB and cargo-mutants' two build copies 9 GB, against the
-      # 14 GB disk of a standard runner. Without debug info target is 1.7 GB.
+      # Test builds without debug info, which mutation testing does not use: target is 1.7 GB
+      # instead of 4.0 GB (measured 2026-11-06), and the builds are faster. The disk was not what
+      # stopped the job, as first thought: the runner had 86 GB free. Memory was, see the
+      # next_frame exclusion in src-tauri/.cargo/mutants.toml.
       CARGO_PROFILE_DEV_DEBUG: "0"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
