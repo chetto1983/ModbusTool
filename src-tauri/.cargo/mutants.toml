@@ -19,14 +19,4 @@ exclude_re = [
   # Only differ on real accept()/recv() errors (e.g. EMFILE), not reproducible deterministically.
   'replace match guard e\.kind\(\) == io::ErrorKind::WouldBlock with true in accept_loop',
   'replace match guard crate::frame_io::is_timeout\(&e\) with true in udp_loop',
-  # Caught, but they take the runner down: each fails four frame_io unit tests at once, while the
-  # slave's read loop in the same test binary spins on the frames it is handed at once and grows
-  # until memory runs out (measured 2026-11-06: from 14 GB to under 2 GB available in about
-  # 30 s). On the CI runner that killed the job with "received a shutdown signal" before any
-  # result, in every run checked (7 to 12).
-  'replace FrameReader::next_frame -> Result<Vec<u8>, FrameError> with Ok\(vec!\[',
-  # Same runaway: an empty frame leaves the buffer as it is, so next_frame hands the read loop
-  # one empty frame after another (measured 2026-11-07: from 14.8 GB to 1.8 GB available in
-  # 26 s). Applied by hand it fails 10 of the 11 frame_io unit tests.
-  'replace FrameReader::complete_len -> Result<Option<usize>, FrameError> with Ok\(Some\(0\)\)',
 ]
