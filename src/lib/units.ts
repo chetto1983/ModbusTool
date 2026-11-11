@@ -3,7 +3,11 @@
 import { m } from "../paraglide/messages.js";
 import type { AddressValue } from "./csv";
 
-/** Parses "1, 2, 10-12" into sorted unique unit ids 1..247 (Modbus serial addresses). */
+/**
+ * Parses "1, 2, 10-12" into sorted unique unit ids 1..255. 0 is the broadcast address; 248..255
+ * are reserved on serial lines (Modbus over Serial Line v1.02 §2.2) but 255 is the usual unit on
+ * TCP, so the whole byte is accepted.
+ */
 export function parseUnits(text: string): number[] {
   const units = new Set<number>();
   for (const part of text
@@ -11,7 +15,7 @@ export function parseUnits(text: string): number[] {
     .map((p) => p.trim())
     .filter(Boolean)) {
     const [from, to = from] = part.split("-").map((n) => Number(n.trim()));
-    if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to > 247 || from > to) {
+    if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to > 255 || from > to) {
       throw new Error(m.units_invalid({ part }));
     }
     for (let u = from; u <= to; u++) units.add(u);

@@ -4,9 +4,11 @@ import { parseUnits, runs } from "./units";
 describe("unit lists", () => {
   it("parses lists and ranges", () => {
     expect(parseUnits("3, 1, 10-12, 3")).toEqual([1, 3, 10, 11, 12]);
+    expect(parseUnits("255, 247-248")).toEqual([247, 248, 255]);
   });
   it("rejects invalid entries", () => {
-    for (const bad of ["", "0", "248", "5-2", "a", "1-x"]) expect(() => parseUnits(bad), bad).toThrow();
+    for (const bad of ["", "0", "256", "250-256", "1, 5-2", "a", "2, a", "2, 1-x"])
+      expect(() => parseUnits(bad), bad).toThrow();
   });
 });
 

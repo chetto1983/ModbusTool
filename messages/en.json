@@ -200,7 +200,7 @@
   "slave_stop": "Stop",
   "slave_first": "Start",
   "slave_count": "Count",
-  "units_invalid": "\"{part}\" is not a unit or range in 1..247",
+  "units_invalid": "\"{part}\" is not a unit or range in 1..255",
   "units_empty": "At least one unit is required",
   "csv_invalid_entry": "Invalid entry \"{entry}\"",
   "sim_title": "Simulation",

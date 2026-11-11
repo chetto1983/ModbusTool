@@ -123,10 +123,14 @@ fn every_operation(master: &mut Master, store: &UnitStore, unit: u8) {
 
 #[test]
 fn all_operations_over_tcp_udp_and_rtu_over_tcp() {
-    for kind in [tcp, udp, rtu_over_tcp] {
-        let (server, store) = slave(local(kind, 0), 4);
-        let mut m = master(local(kind, server.local_addr.unwrap().port()), 0);
-        every_operation(&mut m, &store, 4);
+    // 255 is the unit TCP devices answer as (MODBUS Messaging on TCP/IP Implementation Guide
+    // V1.0b); rmodbus 0.13 broadcasts only on unit 0, so it is served like any other unit.
+    for unit in [4, 255] {
+        for kind in [tcp, udp, rtu_over_tcp] {
+            let (server, store) = slave(local(kind, 0), unit);
+            let mut m = master(local(kind, server.local_addr.unwrap().port()), 0);
+            every_operation(&mut m, &store, unit);
+        }
     }
 }
 
