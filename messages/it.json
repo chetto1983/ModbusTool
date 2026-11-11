@@ -200,7 +200,7 @@
   "slave_stop": "Ferma",
   "slave_first": "Inizio",
   "slave_count": "Numero",
-  "units_invalid": "\"{part}\" non è un'unità o un intervallo in 1..247",
+  "units_invalid": "\"{part}\" non è un'unità o un intervallo in 1..255",
   "units_empty": "Serve almeno un'unità",
   "csv_invalid_entry": "Voce non valida \"{entry}\"",
   "sim_title": "Simulazione",

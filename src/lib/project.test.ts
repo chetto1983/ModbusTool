@@ -6,6 +6,7 @@ import { decode } from "./datatypes";
 describe("project files", () => {
   it("round-trips", () => {
     const project = defaultProject();
+    project.slave.units = [1, 255];
     project.master.polls.push({
       id: "a",
       name: "Boiler",
@@ -25,8 +26,10 @@ describe("project files", () => {
     expect(() => parseProject("{")).toThrow(ProjectError);
     expect(() => parseProject('{"version":2}')).toThrow(/unsupported version/);
     const bad = defaultProject();
-    bad.slave.units = [0];
-    expect(() => parseProject(JSON.stringify(bad))).toThrow(/units/);
+    for (const units of [[0], [1, 256]]) {
+      bad.slave.units = units;
+      expect(() => parseProject(JSON.stringify(bad))).toThrow(/units/);
+    }
     const badPoll = defaultProject() as unknown as { master: { polls: unknown[] } };
     badPoll.master.polls.push({
       id: "x",

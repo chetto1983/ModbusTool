@@ -17,7 +17,7 @@
 <div class="grid-3">
   <label class="field">
     {m.common_unit()}
-    <input type="number" min="1" max="247" required bind:value={rule.unit} />
+    <input type="number" min="1" max="255" required bind:value={rule.unit} />
   </label>
   <label class="field">
     {m.sim_table()}

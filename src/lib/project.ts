@@ -104,8 +104,8 @@ export function parseProject(json: string): Project {
   check(isObject(slave.config) && Array.isArray(slave.units) && Array.isArray(slave.simulations), "slave section");
   (master.polls as unknown[]).forEach(checkPoll);
   check(
-    (slave.units as unknown[]).every((u) => isInt(u, 1, 247)),
-    "slave units must be 1..247",
+    (slave.units as unknown[]).every((u) => isInt(u, 1, 255)),
+    "slave units must be 1..255",
   );
   check(data.labels === undefined || isObject(data.labels), "labels");
   return {
