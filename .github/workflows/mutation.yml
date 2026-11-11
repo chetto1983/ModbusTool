@@ -4,21 +4,19 @@ name: Mutation
 # (Stryker). Too slow for every push: runs on master, weekly and on demand.
 # Caching follows Aura's ci.yml: a measurement is cached per commit (a re-run reuses it), and
 # Stryker runs incrementally from the last report of the same test toolchain.
-#
-# A push that changes only test files does not start it: nothing mutated changed. A test edit
-# that stops catching a mutant shows at the weekly run, or at the next push to the code.
 on:
   push:
     branches: ["master"]
-    # Order matters: a "!" pattern excludes what the pattern before it matched (GitHub docs,
-    # workflow syntax, "Including and excluding paths").
+    # Test files stay in: a test edit can stop catching a mutant.
     paths:
       - "src-tauri/src/**"
-      - "!src-tauri/src/**/*_tests.rs"
       - "src/lib/**"
-      - "!src/lib/**/*.test.ts"
       - "stryker.config.json"
       - "src-tauri/.cargo/mutants.toml"
+      # Dependencies and build profiles change the code the tests run (as in chetto1983/Twinova,
+      # whose PR #29 touched only Cargo.toml).
+      - "src-tauri/Cargo.toml"
+      - "src-tauri/Cargo.lock"
   schedule:
     - cron: "13 5 * * 1"
   workflow_dispatch:
