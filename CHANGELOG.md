@@ -4,13 +4,15 @@ Notable changes to ModbusTool, newest first. Each section is also the text of it
 [GitHub release](https://github.com/chetto1983/ModbusTool/releases): the Release workflow
 publishes the section whose heading matches the pushed `vX.Y.Z` tag. The full history is in git.
 
-## Unreleased
+## v3.6.0 — 2026-11-11
+
+Unit 255 for the slave, the unit most Modbus TCP devices answer as.
 
 ### Changed
 
-- The slave serves unit ids up to 255 (it stopped at 247), in the unit list, the simulations and
-  project files. 255 is the unit most TCP devices answer as; on serial lines 248..255 are reserved
-  by the Modbus specification, so a serial master may not address them.
+- The slave's unit list, simulations and project files accept unit ids up to 255 (they stopped at
+  247). On serial lines 248..255 are reserved by the Modbus specification, so a serial master may
+  not address them.
 
 ## v3.5.0 — 2026-11-06
 
