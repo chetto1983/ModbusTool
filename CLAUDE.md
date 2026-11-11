@@ -123,7 +123,10 @@ data types, byte orders) and backend texts stay in English
 - **DEFINITION OF DONE.** A job is complete only when validated E2E on a real scenario (app running,
   real master↔slave exchange, ideally against an independent reference implementation).
 - **GIT PUSH DISCIPLINE.** Push at the end of a task or completed job, then check that all CI runs
-  on the pushed SHA are green. Never leave work only in a local branch.
+  on the pushed SHA are green. Never leave work only in a local branch. CI runs on pushes to
+  `master` and on pull requests (the Aura scheme), so a working branch needs an open PR to be
+  checked; a change made only of Markdown files or of `docs/` runs nothing (nothing in CI reads
+  them).
 
 ## Post-edit validation (Gate 2)
 

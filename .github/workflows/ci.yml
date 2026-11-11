@@ -1,8 +1,21 @@
 name: CI
 
+# Prose runs nothing: no build, test or workflow step of this CI reads a Markdown file or anything
+# under docs/ (grep, 2026-11-11: Prettier ignores both; docs/screenshots is read only by the site,
+# pages.yml), so a change made only of them skips the run. The scheme is Aura's and Twinova's
+# (chetto1983/Aura, chetto1983/Twinova ci.yml): `paths` with negations, where a file a test reads
+# could be re-included. Pushes run on master only; a working branch is checked by its pull_request
+# run, so one SHA does not run twice. No tag trigger here, so `paths` cannot swallow a tag push.
 on:
   push:
+    branches: ["master"]
+    paths: &code-paths
+      - "**"
+      - "!**.md"
+      - "!docs/**"
   pull_request:
+    branches: ["master"]
+    paths: *code-paths
 
 permissions:
   contents: read
@@ -82,7 +95,11 @@ jobs:
           persist-credentials: false
       - run: bash scripts/check-file-size.sh
 
+  # Only on master, as in Twinova (user, 2026-11-11): the MSI was the longest job of run 42981578708
+  # (4 min 52 s, the E2E 4 min 15 s and 4 min 28 s), and on a pull request the E2E already builds
+  # and drives the app on both platforms.
   bundle:
+    if: github.event_name == 'push'
     needs: [rust, frontend, file-size]
     strategy:
       fail-fast: false
